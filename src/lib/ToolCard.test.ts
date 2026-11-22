@@ -2,7 +2,17 @@ import { describe, expect, it } from 'vitest';
 import { render } from 'svelte/server';
 import { setLocale } from '$lib/i18n';
 
-const text = (html: string) => html.replace(/<!--[\s\S]*?-->/g, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+/** The text a server render shows, its entities decoded (`<<` comes as `&lt;&lt;`). */
+const text = (html: string) =>
+	html
+		.replace(/<!--[\s\S]*?-->/g, '')
+		.replace(/<[^>]+>/g, ' ')
+		.replace(/&lt;/g, '<')
+		.replace(/&gt;/g, '>')
+		.replace(/&quot;/g, '"')
+		.replace(/&#39;/g, "'")
+		.replace(/&amp;/g, '&')
+		.replace(/\s+/g, ' ');
 
 describe('the tool card', () => {
 	it('names a running command by what the engine started, before its output comes', async () => {
