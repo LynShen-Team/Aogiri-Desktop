@@ -3,8 +3,9 @@
 	// subscriptions; the gateway's plan stops keep their own card,
 	// planStop.ts): which limit, how much of it is used, when it resets.
 	// Once hit, the stopped turn can go on by itself at the reset
-	// (limitResume.svelte.ts). A flat strip in the column: no colour fill,
-	// a 4px meter, the error colour only for a limit that was hit.
+	// (limitResume.svelte.ts). One line flat on the canvas, as wide as the
+	// composer under it: no fill, a short meter after the title, the error
+	// colour only for a limit that was hit (design.md, the usage limit).
 	import XIcon from 'phosphor-svelte/lib/XIcon';
 	import IconButton from '$lib/ui/IconButton.svelte';
 	import Button from '$lib/ui/Button.svelte';
@@ -17,7 +18,6 @@
 		limit,
 		backend,
 		resumeArmed,
-		compact = false,
 		onResume,
 		onCancelResume,
 		onDismiss
@@ -25,9 +25,6 @@
 		limit: UsageLimit;
 		backend: string;
 		resumeArmed: boolean;
-		/** The remote page: one line on the canvas with no fill of its own,
-		 *  the meter short and after the title (design.md, the usage limit). */
-		compact?: boolean;
 		/** Absent (the phone page): the notice offers no wait for the reset. */
 		onResume?: () => void;
 		onCancelResume?: () => void;
@@ -72,17 +69,14 @@
 	const showMeter = $derived(limit.used !== null || limit.level === 'limited');
 </script>
 
-{#snippet meter()}
-	<div class="meter" role="meter" aria-label={which} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(fill)}><span style:width="{fill}%"></span></div>
-{/snippet}
-
-<div class="limit" class:hit={limit.level === 'limited'} class:compact role="status">
+<div class="limit" class:hit={limit.level === 'limited'} role="status">
 	<div class="text">
-		{#if compact}
-			<span class="head"><span class="title">{title}</span>{#if showMeter}{@render meter()}{/if}</span>
-		{:else}
+		<span class="head">
 			<span class="title">{title}</span>
-		{/if}
+			{#if showMeter}
+				<span class="meter" role="meter" aria-label={which} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(fill)}><span style:width="{fill}%"></span></span>
+			{/if}
+		</span>
 		{#if reset}<span class="dim">{reset}</span>{:else if limit.message}<span class="dim">{limit.message}</span>{/if}
 		{#if limit.overage}<span class="dim">{t('shell.limit.overage')}</span>{/if}
 		{#if resumeArmed}<span class="dim">{t('shell.limit.resumeArmed')}</span>{/if}
@@ -95,22 +89,22 @@
 		{/if}
 	{/if}
 	<IconButton size="sm" label={t('shell.rlDismiss')} title={t('shell.rlDismiss')} onclick={onDismiss}><XIcon size={14} /></IconButton>
-	{#if showMeter && !compact}{@render meter()}{/if}
 </div>
 
 <style>
-	/* Flat in the column above the composer (design.md, "Workbench canvas"):
-	   --surface, --r-lg, one line of text with its actions, the 4px meter
-	   under it ("A quota or usage figure shows as text with a 4px meter"). */
+	/* One line flat on the canvas above the composer (design.md, the usage
+	   limit): no fill or box of its own, so nothing stacks on the composer's
+	   box under it. Its page lines it up with the composer: the strip's edges
+	   with the box's, its text where the box's text starts (--limit-inset).
+	   A short meter follows the title on its line; in a narrow column the
+	   reset wraps under the title. */
 	.limit {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
 		gap: 6px 10px;
 		margin: 0 0 8px;
-		padding: 8px 8px 10px 12px;
-		border-radius: var(--r-lg);
-		background: var(--surface);
+		padding: 0 4px 0 var(--limit-inset, 16px);
 		font-size: var(--fs-xs);
 		line-height: 16px;
 	}
@@ -121,6 +115,12 @@
 		align-items: baseline;
 		gap: 2px 8px;
 		min-width: 0;
+	}
+	.head {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		white-space: nowrap;
 	}
 	.title {
 		color: var(--text);
@@ -134,7 +134,8 @@
 		font-variant-numeric: tabular-nums;
 	}
 	.meter {
-		flex-basis: 100%;
+		flex: 0 0 64px;
+		width: 64px;
 		height: 4px;
 		overflow: hidden;
 		border-radius: var(--r-full);
@@ -148,25 +149,5 @@
 	}
 	.hit .meter > span {
 		background: var(--err);
-	}
-	/* Compact (the remote page): no fill or box of its own over the canvas,
-	   so nothing stacks on the composer's box under it; the text starts
-	   where the composer's text does, and a short meter follows the title
-	   on its line. On a narrow screen the reset wraps under the title. */
-	.compact {
-		margin: 0 0 8px;
-		padding: 0 4px 0 16px;
-		border-radius: 0;
-		background: none;
-	}
-	.head {
-		display: inline-flex;
-		align-items: center;
-		gap: 8px;
-		white-space: nowrap;
-	}
-	.compact .meter {
-		flex: 0 0 64px;
-		width: 64px;
 	}
 </style>

@@ -1019,7 +1019,7 @@
 				<!-- Not in .approval: that box scrolls (a long card), and on a
 				     scrollbar that takes room (Windows) a fraction of a pixel of
 				     rounding drew both scrollbars around the one-line strip. -->
-				<div class="limit-wrap"><UsageLimit compact limit={chat.rateLimit} backend={engineId} resumeArmed={false} onDismiss={() => (chat.rateLimit = null)} /></div>
+				<div class="limit-wrap"><UsageLimit limit={chat.rateLimit} backend={engineId} resumeArmed={false} onDismiss={() => (chat.rateLimit = null)} /></div>
 			{/if}
 			{#if recap && !chat.pendingApproval}
 				<!-- The end of a turn hands control back, as on the desktop: the
@@ -1447,8 +1447,9 @@
 		font-variant-numeric: tabular-nums;
 	}
 	/* The usage strip lines up with the composer under it (its box and its
-	   text), not with the cards above. */
+	   text, after the box's 16px padding), not with the cards above. */
 	.limit-wrap {
+		--limit-inset: 16px;
 		max-width: 920px;
 		margin: 0 auto;
 		padding: 0 12px;
