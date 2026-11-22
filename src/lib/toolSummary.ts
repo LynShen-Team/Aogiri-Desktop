@@ -117,6 +117,22 @@ export function unwrapShell(c: string): string {
 	return m[1] === '"' ? m[2]!.replace(/\\(["\\$`])/g, '$1') : m[2]!;
 }
 
+/** A command card's target while the command runs: what lynshen's first
+ *  update, `started: <what runs>`, names (the text after `started: `): the
+ *  model's command. Older engines named the shell's command line instead
+ *  (`/bin/zsh -c ls`, `C:\…\bash.exe -lc ls`, PowerShell with its UTF-8
+ *  prelude on the first line and the command after it): the command is
+ *  taken out of it. Its first line, cut to 64. */
+export function startedTarget(started: string): string {
+	let cmd = started.trim();
+	const pwsh = /^[^\n]*?(?:pwsh|powershell)(?:\.exe)? -NoProfile[^\n]* -Command [^\n]*\n([\s\S]*)$/i.exec(cmd);
+	const posix = /^(?:[^\n]*?[\\/])?(?:ba|z)?sh(?:\.exe)? -l?c ([\s\S]*)$/.exec(cmd);
+	if (pwsh) cmd = pwsh[1]!;
+	else if (posix) cmd = posix[1]!;
+	const line = (cmd.split('\n').find((l) => l.trim()) ?? '').trim().replace(/\s+/g, ' ');
+	return line.length > 64 ? line.slice(0, 64) + '…' : line;
+}
+
 export function parseToolOutput(output: string): Record<string, unknown> | null {
 	try {
 		const v = JSON.parse(output);

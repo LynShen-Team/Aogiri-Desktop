@@ -36,6 +36,7 @@ import { CacheWatch } from './cacheMiss';
 import { breakdownTotal, parseBreakdown, type RequestParts } from './composer/contextUsage';
 import { parseMcpServersEvent, type McpServerView } from './mcp';
 import { parseSubagentResult } from './agents/subagentResult';
+import { startedTarget } from './toolSummary';
 import { parseReplyStyle, type ReplyStyleState } from './styles';
 import {
 	matchMessage,
@@ -187,8 +188,10 @@ export type Msg =
 			/** When its output came (or the turn ended without it). */
 			endedAt?: number;
 			/** What the call acts on, as the engine named it while it ran:
-			 *  lynshen's first update for a command, `started: <command>`,
-			 *  which its later updates (the output so far) replace. */
+			 *  lynshen's first update for a command, `started: <command>`
+			 *  (its first line, `startedTarget`), which its later updates (the
+			 *  output so far) replace. The card shows it until the output
+			 *  names the command. */
 			target?: string;
 	  }
 	/** A note. With `flow` it marks a step of the conversation's own course
@@ -2254,8 +2257,8 @@ export class ChatState {
 				if (t) {
 					t.output = boundedOutput(str(ev.output), t.name);
 					if (SUBAGENT_CALLS.has(t.name) || t.name === 'send_to_session' || t.name === 'start_session') t.args = t.output;
-					const started = /^started: (.+)/.exec(t.output)?.[1]?.trim();
-					if (started && !t.target) t.target = started;
+					const started = /^started: ([\s\S]+)/.exec(t.output)?.[1];
+					if (started && !t.target) t.target = startedTarget(started) || undefined;
 				}
 				break;
 			}

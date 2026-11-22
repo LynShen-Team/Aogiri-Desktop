@@ -5,7 +5,7 @@
 	import Collapse from '$lib/ui/Collapse.svelte';
 	import { t } from '$lib/i18n';
 	import Notice from '$lib/ui/Notice.svelte';
-	import { diffStat, isEdit, parseToolOutput, toolIcon, toolTarget, toolVerb, unwrapShell } from '$lib/toolSummary';
+	import { diffStat, isEdit, parseToolOutput, toolIcon, toolKind, toolTarget, toolVerb, unwrapShell } from '$lib/toolSummary';
 	import { readHref } from '$lib/fileRefs';
 	import RunLight from '$lib/ui/RunLight.svelte';
 	import DiffStat from '$lib/DiffStat.svelte';
@@ -24,6 +24,7 @@
 		reveal = 0,
 		startedAt,
 		endedAt,
+		named = '',
 		onFile
 	}: {
 		name: string;
@@ -49,6 +50,10 @@
 		 *  shows how long it ran. */
 		startedAt?: number;
 		endedAt?: number;
+		/** What the engine named the call as it started (lynshen's command):
+		 *  the target until the output names one, so a running command is
+		 *  not a bare "Ran". */
+		named?: string;
 		/** Opens a file in the app (a path, with `#L<line>`): a Read row opens
 		 *  the file it read, at the line the reading started. */
 		onFile?: (href: string) => void;
@@ -74,7 +79,7 @@
 	const s = (v: unknown) => (typeof v === 'string' ? v : '');
 	const verb = $derived(toolVerb(name));
 	const Icon = $derived(toolIcon(name));
-	const target = $derived(toolTarget(name, parsed));
+	const target = $derived(toolTarget(name, parsed) || (toolKind(name, parsed) === 'command' ? named : ''));
 
 	const kind = $derived(s(parsed?.kind));
 	const errorText = $derived(s(parsed?.error));

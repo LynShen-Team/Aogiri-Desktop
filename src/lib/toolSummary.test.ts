@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { diffStat, editedPaths, isEdit, runTime, toolFailed, toolKind, toolTarget, toolVerb } from './toolSummary';
+import { diffStat, editedPaths, isEdit, runTime, startedTarget, toolFailed, toolKind, toolTarget, toolVerb } from './toolSummary';
 
 describe('tool summaries', () => {
 	it('counts the lines of an edit from its diff, or the counts a streaming edit reports', () => {
@@ -38,6 +38,21 @@ describe('tool summaries', () => {
 		expect(runTime([call(1000, 2000), call(3000, undefined, true)], 3500)).toBe(1500);
 		// Replayed calls have no times.
 		expect(runTime([call(undefined), call(undefined)], 0)).toBeNull();
+	});
+
+	it('names a running command by what the engine started, not the shell around it', () => {
+		expect(startedTarget('pnpm vitest run src/lib')).toBe('pnpm vitest run src/lib');
+		// A file written with a heredoc: its first line.
+		expect(startedTarget("cat > src/a.ts <<'EOF'\nexport const a = 1;\nEOF")).toBe("cat > src/a.ts <<'EOF'");
+		expect(startedTarget('x'.repeat(80))).toBe('x'.repeat(64) + '…');
+		// Older engines named the shell's command line: the command is in it.
+		expect(startedTarget('/bin/zsh -c ls -la')).toBe('ls -la');
+		expect(startedTarget('sh -lc git status')).toBe('git status');
+		expect(startedTarget("C:\\Program Files\\Git\\bin\\bash.exe -lc cat > a.txt <<'EOF'\nhello\nEOF")).toBe("cat > a.txt <<'EOF'");
+		// PowerShell: its UTF-8 prelude on the first line, the command after.
+		const prelude = "$OutputEncoding = New-Object System.Text.UTF8Encoding $false; $ProgressPreference = 'SilentlyContinue'";
+		expect(startedTarget(`C:\\Program Files\\PowerShell\\7\\pwsh.exe -NoProfile -ExecutionPolicy Bypass -Command ${prelude}\nSet-Content a.txt 'x'`)).toBe("Set-Content a.txt 'x'");
+		expect(startedTarget(`powershell -NoProfile -ExecutionPolicy Bypass -Command ${prelude}\nGet-ChildItem`)).toBe('Get-ChildItem');
 	});
 
 	it('says what the app tools and the session tools did', () => {
