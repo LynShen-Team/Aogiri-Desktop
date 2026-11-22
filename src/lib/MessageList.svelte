@@ -31,7 +31,7 @@
 	import { parseDelivery } from '$lib/delivery';
 	import { sendCardProps, sendCardView, type SessionMessageView } from '$lib/sessions/sessionMessage';
 	import { ReplyStream, finishedBlocks, type Block } from '$lib/streamBlocks';
-	import { diffStat, editedPaths, isEdit, parseToolOutput, toolFailed, toolIcon, toolTarget, toolVerb } from '$lib/toolSummary';
+	import { diffStat, editedPaths, isEdit, parseToolOutput, toolFailed, toolIcon, toolKind, toolTarget, toolVerb } from '$lib/toolSummary';
 	import DiffStat from '$lib/DiffStat.svelte';
 	import ToolTime from '$lib/ToolTime.svelte';
 	import RunLight from '$lib/ui/RunLight.svelte';
@@ -809,6 +809,12 @@
 		callFacts.set(x, { output: x.output, isError: x.isError, facts });
 		return facts;
 	}
+	/** What a call acts on: from its output, else, for a command still
+	 *  running, what the engine named as it started (ToolCard `named`). */
+	function lastTarget(x: ToolMsg): string {
+		const parsed = parseToolOutput(x.output);
+		return toolTarget(x.name, parsed) || (toolKind(x.name, parsed) === 'command' ? (x.target ?? '') : '');
+	}
 	/** A run's line: its calls, whether one runs, how many failed, the
 	 *  latest call, and — for a run that only edits — the files it edited;
 	 *  the lines its edits added and removed. */
@@ -835,7 +841,7 @@
 		}
 		const edited = onlyEdits && files.size ? [...files].map((p) => p.split(/[\\/]/).pop() || p) : null;
 		const last = tools[tools.length - 1];
-		const latest = last && !edited ? { Icon: toolIcon(last.name), verb: toolVerb(last.name), target: toolTarget(last.name, parseToolOutput(last.output)) } : null;
+		const latest = last && !edited ? { Icon: toolIcon(last.name), verb: toolVerb(last.name), target: lastTarget(last) } : null;
 		return { tools, running, failed, latest, edited, stat: counted ? { add, del } : null };
 	}
 
@@ -1023,9 +1029,9 @@
 				{/if}
 			{:else if m.name === 'send_to_session'}
 				{@const card = sendCardProps(sendCardView(m, sendOf?.(m.callId)), m.isError)}
-				<ToolCard name={m.name} output={m.output} running={m.running} isError={m.isError} subagent={m.subagent} heading={card.heading} badge={card.badge} sections={card.sections} startedAt={m.startedAt} endedAt={m.endedAt} />
+				<ToolCard name={m.name} output={m.output} running={m.running} isError={m.isError} subagent={m.subagent} heading={card.heading} badge={card.badge} sections={card.sections} startedAt={m.startedAt} endedAt={m.endedAt} named={m.target} />
 			{:else}
-				<ToolCard name={m.name} output={m.output} running={m.running} isError={m.isError} subagent={m.subagent} trace={traceOf?.(m) ?? undefined} reveal={reveal(m)} startedAt={m.startedAt} endedAt={m.endedAt} onFile={onFile ? (href) => onFile(href) : undefined} />
+				<ToolCard name={m.name} output={m.output} running={m.running} isError={m.isError} subagent={m.subagent} trace={traceOf?.(m) ?? undefined} reveal={reveal(m)} startedAt={m.startedAt} endedAt={m.endedAt} named={m.target} onFile={onFile ? (href) => onFile(href) : undefined} />
 			{/if}
 		{:else if m.kind === 'compaction'}
 			<CompactionCard stage={m.state} before={m.before} after={m.after} written={m.written} since={m.since} summary={m.summary} error={m.error} live={m.live} />
@@ -1162,7 +1168,7 @@
 	{#if open}
 		<div class="tg-list">
 			{#each run as x (x)}
-				{#if x.kind === 'tool'}<ToolCard name={x.name} output={x.output} running={x.running} isError={x.isError} subagent={x.subagent} trace={traceOf?.(x) ?? undefined} reveal={reveal(x)} startedAt={x.startedAt} endedAt={x.endedAt} onFile={onFile ? (href) => onFile(href) : undefined} />
+				{#if x.kind === 'tool'}<ToolCard name={x.name} output={x.output} running={x.running} isError={x.isError} subagent={x.subagent} trace={traceOf?.(x) ?? undefined} reveal={reveal(x)} startedAt={x.startedAt} endedAt={x.endedAt} named={x.target} onFile={onFile ? (href) => onFile(href) : undefined} />
 				{:else if x.kind === 'reasoning'}{@render reasoningRow(x)}{/if}
 			{/each}
 		</div>

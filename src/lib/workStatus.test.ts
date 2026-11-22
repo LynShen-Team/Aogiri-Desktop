@@ -71,6 +71,20 @@ describe('the chat records what a running call acts on', () => {
 		expect(m.startedAt).toBeGreaterThanOrEqual(before);
 		expect(m.output).toBe('running 1.0s\nstdout:\n.');
 	});
+
+	it('names a file write by its command, not by the shell that runs it', () => {
+		const chat = new ChatState();
+		chat.handle({ type: 'tool_start', call_id: 'b2', name: 'bash' } as never);
+		// An older engine on Windows: Git Bash's command line, then the heredoc.
+		chat.handle({
+			type: 'tool_update',
+			call_id: 'b2',
+			name: 'bash',
+			output: "started: C:\\Program Files\\Git\\bin\\bash.exe -lc cat > notes.md <<'EOF'\n# Notes\nEOF"
+		} as never);
+		const m = chat.messages.at(-1) as Extract<Msg, { kind: 'tool' }>;
+		expect(m.target).toBe("cat > notes.md <<'EOF'");
+	});
 });
 
 describe('workElapsed', () => {
