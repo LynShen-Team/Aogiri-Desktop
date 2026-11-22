@@ -3,6 +3,10 @@ import { acpAgentsList, closeSession, recordOpencodeCopy, createChatDir, daemon,
 import { forkedMessages, sessionWorktreeNames } from './forks';
 import { engineHas } from './engineVersion.svelte';
 import { probeEngine } from './engineProbe';
+import { loadProfile, profileKey } from './backendProfile';
+import { catalogOffers, draftModel, toolModeKey } from './draftModel';
+import { draftProvider, loadToolProviders, toolProviderConfigs } from './toolProviders.svelte';
+import { gatewayCatalog } from './models/catalogStore.svelte';
 import { chatFolderName } from './chatFolder';
 import { savedEmpty } from './savedEmpty';
 import { DaemonError, type EngineSpec } from './daemon';
@@ -313,6 +317,8 @@ export class SessionStore {
 		};
 		// This session alone talks to the LynShen gateway (see Session.gateway).
 		const gateway = s.gateway !== undefined ? { lynshen_gateway: s.gateway } : {};
+		// What its engine reports is remembered for that mode (draftModel.ts).
+		s.chat.onGateway = s.gateway === true;
 		const engine: Promise<EngineSpec | undefined> =
 			s.backendId === 'claude'
 				? Promise.resolve({
@@ -530,16 +536,86 @@ export class SessionStore {
 		s.chat.booting = false;
 		s.chat.engineState = 'ready';
 		s.chat.seedFromProfile();
+		this.#settleDraftModel(s);
 		markDraft(s.id, () => this.#startDraft(s.id));
 		// Claude Code / Codex: its menus from what the engine offers now, when
 		// that was not known lately (engineProbe.ts); the draft takes the
 		// answer while it is still a draft of that backend.
 		const { id, chat } = s;
-		void probeEngine(s.backendId).then((changed) => {
+		const still = () => {
 			const now = this.allSessions.find((x) => x.id === id);
+			return now?.draft && now.chat === chat && chat.backendId === now.backendId ? now : undefined;
+		};
+		void probeEngine(s.backendId).then((changed) => {
+			const now = still();
 			// A model the user picked meanwhile stays.
-			if (changed && now?.draft && now.chat === chat && chat.backendId === now.backendId && !now.draftPick) chat.seedFromProfile();
+			if (changed && now && !now.draftPick) {
+				chat.seedFromProfile();
+				this.#settleDraftModel(now);
+			}
 		});
+		// Which custom provider a Claude Code draft starts on is known once
+		// the daemon listed them.
+		if (s.backendId === 'claude' && engineHas('tool_providers') && !toolProviderConfigs.claude)
+			void loadToolProviders('claude')
+				.then(() => {
+					const now = still();
+					if (now) this.#settleDraftModel(now);
+				})
+				.catch(() => {});
+	}
+
+	/** Claude Code, a draft: its provider mode (undefined while not known),
+	 *  what that mode offers and its default (draftModel.ts). */
+	#draftMode(s: Session) {
+		const providers = !s.gateway && engineHas('tool_providers');
+		const custom = providers ? draftProvider('claude', s.draftToolProvider) : undefined;
+		// Without the daemon's list the provider it starts on is not known.
+		const known = !providers || s.draftToolProvider !== undefined || !!toolProviderConfigs.claude;
+		const profile = loadProfile(profileKey('claude'));
+		const system = profile.defaults?.system;
+		return {
+			profile,
+			mode: known ? toolModeKey(s.gateway, custom?.id) : undefined,
+			offers: (model: string) =>
+				custom
+					? custom.models.includes(model)
+					: s.gateway
+						? !!gatewayCatalog.lookup(model)
+						: profile.catalogMode === 'system' && catalogOffers(profile.catalog, model),
+			// Claude Code's own default, on the gateway when it serves it.
+			fallback: custom
+				? { model: custom.model, label: '' }
+				: system && (!s.gateway || gatewayCatalog.lookup(system.model))
+					? { model: system.model, label: system.label ?? '' }
+					: undefined
+		};
+	}
+
+	/** Claude Code, a draft whose model the user did not pick: shows the
+	 *  model it is to start on (draftModel.ts). */
+	#settleDraftModel(s: Session) {
+		if (s.backendId !== 'claude' || !s.draft || s.draftPick?.model) return;
+		const { profile, mode, offers, fallback } = this.#draftMode(s);
+		const shown = draftModel({
+			remembered: profile.model ? { model: profile.model, label: profile.modelLabel ?? '' } : undefined,
+			rememberedMode: profile.modelMode,
+			mode,
+			offers,
+			fallback
+		});
+		if (shown.model !== s.chat.model) s.chat.pickDraftModel(shown.model, shown.label);
+	}
+
+	/** The model such a draft starts on (`--model`): the one it shows, while
+	 *  its mode runs that one ('' when the engine is to name it). */
+	#draftStartModel(s: Session): string {
+		if (s.backendId !== 'claude' || !s.draft || s.draftPick?.model) return '';
+		const { mode, offers, fallback } = this.#draftMode(s);
+		const shown = s.chat.model;
+		if (mode !== undefined && shown && (offers(shown) || shown === fallback?.model)) return shown;
+		this.#settleDraftModel(s);
+		return mode === undefined ? '' : s.chat.model;
 	}
 
 	/** The project's new conversation with nothing sent yet (`isBlank`), the
@@ -564,6 +640,8 @@ export class SessionStore {
 		const s = this.allSessions.find((x) => x.id === id);
 		const project = this.projects.find((p) => p.sessions.some((x) => x.id === id));
 		if (!s?.draft || !project) return;
+		// Claude Code without a pick starts on the model the draft shows.
+		const shown = this.#draftStartModel(s);
 		s.draft = false;
 		telemetry.track(`session_start:${s.backendId}`);
 		project.lastBackend = s.backendId;
@@ -588,11 +666,15 @@ export class SessionStore {
 		// daemon takes the tool's default otherwise, and keeps it after).
 		const provider = s.draftToolProvider;
 		s.draftToolProvider = undefined;
+		const toolOpts = {
+			...(provider !== undefined && !s.gateway && engineHas('tool_providers') ? { tool_provider: provider } : {}),
+			...(shown ? { model: shown } : {})
+		};
 		const startOpts =
 			acp && pick
 				? { ...(pick.model ? { model: pick.model } : {}), ...(pick.effort ? { effort: pick.effort } : {}) }
-				: provider !== undefined && !s.gateway && engineHas('tool_providers')
-					? { tool_provider: provider }
+				: Object.keys(toolOpts).length
+					? toolOpts
 					: undefined;
 		const want = s.draftWorktree;
 		s.draftWorktree = undefined;
@@ -1386,7 +1468,7 @@ export class SessionStore {
 			s.draftPick = { ...s.draftPick, model };
 			s.chat.model = model;
 			s.chat.modelLabel = '';
-		}
+		} else this.#settleDraftModel(s);
 	}
 
 	/** Run this Claude Code / Codex / OpenCode session through the LynShen
@@ -1407,7 +1489,7 @@ export class SessionStore {
 				s.draftPick = { ...s.draftPick, model };
 				s.chat.model = model;
 				s.chat.modelLabel = '';
-			}
+			} else this.#settleDraftModel(s);
 			return;
 		}
 		// The other profile has other models: what it ran on is not kept.

@@ -33,6 +33,8 @@ import { daemon, hostSession, closeSession, sendLine, git, writeConfig, sessionH
 import type { EngineSpec } from './daemon';
 import { setLocale } from './i18n';
 import { engine } from './engineVersion.svelte';
+import { rememberProfile, type BackendProfile } from './backendProfile';
+import type { ModelOption } from './chat.svelte';
 import type { Project, Session, WorktreeMeta } from './types';
 
 const proj = (id = 'p1'): Project => ({ id, name: id, path: `/tmp/${id}`, sessions: [] });
@@ -1898,5 +1900,96 @@ describe('forks and worktree sessions (B09)', () => {
 		const p = store.projects[0]!;
 		const id = store.listDormant(p, { session: 'conv-b', forked_from: { session: 'conv-a', turns: 3 } });
 		expect(p.sessions.find((s) => s.id === id)!.forkedFrom).toEqual({ sid: 'conv-a', title: '', turns: 3 });
+	});
+});
+
+describe('a new Claude Code conversation runs the model it shows', () => {
+	beforeEach(() => {
+		const items = new Map<string, string>();
+		vi.stubGlobal('localStorage', {
+			getItem: (k: string) => items.get(k) ?? null,
+			setItem: (k: string, v: string) => void items.set(k, v),
+			removeItem: (k: string) => void items.delete(k)
+		});
+		engine.features = [];
+	});
+	afterEach(() => vi.unstubAllGlobals());
+	const option = (model: string, vendor: string, label: string): ModelOption => ({
+		model,
+		vendor,
+		label,
+		active: false,
+		context_window: 200000,
+		max_output_tokens: 0,
+		reasoning_efforts: []
+	});
+	/** What Claude Code reported last: a probe on its own config (its
+	 *  catalog and default) and then a session (`last`). */
+	const reported = (last: BackendProfile) =>
+		rememberProfile('claude', {
+			catalog: [option('opus', 'claude-opus-5-5', 'Opus 5.5'), option('haiku', 'claude-haiku-5-5', 'Haiku 5.5')],
+			catalogMode: 'system',
+			defaults: { system: { model: 'claude-opus-5-5', label: 'Opus 5.5' } },
+			probedAt: Date.now(),
+			...last
+		});
+	/** A new Claude Code draft; its first message starts it. */
+	const draft = () => {
+		const store = new SessionStore();
+		const p = proj();
+		store.projects.push(p);
+		const id = store.addSession(p, undefined, 'claude');
+		return { id, s: p.sessions[0] };
+	};
+	const sent = (id: string) => vi.mocked(sendLine).mock.calls.filter(([sid]) => sid === id).map(([, line]) => line);
+
+	it('shows the model last run in its mode and starts on it, with no pick', async () => {
+		reported({ model: 'claude-haiku-5-5', modelLabel: 'Haiku 5.5', modelMode: 'system' });
+		const { id, s } = draft();
+		expect(s.chat.model).toBe('claude-haiku-5-5');
+		begin(id);
+		await flush();
+		expect(lastSpec()).toMatchObject({ engine: 'claude', options: { model: 'claude-haiku-5-5' } });
+		// On the command line (`--model`), not a switch after the start.
+		expect(sent(id)).toEqual([JSON.stringify({ op: 'user_message', content: 'hi' })]);
+	});
+
+	it("shows and starts on the mode's default instead of a model from another mode or one it no longer offers", async () => {
+		for (const stale of [
+			{ model: 'claude-haiku-5-5', modelLabel: 'Haiku 5.5', modelMode: 'lynshen' },
+			{ model: 'claude-haiku-5-5', modelLabel: 'Haiku 5.5', modelMode: 'custom:own' },
+			{ model: 'claude-retired-1', modelLabel: 'Retired', modelMode: 'system' },
+			// Remembered before modes were.
+			{ model: 'claude-haiku-5-5', modelLabel: 'Haiku 5.5', modelMode: undefined }
+		]) {
+			reported(stale);
+			const { id, s } = draft();
+			expect(s.chat.model, JSON.stringify(stale)).toBe('claude-opus-5-5');
+			expect(s.chat.modelLabel).toBe('Opus 5.5');
+			begin(id);
+			await flush();
+			expect(lastSpec()?.options?.model).toBe('claude-opus-5-5');
+		}
+		// No default known yet: nothing stale is shown, and the engine names
+		// the model it runs.
+		rememberProfile('claude', { defaults: undefined });
+		const { id, s } = draft();
+		expect(s.chat.model).toBe('');
+		begin(id);
+		await flush();
+		expect(lastSpec()?.options?.model).toBeUndefined();
+	});
+
+	it('a model picked in the draft goes as before', async () => {
+		reported({ model: 'claude-haiku-5-5', modelLabel: 'Haiku 5.5', modelMode: 'system' });
+		const { id, s } = draft();
+		s.draftPick = { model: 'opus' };
+		begin(id);
+		await flush();
+		expect(lastSpec()?.options?.model).toBeUndefined();
+		expect(sent(id)).toEqual([
+			JSON.stringify({ op: 'command', input: '/model opus' }),
+			JSON.stringify({ op: 'user_message', content: 'hi' })
+		]);
 	});
 });
