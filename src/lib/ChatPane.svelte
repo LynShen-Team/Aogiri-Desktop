@@ -2161,17 +2161,19 @@
 			</p>
 		{/if}
 		{#if chat.rateLimit}
-			<UsageLimit
-				limit={chat.rateLimit}
-				backend={chat.backendId}
-				resumeArmed={chat.resumeAtReset}
-				onResume={() => limitResume.arm(chat)}
-				onCancelResume={() => limitResume.cancel(chat)}
-				onDismiss={() => {
-					limitResume.cancel(chat);
-					chat.rateLimit = null;
-				}}
-			/>
+			<div class="limit-wrap">
+				<UsageLimit
+					limit={chat.rateLimit}
+					backend={chat.backendId}
+					resumeArmed={chat.resumeAtReset}
+					onResume={() => limitResume.arm(chat)}
+					onCancelResume={() => limitResume.cancel(chat)}
+					onDismiss={() => {
+						limitResume.cancel(chat);
+						chat.rateLimit = null;
+					}}
+				/>
+			</div>
 		{/if}
 
 		{#if chat.planRevising}
@@ -2522,6 +2524,16 @@
 		width: 100%;
 		margin: 0 auto;
 		padding: 0 var(--chat-pad) 10px;
+	}
+	/* The usage strip lines up with the composer under it: its edges with
+	   the box (the same frame as above), its text with the box's text
+	   (Composer.svelte: a 1px border, then .rich's 14px padding). */
+	.limit-wrap {
+		--limit-inset: 15px;
+		max-width: calc(var(--chat-w) + 2 * var(--chat-pad));
+		width: 100%;
+		margin: 0 auto;
+		padding: 0 var(--chat-pad);
 	}
 	/* Waiting for the reader, like the approval card: a fade only. */
 	.gate,
