@@ -70,6 +70,28 @@ describe('ChatState.handle', () => {
 		vi.unstubAllGlobals();
 	});
 
+	it('remembers the provider mode a Claude Code model and catalog were reported in', () => {
+		const store = new Map<string, string>();
+		vi.stubGlobal('localStorage', { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v), removeItem: (k: string) => store.delete(k) });
+		const profile = () => JSON.parse(store.get('lynshen-backend-profiles') ?? '{}').claude;
+		const c = new ChatState('claude');
+		c.onGateway = true;
+		c.handle({ type: 'model_status', provider: 'anthropic', model: 'claude-haiku-5-5', model_label: 'Haiku 5.5', state: 'ready' } as never);
+		expect(profile()).toMatchObject({ model: 'claude-haiku-5-5', modelMode: 'lynshen' });
+		// A watch snapshot names the custom provider after the model and the
+		// catalog it ran them on.
+		const custom = new ChatState('claude');
+		custom.handle({ type: 'model_status', provider: 'anthropic', model: 'own-model', state: 'ready' } as never);
+		custom.handle({ type: 'model_view', models: [{ model: 'own-model', active: true }] } as never);
+		expect(profile()).toMatchObject({ model: 'own-model', modelMode: 'system', catalogMode: 'system' });
+		custom.handle({ type: 'tool_provider', provider: { id: 'own', name: 'Own', model: 'own-model', models: ['own-model'] } } as never);
+		expect(profile()).toMatchObject({ model: 'own-model', modelMode: 'custom:own', catalogMode: 'custom:own' });
+		// Other backends record no mode.
+		new ChatState('codex').handle({ type: 'model_status', provider: 'openai', model: 'gpt-5.5', state: 'ready' } as never);
+		expect(JSON.parse(store.get('lynshen-backend-profiles')!).codex.modelMode).toBeUndefined();
+		vi.unstubAllGlobals();
+	});
+
 	it("asks once, quietly, for the model list of a backend that never listed it", () => {
 		const store = new Map<string, string>();
 		vi.stubGlobal('localStorage', { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v), removeItem: (k: string) => store.delete(k), clear: () => store.clear() });

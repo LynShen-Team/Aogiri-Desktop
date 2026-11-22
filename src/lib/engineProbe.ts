@@ -43,21 +43,44 @@ export function profileFromEvents(events: Record<string, unknown>[]): BackendPro
 
 const running = new Map<string, Promise<boolean>>();
 
+/** Claude Code's probe runs on its own login or config (`system`): what it
+ *  reports is that mode's, its model the one a session there runs when it
+ *  names none (draftModel.ts). */
+function claudeModes(patch: BackendProfile, known: BackendProfile): BackendProfile {
+	const modes: BackendProfile = {};
+	if (patch.model) {
+		modes.modelMode = 'system';
+		modes.defaults = { ...known.defaults, system: { model: patch.model, ...(patch.modelLabel ? { label: patch.modelLabel } : {}) } };
+	}
+	if (patch.catalog) modes.catalogMode = 'system';
+	return modes;
+}
+
 /** Probes Claude Code or Codex unless its profile is fresh (`force`: anyway)
  *  or the daemon cannot; true when the profile changed. One probe per
- *  backend at a time. */
+ *  backend at a time. A Claude Code profile without its default is not
+ *  fresh. */
 export function probeEngine(backend: BackendId, force = false): Promise<boolean> {
 	if ((backend !== 'claude' && backend !== 'codex') || !engineHas('engine_probe')) return Promise.resolve(false);
 	const key = profileKey(backend);
-	if (!force && Date.now() - (loadProfile(key).probedAt ?? 0) < PROBE_FRESH_MS) return Promise.resolve(false);
+	const known = loadProfile(key);
+	const fresh = Date.now() - (known.probedAt ?? 0) < PROBE_FRESH_MS && (backend !== 'claude' || !!known.defaults?.system);
+	if (!force && fresh) return Promise.resolve(false);
 	let job = running.get(key);
 	if (!job) {
 		job = (async () => {
 			const base = buildBackendOpts(backend);
-			const options = { ...(base?.bin_override ? { bin: base.bin_override } : {}), ...(base?.env ? { env: base.env } : {}) };
+			const options = {
+				...(base?.bin_override ? { bin: base.bin_override } : {}),
+				...(base?.env ? { env: base.env } : {}),
+				// Not on a custom provider the daemon would pick: those list
+				// their models in their settings.
+				...(backend === 'claude' ? { tool_provider: '' } : {})
+			};
 			const reply = await daemon.request({ op: 'engine_probe', engine: backend, options, ...(force ? { force: true } : {}) });
 			const patch = profileFromEvents(arr<Record<string, unknown>>(reply.events));
-			rememberProfile(key, { ...patch, probedAt: Date.now() });
+			const modes = backend === 'claude' ? claudeModes(patch, loadProfile(key)) : {};
+			rememberProfile(key, { ...patch, ...modes, probedAt: Date.now() });
 			return Object.keys(patch).length > 0;
 		})()
 			.catch(() => false)

@@ -22,6 +22,14 @@ export interface BackendProfile {
 	effortDefault?: string;
 	/** When the daemon last probed the engine for it (engineProbe.ts), ms. */
 	probedAt?: number;
+	/** Claude Code: the provider mode (draftModel.ts `toolModeKey`) `model`
+	 *  was reported in, and the one `catalog` was listed in. Unset (a profile
+	 *  from before): not known, so a draft does not show that model again. */
+	modelMode?: string;
+	catalogMode?: string;
+	/** Claude Code: per provider mode, the model a session runs when it names
+	 *  none (what a probe of that mode reported). */
+	defaults?: Record<string, { model: string; label?: string }>;
 }
 
 const KEY = 'lynshen-backend-profiles';

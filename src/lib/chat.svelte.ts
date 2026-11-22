@@ -1,5 +1,6 @@
 import type { AgentEvent, SessionOption, SessionToolProvider } from './protocol';
 import { loadProfile, profileKey, rememberProfile, type BackendProfile } from '$lib/backendProfile';
+import { toolModeKey } from '$lib/draftModel';
 import { isBackendId, type BackendCaps, type BackendId } from './backends/types';
 import { caps } from './backends';
 import {
@@ -911,6 +912,9 @@ export class ChatState {
 	/** Claude Code / Codex: the custom provider the engine process runs on
 	 *  (`tool_provider`); null on the LynShen gateway or the tool's own config. */
 	toolProvider = $state<SessionToolProvider | null>(null);
+	/** Claude Code / Codex: the engine process runs on the LynShen gateway
+	 *  (set by the session store as it starts it). */
+	onGateway = false;
 	/** ACP: the effort value that leaves the level to the agent
 	 *  (`default_effort`: OpenCode's `default`, oh-my-pi's `auto`); '' when
 	 *  the agent has none. */
@@ -1434,6 +1438,8 @@ export class ChatState {
 
 	/** The model the engine last reported (model_status). */
 	#reportedModel = '';
+	/** This engine reported its catalog (model_view). */
+	#catalogReported = false;
 
 	/** The reader asked to stop the running turn (ChatPane's stop, 中断并
 	 *  发送): where it ends, a divider says so. */
@@ -1839,6 +1845,14 @@ export class ChatState {
 		rememberProfile(profileKey(this.backendId, this.acpAgentId), patch);
 	}
 
+	/** Claude Code: the provider mode its engine runs in, which a model or
+	 *  catalog it reports is remembered with (draftModel.ts); unset for the
+	 *  other backends. */
+	#profileMode(): string | undefined {
+		if (this.backendId !== 'claude') return undefined;
+		return toolModeKey(this.onGateway, this.toolProvider?.id);
+	}
+
 	/** A draft (no engine yet) shows what its backend reported last time. */
 	seedFromProfile() {
 		const p = loadProfile(profileKey(this.backendId, this.acpAgentId));
@@ -2115,6 +2129,7 @@ export class ChatState {
 				this.#remember({
 					provider: this.provider,
 					model: this.model,
+					modelMode: this.#profileMode(),
 					modelLabel: this.modelLabel,
 					effort: this.effort,
 					efforts: this.efforts,
@@ -2405,7 +2420,8 @@ export class ChatState {
 			case 'model_view':
 				this.modelCatalog = arr<ModelOption>(ev.models);
 				this.modelCatalogEffort = str(ev.active_effort);
-				this.#remember({ catalog: this.modelCatalog, catalogEffort: this.modelCatalogEffort });
+				this.#catalogReported = true;
+				this.#remember({ catalog: this.modelCatalog, catalogEffort: this.modelCatalogEffort, catalogMode: this.#profileMode() });
 				// A background refresh (the model list changed) updates the list
 				// without opening the menu.
 				if (this.silentModelView > 0) {
@@ -2644,6 +2660,13 @@ export class ChatState {
 					p && typeof p === 'object' && str(p.id)
 						? { id: str(p.id), name: str(p.name) || str(p.id), model: str(p.model), models: arr<string>(p.models) }
 						: null;
+				// A watch snapshot replays it after the model and the catalog it
+				// tells the mode of.
+				if (this.backendId === 'claude' && (this.#reportedModel || this.#catalogReported))
+					this.#remember({
+						...(this.#reportedModel ? { modelMode: this.#profileMode() } : {}),
+						...(this.#catalogReported ? { catalogMode: this.#profileMode() } : {})
+					});
 				break;
 			}
 			case 'command_list':

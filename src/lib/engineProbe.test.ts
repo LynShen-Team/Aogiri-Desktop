@@ -43,13 +43,31 @@ describe('engineProbe', () => {
 		engine.features = ['engine_probe'];
 		vi.mocked(daemon.request).mockResolvedValue({ type: 'engine_probed', engine: 'claude', events: EVENTS, at: 1, cached: false });
 		expect(await probeEngine('claude')).toBe(true);
-		expect(daemon.request).toHaveBeenCalledWith({ op: 'engine_probe', engine: 'claude', options: {} });
-		expect(loadProfile('claude').model).toBe('claude-opus-5-5');
+		// On Claude Code's own config, not a custom provider the daemon would pick.
+		expect(daemon.request).toHaveBeenCalledWith({ op: 'engine_probe', engine: 'claude', options: { tool_provider: '' } });
+		expect(loadProfile('claude')).toMatchObject({
+			model: 'claude-opus-5-5',
+			modelMode: 'system',
+			catalogMode: 'system',
+			defaults: { system: { model: 'claude-opus-5-5', label: 'Opus 5.5' } }
+		});
 		expect(await probeEngine('claude')).toBe(false);
 		expect(daemon.request).toHaveBeenCalledTimes(1);
 		// LynShen and ACP agents are never probed.
 		expect(await probeEngine('lynshen')).toBe(false);
 		expect(await probeEngine('acp')).toBe(false);
+	});
+
+	it("probes Claude Code again for a profile without its default", async () => {
+		engine.features = ['engine_probe'];
+		store.set('lynshen-backend-profiles', JSON.stringify({ claude: { model: 'claude-haiku-5-5', probedAt: Date.now() } }));
+		vi.mocked(daemon.request).mockResolvedValue({ type: 'engine_probed', engine: 'claude', events: EVENTS, at: 1, cached: false });
+		expect(await probeEngine('claude')).toBe(true);
+		expect(loadProfile('claude').defaults?.system?.model).toBe('claude-opus-5-5');
+		// Codex has no default to wait for.
+		store.set('lynshen-backend-profiles', JSON.stringify({ codex: { model: 'gpt-5.5', probedAt: Date.now() } }));
+		expect(await probeEngine('codex')).toBe(false);
+		expect(daemon.request).toHaveBeenCalledTimes(1);
 	});
 
 	it('keeps the old profile when the probe fails', async () => {
