@@ -557,7 +557,8 @@ export class SessionStore {
 		// Which custom provider a Claude Code draft starts on is known once
 		// the daemon listed them.
 		if (s.backendId === 'claude' && engineHas('tool_providers') && !toolProviderConfigs.claude)
-			void loadToolProviders('claude')
+			void Promise.resolve()
+				.then(() => loadToolProviders('claude'))
 				.then(() => {
 					const now = still();
 					if (now) this.#settleDraftModel(now);
