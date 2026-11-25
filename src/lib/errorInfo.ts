@@ -141,7 +141,9 @@ export function describeError(raw: string, backend = '', provider = ''): ErrorIn
 	if (stop) {
 		const ACTIONS: Record<typeof stop.code, ErrorAction[]> = {
 			// The balance only until the window recovers (owner, 2026-10-17).
-			plan_quota_exhausted: ['waitPlan', 'balanceUntilReset', 'purchase'],
+			// A model-scoped window stops only its models: another model goes on.
+			// After an automatic switch to the balance, sending again goes on.
+			plan_quota_exhausted: stop.switched ? [] : stop.models?.length ? ['model', 'waitPlan', 'balanceUntilReset'] : ['waitPlan', 'balanceUntilReset', 'purchase'],
 			plan_inactive: [stop.reason === 'none' ? 'purchase' : 'renew', 'useBalance'],
 			model_not_in_plan: ['model', 'useBalance'],
 			plan_device_limit: ['useBalance', 'devices']

@@ -16,6 +16,10 @@ export interface TrialWindow {
 	used_cny: string;
 	/** RFC 3339, or null when the window has not started. */
 	resets_at: string | null;
+	/** The models the window counts ("claude-*"); absent when it counts every
+	 *  model. A plan may hold a Claude-only weekly window beside the weekly
+	 *  window for every model (gateway SB-Q-1M, 2026-11-25). */
+	models?: string[];
 }
 
 export interface TrialPlan {
@@ -126,7 +130,16 @@ export function parsePlan(v: unknown): TrialPlan | null {
 		if (!kind || quota == null || !Number.isFinite(Number(quota))) return [];
 		const used = text(r.used_cny);
 		const resets = text(r.resets_at);
-		return [{ kind, quota_cny: quota, used_cny: used != null && Number.isFinite(Number(used)) ? used : '0', resets_at: resets && !Number.isNaN(Date.parse(resets)) ? resets : null }];
+		const models = Array.isArray(r.models) ? r.models.filter((m): m is string => typeof m === 'string' && m.trim() !== '') : [];
+		return [
+			{
+				kind,
+				quota_cny: quota,
+				used_cny: used != null && Number.isFinite(Number(used)) ? used : '0',
+				resets_at: resets && !Number.isNaN(Date.parse(resets)) ? resets : null,
+				...(models.length ? { models } : {})
+			}
+		];
 	});
 	return {
 		name: text(p.name) ?? '',
@@ -364,8 +377,35 @@ function windowHours(kind: string): number {
 	return m ? Number(m[1]) * (m[2].toLowerCase() === 'd' ? 24 : 1) : Number.POSITIVE_INFINITY;
 }
 
-/** The windows, shortest first. */
-export const sortedWindows = (plan: TrialPlan): TrialWindow[] => [...plan.windows].sort((a, b) => windowHours(a.kind) - windowHours(b.kind));
+/** The models of a window in words: "claude-*" reads "Claude"; null for a
+ *  window that counts every model. */
+export function modelScope(models: readonly string[] | undefined): string | null {
+	if (!models?.length) return null;
+	const known: Record<string, string> = { claude: 'Claude', gpt: 'GPT', gemini: 'Gemini', glm: 'GLM', deepseek: 'DeepSeek', kimi: 'Kimi', grok: 'Grok' };
+	const names = models.map((m) => {
+		const family = /^([a-z0-9]+)[-_]?\*$/i.exec(m.trim());
+		return family ? (known[family[1].toLowerCase()] ?? family[1]) : m;
+	});
+	return [...new Set(names)].join(' / ');
+}
+
+/** A window's name with its models first: "Claude · 7 天". */
+export function windowTitle(w: Pick<TrialWindow, 'kind' | 'models'>): string {
+	const scope = modelScope(w.models);
+	return scope ? `${scope} · ${windowLabel(w.kind)}` : windowLabel(w.kind);
+}
+
+/** A window's identity: its kind and models (two windows may share a kind). */
+export const windowKey = (w: Pick<TrialWindow, 'kind' | 'models'>) => `${w.kind}|${(w.models ?? []).join(',')}`;
+
+/** The windows, shortest first; a window for every model before a
+ *  model-scoped one of the same length. */
+export const sortedWindows = (plan: TrialPlan): TrialWindow[] =>
+	[...plan.windows].sort((a, b) => windowHours(a.kind) - windowHours(b.kind) || (a.models?.length ? 1 : 0) - (b.models?.length ? 1 : 0));
+
+/** The windows that count every model: a used-up model-scoped window stops
+ *  only its models, so it never speaks for the whole plan. */
+const planWideWindows = (plan: TrialPlan): TrialWindow[] => sortedWindows(plan).filter((w) => !w.models?.length);
 
 /** Share of a window used, 0–1. */
 export function usedShare(w: TrialWindow): number {
@@ -380,7 +420,7 @@ export function usedShare(w: TrialWindow): number {
  *  Null for a plan without windows. */
 export function tightestWindow(plan: TrialPlan): { window: TrialWindow; left: string; share: number } | null {
 	let best: { window: TrialWindow; left: string; share: number } | null = null;
-	for (const w of sortedWindows(plan)) {
+	for (const w of planWideWindows(plan)) {
 		const quota = Number(w.quota_cny);
 		const used = Number(w.used_cny);
 		const left = Math.max(0, (Number.isFinite(quota) ? quota : 0) - (Number.isFinite(used) ? used : 0));
@@ -408,7 +448,7 @@ export function planDate(iso: string, withTime = false): string {
  *  keeps whole on a line). `grantedAt` dates the plan's length. */
 export function grantText(plan: TrialPlan, grantedAt: number): { title: string; body: string; parts: string[] } {
 	const days = Math.max(1, Math.round((Date.parse(plan.expires_at) - grantedAt) / 86_400_000));
-	const windows = sortedWindows(plan);
+	const windows = planWideWindows(plan);
 	const longest = windows.at(-1);
 	const parts = [plan.group.trim() || t('shell.trial.domestic')];
 	if (longest) parts.push(t('shell.trial.total', { n: credits(longest.quota_cny) }));
