@@ -8,20 +8,34 @@ desktop app). Nobody edits it by hand: change the web card, then export again.
 - Source: monoizeovo `frontend/src/pages/cyber-egg/card` (`card3d.tsx`, `frame*.ts*`, `foil.tsx`, `layer.tsx`,
   `artworks/*`, `card-back.tsx`, `pack-art.ts`, `cards.ts`, `tiers.ts`) and the `.ce-*` CSS in `frontend/src/index.css`.
   `manifest.json → source` records the repo, the commit and whether those files had uncommitted changes.
-- Exporter: aogiri `scripts/cyber-egg/export-art.ts`, run through `export-art.sh` (holds the machine's heavy-job
-  lock while Chrome runs):
+- Exporter: aogiri `scripts/cyber-egg/export-art.ts` (helpers: `serialize-dom.ts` runs in Chrome, `svg-tools.ts`,
+  `verify-page.ts`), run through `export-art.sh` from the aogiri repo root:
 
   ```
   scripts/cyber-egg/export-art.sh --frontend ~/lynshen-wt/gw-cyber-egg-g94/frontend --out assets/cyber-egg/art \
     --copy ~/lynshen-wt/deliverables/网关/赛博鸡蛋/卡面资产
   ```
 
+  | argument | meaning |
+  |---|---|
+  | `--frontend <dir>` | the monoizeovo `frontend` to export from (with its `node_modules`: `npm ci` there once) |
+  | `--out <dir>` | where the bundle goes (the folder is replaced); default `assets/cyber-egg/art` |
+  | `--copy <dir>` | also copy the bundle to `<dir>/art` and this file to `<dir>/ART-FORMAT.md` (repeatable) |
+  | `--verify <dir>` | check images; default `deliverables/网关/赛博鸡蛋/手机端-实现/导出核对/` |
+  | `--work <dir>` | scratch (page build, `dump.json`); default `$TMPDIR/cyber-egg-export` |
+  | `--from-dump <file>` / `--no-verify` | rewrite the bundle from an earlier `dump.json` / skip the check images |
+
+  Prerequisites: `bun` (`~/.bun/bin/bun`), Google Chrome, Playwright (env `PLAYWRIGHT=<…/playwright/index.mjs>`,
+  default the copy in `~/lynshen-wt/gw-creator-program/frontend/node_modules`; env `CHROME=<executable>` for another
+  Chrome). `export-art.sh` takes the machine's heavy-job lock `~/lynshen-wt/heavy.lock` (waits while another job has
+  it, always releases it). A run takes about two minutes.
+
   It renders every card (all packs and each pack's 典藏 card) with `live={false}` in Chrome and serialises the live
-  DOM (scripts/cyber-egg/serialize-dom.ts), so pictures drawn by script and CSS animations frozen at their first
-  frame are captured as the web shows a still card. `--verify <dir>` (default: deliverables
-  `手机端-实现/导出核对/`) writes side-by-side images: the web card vs. the exported pieces composed flat.
+  DOM, so pictures drawn by script and CSS animations frozen at their first frame are captured as the web shows a
+  still card. The check images are: `<card>-白天/夜间.png` (left the web card, right the exported pieces composed
+  flat as a client would), `背面和卡包.png`, `缩略图核对.png` (every thumbnail cut from its sheet by the manifest).
 - Copies: the phone app keeps the bundle at `assets/cyber-egg/art/`; the desktop app takes it from
-  `deliverables/网关/赛博鸡蛋/卡面资产/art/` (this file sits next to it).
+  `deliverables/网关/赛博鸡蛋/卡面资产/art/` (this file sits next to it). Copy the whole folder as is.
 
 ## 坐标和单位
 
@@ -44,8 +58,8 @@ manifest.json            the index (below)
 README.md                this file
 svg/cards/<id>-<i>.svg   picture plane i of card <id>, far → near; viewBox = the plane's box (window units)
 svg/frames/<tier>-<period>.svg   the frame of a card face (viewBox 0 0 300 420)
-svg/grounds/<tier>.svg   paper colour + security print, picture window cut out (viewBox 0 0 300 420)
-svg/backs/<period>.svg   the whole card back incl. its text (viewBox 0 0 300 420), without grain
+svg/grounds/<tier>.svg   the security print of the paper, transparent elsewhere (viewBox 0 0 300 420)
+svg/backs/<period>.svg   the card back over its paper: halo, guilloché, frame, emblem, text (viewBox 0 0 300 420)
 svg/wrappers/<period>.svg  the pack's printed wrapper (viewBox 0 0 345 500, preserveAspectRatio none)
 png/grain-{light,dark,back}.png  paper grain tiles, 105 × 105 units at 2 px/unit, seamless (stitched noise)
 png/shadows/<id>-<i>.png the cast shadow of plane i (0.5 px/unit), placed at `planes[i].shadow.box`
@@ -56,15 +70,34 @@ app/face.json            the same for frames, grounds and backs
 app/wrappers.json        the same for wrappers
 ```
 
+The paper colour and its grain are not in the ground and back SVGs: paint the colour (`tiers[tier].ground`,
+`packs[].back.ground`), lay the grain tiles over it, then the SVG — the web's order.
+
 ### SVG rules (all files)
 
 Self-contained and safe for react-native-svg 15 (`SvgXml`): no `<style>`, classes, CSS variables, `currentColor`,
-filters, `mix-blend-mode`, `spreadMethod` or `textPath`. Every colour, opacity and stroke is a plain attribute; the
+filters, `mix-blend-mode` or `textPath`. Every colour, opacity and stroke is a plain attribute; the
 defs a picture uses are inside it; ids are unique per picture (and across the bundle); numbers have ≤ 2 decimals;
 path data is relative. Text has one position per glyph (`<tspan x="x1 x2 …" y="…">`), so a device font with other
 metrics still puts each glyph where the web put it; families are `Georgia`, `Times New Roman`, `Songti SC`,
 `Courier New`, `Menlo` (map them to what the platform has, e.g. `serif` / `monospace` on Android). Text may contain a
 bare `&` (react-native-svg reads no entities): escape it before giving a file to a strict XML parser.
+
+Gradients: react-native-svg ignores `spreadMethod`, so a reflect / repeat gradient has its stops laid out over the
+whole picture (the attribute stays, for readers that honour it; beyond the stops nothing is drawn).
+
+**Foil** (`<linearGradient data-foil="w h k" gradientUnits="userSpaceOnUse">`): the metal of foil-stamped lines. On
+the web it slides as the card turns: `gradientTransform="translate(x·w·k y·h·k)"` for the tilt (x, y) ∈ [−1, 1]²
+(web card3d.tsx). Its stops already reach that far, so a client may set that transform as it is (frames: w h = 300
+420, k .42; pictures: 252 278 in window units, k .42, holo 1.1). Leave it out and the foil sits as at rest.
+
+**Idle motion** (`data-anim`): the web animates some parts of the pictures with CSS (a spinning ring, drifting
+clouds, rain, a blinking lamp…). The SVGs hold the first frame; each animated element says how it moves:
+`data-anim` = keyframes name(s) (their CSS is in `manifest.json → animations`), `data-anim-css` = duration, timing,
+delay, iteration count, direction (CSS syntax; several comma-separated), `data-anim-origin` = the transform origin
+in the element's own user units. A client that animates replaces the element's `transform` / `opacity` /
+`stroke-dashoffset` with the keyframes' values. Pictures the web draws by script every frame (Lorenz, armillary,
+Möbius…) are exported as their first frame only.
 
 ### app/*.json
 
@@ -88,6 +121,7 @@ One difference: long polylines are packed as `d='~<digits><base64>'` — per poi
               "planes": [{ "depth", "pop", "cast", "clip", "box", "opacity"?, "file",
                            "shadow"?: { "file", "box" } }] }],   // boxes in window units
   "frames": { "<tier>:<period>": file }, "grounds": { "<tier>": { "svg", "grain" } },
+  "animations": { "<keyframes name>": "@keyframes … { … }" },
   "grain": { "light" | "dark" | "back": { "file", "tile": 105 } },
   "cardShadow": { "file", "box", "rest": { "dx", "dy" } },
   "app": { "face", "wrappers", "packs": { "<period>": file } }
@@ -101,7 +135,8 @@ Back to front, all in card units:
 1. **Shadow**: `cardShadow` at its box, moved by `rest` (and by `(−x · 5cqw, −y · 4cqw)` when tilted), opacity 0.36
    on light pages (colour rgb(20 16 10)), 0.6 on dark ones (black).
 2. **Card stock**: three rounded slabs in the pack's `back.ground` colour at lifts −1.07, −0.77, −0.47 cqw.
-3. **Paper**: the tier's `ground` colour, the grain tile repeated (`grounds[tier].grain`), `grounds[tier].svg`.
+3. **Paper**: the tier's `ground` colour, the grain tile repeated (`grounds[tier].grain`), `grounds[tier].svg`
+   (the security print).
 4. **Window** (clip to the window, radius 5): the card's `ground` colour, then each plane with `pop: false`, far
    first, at its box, scaled about the card centre by `(P − f) / (P − f − lift)` (P = perspective × 300, f = 0.62cqw,
    lift from `geometry.depth`, pop amount 1), its shadow PNG under it, clipped to the window rect when `clip`; then

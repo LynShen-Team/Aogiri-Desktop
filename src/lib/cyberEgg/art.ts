@@ -69,6 +69,7 @@ const m = manifest as unknown as {
 	frames: Record<string, string>;
 	grounds: Record<Tier, { svg: string; grain: string }>;
 	grain: Record<'light' | 'dark' | 'back', { file: string; tile: number }>;
+	animations?: Record<string, string>;
 };
 
 /** Where the bundle is served from (the app's static files). */
@@ -106,24 +107,42 @@ export const windowMaskUrl = (() => {
 			`V${w.y + w.h - w.radius}A${w.radius} ${w.radius} 0 0 1 ${w.x + w.w - w.radius} ${w.y + w.h}` +
 			`H${w.x + w.radius}A${w.radius} ${w.radius} 0 0 1 ${w.x} ${w.y + w.h - w.radius}` +
 			`V${w.y + w.radius}A${w.radius} ${w.radius} 0 0 1 ${w.x + w.radius} ${w.y}Z'/></svg>`;
-		url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+		// Escaped past encodeURIComponent too: ( ) ' would end the CSS url(…) it is put in.
+		url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg).replace(/[()']/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)}`;
 		return url;
 	};
 })();
 
 /**
- * An exported SVG ready to inline in a card: its ids made unique to `uid` (a card can show twice on a page), and
- * its foil gradients marked so the card's tilt can move their light (the web's `data-foil`: `w h k`, k 1.1 for
- * the hologram's colours, 0.42 for metal; they reflect, the hologram's repeat).
+ * An exported SVG ready to inline in a card: its ids made unique to `uid` (a card can show twice on a page). Its
+ * foil gradients keep the bundle's `data-foil`, which the card's tilt reads (card/tilt.ts).
  */
-export function inlineSvg(source: string, uid: string, foil: { w: number; h: number; holo: boolean } | null): string {
-	let out = source.replace(/id='([^']+)'/g, `id='$1-${uid}'`).replace(/url\(#([^)]+)\)/g, `url(#$1-${uid})`).replace(/href='#([^']+)'/g, `href='#$1-${uid}'`);
-	if (foil)
-		out = out.replace(
-			/<linearGradient([^>]*gradientUnits='userSpaceOnUse'[^>]*)>/g,
-			`<linearGradient$1 spreadMethod='${foil.holo ? 'repeat' : 'reflect'}' data-foil='${foil.w} ${foil.h} ${foil.holo ? 1.1 : 0.42}'>`
-		);
-	return out;
+export function inlineSvg(source: string, uid: string): string {
+	return source.replace(/id='([^']+)'/g, `id='$1-${uid}'`).replace(/url\(#([^)]+)\)/g, `url(#$1-${uid})`).replace(/href='#([^']+)'/g, `href='#$1-${uid}'`);
+}
+
+/**
+ * The pictures' idle motion (ART-FORMAT.md "Idle motion"): every element of `root` marked `data-anim` moves by
+ * the bundle's keyframes (added to the page once). Nothing moves under reduced motion.
+ */
+export function animate(root: Element) {
+	if (typeof window === 'undefined' || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+	if (!document.getElementById('ce-art-keyframes') && m.animations) {
+		const style = document.createElement('style');
+		style.id = 'ce-art-keyframes';
+		style.textContent = Object.values(m.animations).join('\n');
+		document.head.append(style);
+	}
+	for (const el of root.querySelectorAll<SVGElement>('[data-anim]')) {
+		const names = (el.dataset.anim ?? '').split(/[\s,]+/).filter(Boolean);
+		const how = (el.dataset.animCss ?? '').split(',').map((part) => part.trim());
+		el.style.animation = names.map((name, i) => `${name} ${how[i] ?? how[0] ?? ''}`).join(', ');
+		el.style.transformBox = 'view-box';
+		el.style.transformOrigin = (el.dataset.animOrigin ?? '0 0')
+			.split(/\s+/)
+			.map((v) => `${v}px`)
+			.join(' ');
+	}
 }
 
 const texts = new Map<string, Promise<string>>();

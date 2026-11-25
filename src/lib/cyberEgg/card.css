@@ -139,6 +139,7 @@
 	filter: drop-shadow(0 0.9cqw 1.1cqw rgb(0 0 0 / 0.38));
 }
 /* Paper grain over the ground (the bundle's tile, 105 of 300 card units). */
+.ce-paper,
 .ce-grain {
 	position: absolute;
 	inset: 0;

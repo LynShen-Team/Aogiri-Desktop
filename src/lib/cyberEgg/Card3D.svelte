@@ -11,7 +11,7 @@
 	// Without `card` only the back is real (the five-card pick), so a face can't leak.
 	import type { Snippet } from 'svelte';
 	import { tick } from 'svelte';
-	import { GEOMETRY, GRAIN_TILE, TIER_LOOK, backGrain, frameOf, groundOf, inlineSvg, packOf, svgText, artUrl, windowMaskUrl, type ArtCard } from './art';
+	import { GEOMETRY, GRAIN_TILE, TIER_LOOK, animate, backGrain, frameOf, groundOf, inlineSvg, packOf, svgText, artUrl, windowMaskUrl, type ArtCard } from './art';
 	import { Tilt } from './card/tilt';
 	import { t } from '$lib/i18n';
 
@@ -81,16 +81,15 @@
 		inlined = null;
 		if (!c || !live) return;
 		let gone = false;
-		const holo = TIER_LOOK[c.tier].metal === 'holo';
 		const frameFile = frame.slice(artUrl('').length);
 		Promise.all([Promise.all(c.planes.map((p) => svgText(p.file))), svgText(frameFile)])
 			.then(([planes, frameSvg]) => {
 				if (gone) return;
-				inlined = {
-					planes: planes.map((s) => inlineSvg(s, uid, { w: win.w, h: win.h, holo })),
-					frame: inlineSvg(frameSvg, uid, { w: cardBox.w, h: cardBox.h, holo: false })
-				};
-				void tick().then(() => tilt?.refresh());
+				inlined = { planes: planes.map((s) => inlineSvg(s, uid)), frame: inlineSvg(frameSvg, uid) };
+				void tick().then(() => {
+					tilt?.refresh();
+					if (root) animate(root);
+				});
 			})
 			.catch(() => undefined);
 		return () => {
@@ -172,8 +171,10 @@
 					</div>
 					<!-- The face: paper with the window cut out, the frame, the light, the text. -->
 					<div class="ce-skin">
-						<img class="ce-ground" src={ground.svg} alt="" draggable="false" />
+						<!-- The paper: its colour, the grain over it, then the security print (the web's order). -->
+						<div class="ce-paper" style:background-color={look?.ground}></div>
 						<div class="ce-grain" style:background-image="url({ground.grain})" style:background-size={grainSize}></div>
+						<img class="ce-ground" src={ground.svg} alt="" draggable="false" />
 						<div class="ce-frame">{#if inlined}{@html inlined.frame}{:else}<img src={frame} alt="" draggable="false" />{/if}</div>
 						<div class="ce-holo" aria-hidden="true"></div>
 						<div class="ce-glare" aria-hidden="true"></div>
@@ -191,8 +192,9 @@
 				</div>
 			{/if}
 			<div class="ce-face ce-back">
-				{#if pack}<img class="ce-ground" src={artUrl(pack.back.svg)} alt="" draggable="false" />{/if}
+				<div class="ce-paper" style:background-color={edge}></div>
 				<div class="ce-grain" style:background-image="url({backGrain()})" style:background-size={grainSize}></div>
+				{#if pack}<img class="ce-ground" src={artUrl(pack.back.svg)} alt="" draggable="false" />{/if}
 				<div class="ce-glaze ce-glaze-flat" aria-hidden="true"></div>
 			</div>
 		</div>
