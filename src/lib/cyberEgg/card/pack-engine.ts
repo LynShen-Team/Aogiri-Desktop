@@ -1057,8 +1057,11 @@ export function createPack(els: PackElements, props: PackProps) {
       // The middle of the pack: fingers can't pinch foil there; it only pushes the pack (it leans under the press).
       props.onHint?.("edge");
     } else if (s.grip.kind === "edge" && s.tear) {
-      // Another edge while a tear hangs half done: that one stays in the foil as a slit.
+      // Another edge while a tear hangs half done: that one stays in the foil as a slit. The slit adds outline points,
+      // so the grip is taken again on the new outline (its edge index was the old one's: a tear begun from it crossed).
+      // (gateway monoizeovo 6b9ec10b)
       slit(s);
+      s.grip = take(s, p, event.pointerType === "touch");
     }
     playRustle();
     kick();
