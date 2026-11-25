@@ -38,7 +38,9 @@ export interface StoreProduct {
 	 *  gateway quotes to move up to it now (fen), and until when the quote
 	 *  holds (the server prices the order again anyway). The plan's end stays.
 	 *  Absent: an ordinary purchase (also from an older gateway). */
-	upgrade?: { price_minor: string; expires_at: string | null };
+	/** `ends_at`: the new period's end if paid now (gateway 2026-11-25: an upgrade runs a full
+	 *  period from the payment); absent from an older gateway, whose upgrade kept the end. */
+	upgrade?: { price_minor: string; expires_at: string | null; ends_at?: string };
 	/** A lower plan than the one in force: not offered (no downgrade). */
 	downgrade?: boolean;
 	/** The plan in force: buying it again renews it from its end. */
@@ -151,7 +153,12 @@ function upgradeOf(v: unknown): StoreProduct['upgrade'] | null {
 	const price = minor(u?.price_minor);
 	if (!u || !price || price === '0') return null;
 	const ends = str(u.expires_at);
-	return { price_minor: price, expires_at: ends && !Number.isNaN(Date.parse(ends)) ? ends : null };
+	const newEnd = str(u.ends_at);
+	return {
+		price_minor: price,
+		expires_at: ends && !Number.isNaN(Date.parse(ends)) ? ends : null,
+		...(newEnd && !Number.isNaN(Date.parse(newEnd)) ? { ends_at: newEnd } : {})
+	};
 }
 
 /** What a product costs now: the upgrade quote when there is one. */
