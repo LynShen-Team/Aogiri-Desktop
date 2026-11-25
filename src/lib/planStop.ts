@@ -10,7 +10,7 @@
 // (never by its message), with the fields beside it in the error object.
 
 import { getLocale, t } from '$lib/i18n';
-import { planDate, sortedWindows, usedShare, windowLabel, type TrialPlan } from '$lib/trial';
+import { modelScope, planDate, sortedWindows, usedShare, windowLabel, type TrialPlan } from '$lib/trial';
 import { fmtResetAt } from '$lib/composer/quota';
 
 export type PlanStopCode = 'plan_quota_exhausted' | 'plan_inactive' | 'model_not_in_plan' | 'plan_device_limit';
@@ -33,6 +33,12 @@ export interface PlanStop {
 	/** `plan_device_limit`: the devices the plan allows at once, and in use. */
 	limit?: number;
 	inUse?: number;
+	/** `plan_quota_exhausted` of a model-scoped window ("claude-*"): only
+	 *  these models stop; the plan still serves the others. */
+	models?: string[];
+	/** `plan_quota_exhausted` that moved the device to the balance until the
+	 *  reset (the user's 用完自动改用余额): sending again goes on. */
+	switched?: boolean;
 }
 
 const CODES: [PlanStopCode, RegExp][] = [
@@ -119,7 +125,9 @@ export function planStopOf(raw: string): PlanStop | null {
 	// When the window that refused recovers: `retry_at`, else that window's
 	// own `resets_at` in the plan's windows sent along.
 	const windows = Array.isArray(get('windows')) ? (get('windows') as Record<string, unknown>[]) : [];
-	const resetsAt = instant(get('retry_at')) ?? instant(get('resets_at')) ?? instant(windows.find((w) => w?.kind === window)?.resets_at);
+	const models = Array.isArray(get('models')) ? (get('models') as unknown[]).filter((m): m is string => typeof m === 'string' && m.trim() !== '') : [];
+	const sameModels = (w: Record<string, unknown>) => (Array.isArray(w?.models) ? (w.models as unknown[]).join(',') : '') === models.join(',');
+	const resetsAt = instant(get('retry_at')) ?? instant(get('resets_at')) ?? instant(windows.find((w) => w?.kind === window && sameModels(w))?.resets_at);
 	const planName = str(get('plan_name'));
 	const endedAt = instant(get('ended_at'));
 	const reason = str(get('reason'));
@@ -130,6 +138,8 @@ export function planStopOf(raw: string): PlanStop | null {
 	if (endedAt !== undefined) stop.endedAt = endedAt;
 	if (reason) stop.reason = reason;
 	if (model) stop.model = model;
+	if (models.length) stop.models = models;
+	if (get('switched_to_balance') === true) stop.switched = true;
 	const limit = Number(get('limit'));
 	const inUse = Number(get('in_use'));
 	if (Number.isInteger(limit) && limit > 0) stop.limit = limit;
@@ -160,6 +170,17 @@ export function resetText(at: number, now = Date.now()): string {
 export function planStopText(stop: PlanStop, resetsAt: number | undefined, now = Date.now()): { title: string; hint: string } {
 	switch (stop.code) {
 		case 'plan_quota_exhausted': {
+			if (stop.switched)
+				return {
+					title: t('chat.planStop.switchedTitle'),
+					hint: resetsAt ? t('chat.planStop.switchedHintAt', { time: resetText(resetsAt, now) }) : t('chat.planStop.switchedHint')
+				};
+			const scope = modelScope(stop.models);
+			if (scope)
+				return {
+					title: t('chat.planStop.modelQuotaTitle', { models: scope, window: stop.window ? windowLabel(stop.window) : '' }),
+					hint: resetsAt ? t('chat.planStop.modelQuotaHintAt', { time: resetText(resetsAt, now) }) : t('chat.planStop.modelQuotaHint')
+				};
 			const title = stop.window ? t('chat.planStop.quotaWindowTitle', { window: windowLabel(stop.window) }) : t('chat.planStop.quotaTitle');
 			const hint = resetsAt ? t('chat.planStop.quotaHintAt', { time: resetText(resetsAt, now) }) : t('chat.planStop.quotaHint');
 			return { title, hint };

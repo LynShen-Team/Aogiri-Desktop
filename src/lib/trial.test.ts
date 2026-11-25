@@ -17,6 +17,8 @@ import {
 	parseDesktopPlan,
 	parsePlan,
 	sortedWindows,
+	windowKey,
+	windowTitle,
 	tightestWindow,
 	usedShare,
 	windowLabel,
@@ -389,5 +391,28 @@ describe('display helpers', () => {
 	it('retries a few times after a network failure, then waits for the next sign-in', () => {
 		expect(RETRY_DELAYS_MS.length).toBe(3);
 		expect([...RETRY_DELAYS_MS].every((ms, i, all) => ms > 0 && (i === 0 || ms > all[i - 1]))).toBe(true);
+	});
+});
+
+describe('model-scoped windows (gateway SB-Q-1M)', () => {
+	const plan = parsePlan({
+		name: 'Sprout',
+		group: '套餐专用',
+		expires_at: '2026-12-12T03:50:00Z',
+		windows: [
+			{ kind: '7d', quota_cny: '23.00', used_cny: '10.00', resets_at: '2026-11-26T03:50:00Z' },
+			{ kind: '7d', quota_cny: '11.50', used_cny: '11.50', resets_at: '2026-11-26T03:50:00Z', models: ['claude-*'] },
+			{ kind: '5h', quota_cny: '8.00', used_cny: '1.00', resets_at: '2026-11-25T14:50:00Z' }
+		]
+	})!;
+	it('keeps the models, sorts the plan-wide window first, and keys both 7d windows apart', () => {
+		setLocale('zh');
+		const sorted = sortedWindows(plan);
+		expect(sorted.map((w) => w.models ?? null)).toEqual([null, null, ['claude-*']]);
+		expect(new Set(sorted.map(windowKey)).size).toBe(3);
+		expect(windowTitle(sorted[2])).toMatch(/^Claude · /);
+	});
+	it('never reports a used-up model-scoped window as the plan running out', () => {
+		expect(tightestWindow(plan)?.window.models).toBeUndefined();
 	});
 });

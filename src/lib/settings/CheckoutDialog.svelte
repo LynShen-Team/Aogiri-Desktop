@@ -386,9 +386,18 @@
 		{#if product.kind === 'plan'}
 			{#if upgrading && product.upgrade}
 				<p class="note">
-					{before
-						? t('settings.purchase.upgradeNoticeAt', { current: before.name.trim() || t('shell.trial.label'), name: product.name, date: planDate(before.expires_at) })
-						: t('settings.purchase.upgradeNotice', { name: product.name })}
+					{#if product.upgrade.ends_at}
+						<!-- Gateway 2026-11-25: a full new period from the payment, every limit restarting. -->
+						{t('settings.purchase.upgradeNoticeNew', {
+							current: before?.name.trim() || t('shell.trial.label'),
+							name: product.name,
+							date: planDate(product.upgrade.ends_at)
+						})}
+					{:else}
+						{before
+							? t('settings.purchase.upgradeNoticeAt', { current: before.name.trim() || t('shell.trial.label'), name: product.name, date: planDate(before.expires_at) })
+							: t('settings.purchase.upgradeNotice', { name: product.name })}
+					{/if}
 				</p>
 			{:else if sameProduct && before && !product.renewal}
 				<!-- An older gateway: the same plan again starts over and replaces it. -->
