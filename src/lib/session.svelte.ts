@@ -28,6 +28,7 @@ import { normalizeColor, parseTabIcon, type TabIcon } from './workbench/tabChrom
 import { CHATS_ENABLED, lastActive, type Project, type Session, type WorktreeMeta } from './types';
 import { modelEfforts } from '$lib/settings/providerFields';
 import { unanswered } from './errorInfo';
+import { eggProvider, eggRoutable } from './cyberEgg/route';
 
 /** Optional per-tab chrome persisted alongside the session id + title. */
 export interface SavedTabChrome {
@@ -389,13 +390,21 @@ export class SessionStore {
 									}
 								};
 							})
-						: // LynShen's own engine takes no options, except a fork's.
-							extraOpts?.fork_from
-							? Promise.resolve({
-									engine: 'lynshen',
-									options: { fork_from: extraOpts.fork_from, fork_turns: extraOpts.fork_turns, ...(extraOpts.fork_cwd ? { fork_cwd: extraOpts.fork_cwd } : {}) }
-								})
-							: Promise.resolve(undefined);
+						: // LynShen's own engine takes no options, except a fork's and, for a
+							// conversation on the 赛博鸡蛋 tokens, the campaign's provider.
+							(s.egg && eggRoutable() ? eggProvider(s.egg.model) : Promise.resolve(null)).then((provider) =>
+								extraOpts?.fork_from || provider
+									? {
+											engine: 'lynshen',
+											options: {
+												...(extraOpts?.fork_from
+													? { fork_from: extraOpts.fork_from, fork_turns: extraOpts.fork_turns, ...(extraOpts.fork_cwd ? { fork_cwd: extraOpts.fork_cwd } : {}) }
+													: {}),
+												...(provider ? { provider } : {})
+											}
+										}
+									: undefined
+							);
 		return engine
 			.then((spec) =>
 				hostSession(s.id, cwd ?? '', resume ?? (s.chat.sessionId || undefined), agent, chat, spec).then(() => {
@@ -1449,6 +1458,38 @@ export class SessionStore {
 			await closeSession(id);
 			if (this.#gone(s)) return;
 			await this.#spawn(s, this.projectPathOf(id));
+			s.chat.switching = false;
+		} catch (e) {
+			s.chat.switching = false;
+			this.#engineFailed(s.chat, e);
+		}
+	}
+
+	/** Puts a LynShen conversation on the 赛博鸡蛋 tokens (`model`, one of the
+	 *  round's) or, with null, back on the account. A draft only records it; a
+	 *  running session restarts on its new provider and resumes. */
+	async setEgg(id: string, model: string | null) {
+		const s = this.allSessions.find((x) => x.id === id);
+		if (!s || s.backendId !== 'lynshen') return;
+		const was = s.egg?.model ?? null;
+		s.egg = model ? { model } : undefined;
+		if (s.draft) {
+			if (model) s.chat.pickDraftModel(model, '', 0);
+			s.draftPick = model ? { model } : undefined;
+			return;
+		}
+		if (was === model) return;
+		s.chat.switching = true;
+		s.chat.engineState = 'connecting';
+		s.chat.messages.push({
+			kind: 'system',
+			text: t('shell.switchingTo', { provider: model ? t('egg.title') : 'LynShen', model: model ?? s.chat.model }),
+			flow: { type: 'switch' }
+		});
+		try {
+			await closeSession(id);
+			if (this.#gone(s)) return;
+			await this.#spawn(s, this.projectPathOf(id), model ? () => dispatch(s.id, { op: 'command', input: `/model ${model}` }) : undefined);
 			s.chat.switching = false;
 		} catch (e) {
 			s.chat.switching = false;

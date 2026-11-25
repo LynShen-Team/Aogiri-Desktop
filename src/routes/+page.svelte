@@ -129,6 +129,8 @@
 	import { llmTarget as llmTargetOf } from '$lib/llmTarget';
 	import { setupCommand } from '$lib/forks';
 	import DeskPage from '$lib/DeskPage.svelte';
+	import CyberEggPage, { type EggSection } from '$lib/cyberEgg/CyberEggPage.svelte';
+	import { egg } from '$lib/cyberEgg/store.svelte';
 	import ProjectPage from '$lib/ProjectPage.svelte';
 	import FeedbackDialog from '$lib/FeedbackDialog.svelte';
 	import { telemetry } from '$lib/telemetry.svelte';
@@ -206,6 +208,13 @@
 	// account kept from the last run stands in (no 未登录 flash at start).
 	let authKnown = $state(false);
 	const signedInNow = $derived(authKnown ? providers.includes('monoize') || providers.includes('lynshen') : !!account.user);
+	// 赛博鸡蛋: the round and today's tokens, read once the account is signed in
+	// (the navigator's entry and the model menu's group show only while a round
+	// runs); forgotten on sign-out.
+	$effect(() => {
+		if (signedInNow) untrack(() => void egg.refresh());
+		else untrack(() => egg.reset());
+	});
 
 	async function notify(title: string, body: string) {
 		try {
@@ -260,6 +269,7 @@
 	function openSettings(section: SectionKey = 'general') {
 		settingsSection = section;
 		showDesk = false;
+		showEgg = false;
 		projectPageId = null;
 		showHome = false;
 		showSettings = true;
@@ -270,6 +280,7 @@
 	function openHome() {
 		showSettings = false;
 		showDesk = false;
+		showEgg = false;
 		crossfade(() => {
 			projectPageId = null;
 			showHome = true;
@@ -280,6 +291,24 @@
 	async function startChat(firstMessage?: string, model?: string) {
 		try {
 			await store.newChat(firstMessage, model);
+			showHome = false;
+			projectPageId = null;
+		} catch (e) {
+			toast.error(e instanceof Error ? e.message : String(e));
+		}
+	}
+	/** A new conversation on today's 赛博鸡蛋 tokens: a LynShen chat on the
+	 *  round's first model (the model menu's group switches among them). */
+	async function startEggChat() {
+		try {
+			const id = await store.newChat();
+			if (!id) return;
+			const s = store.allSessions.find((x) => x.id === id);
+			if (s && s.backendId !== 'lynshen') await store.switchBackend(id, 'lynshen');
+			const model = egg.models[0];
+			if (model) await store.setEgg(id, model);
+			store.activeId = id;
+			showEgg = false;
 			showHome = false;
 			projectPageId = null;
 		} catch (e) {
@@ -336,6 +365,17 @@
 	// The workbench page, on the overview, one agent, or one of its sessions
 	// (agent sessions open only there, never on the canvas).
 	let showDesk = $state(false);
+	// 赛博鸡蛋, a full-panel page like the workbench (src/lib/cyberEgg).
+	let showEgg = $state(false);
+	let eggSection = $state<EggSection>('draw');
+	function openEgg(section: EggSection = 'draw') {
+		eggSection = section;
+		showSettings = false;
+		showDesk = false;
+		projectPageId = null;
+		showHome = false;
+		showEgg = true;
+	}
 	let deskAgent = $state<string | null>(null);
 	let deskSession = $state<string | null>(null);
 	let deskPage = $state<'overview' | 'requirements' | 'schedules'>('overview');
@@ -345,6 +385,7 @@
 		deskAgent = agent;
 		deskSession = null;
 		showSettings = false;
+		showEgg = false;
 		projectPageId = null;
 		showHome = false;
 		showDesk = true;
@@ -359,6 +400,7 @@
 	let dragFiles = $state(0);
 	function openProjectPage(p: Project) {
 		showDesk = false;
+		showEgg = false;
 		showSettings = false;
 		crossfade(() => {
 			showHome = false;
@@ -463,6 +505,8 @@
 	function afterAccountLogout() {
 		showSettings = false;
 		showDesk = false;
+		showEgg = false;
+		egg.reset();
 		modelSetup.open = false;
 		account.signedOut();
 		setupView = 'login';
@@ -581,7 +625,7 @@
 	let sbResizing = $state(false);
 	/** What the navigator takes up: the rail, or its expanded width. Settings
 	 *  and the workbench page lay out their own nav at the expanded width. */
-	const navShown = $derived(showSettings || showDesk || !sidebarCollapsed ? sidebarWidth : SIDEBAR_RAIL_WIDTH);
+	const navShown = $derived(showSettings || showDesk || showEgg || !sidebarCollapsed ? sidebarWidth : SIDEBAR_RAIL_WIDTH);
 
 	function toggleSidebar() {
 		sidebarCollapsed = !sidebarCollapsed;
@@ -1652,7 +1696,7 @@
 			// project's page or the home page over it: none in front to take them.
 			const undrop = await getCurrentWebview().onDragDropEvent((e) => {
 				const p = e.payload;
-				const pane = showSettings || showDesk || showSetup || homeShown || pageProject ? undefined : panes.get(store.activeId);
+				const pane = showSettings || showDesk || showEgg || showSetup || homeShown || pageProject ? undefined : panes.get(store.activeId);
 				if (p.type === 'enter') dragFiles = pane ? p.paths.length : 0;
 				else if (p.type === 'leave') dragFiles = 0;
 				else if (p.type === 'drop') {
@@ -1804,20 +1848,20 @@
 		sidebarOpen={!sidebarCollapsed}
 		onToggleSidebar={toggleSidebar}
 		showToggle={!showSetup}
-		heading={!showSettings && !showDesk && !showSetup && !homeShown && !pageProject && !!active}
-		title={showSettings ? t('settings.title') : showDesk ? t('shell.desk.title') : showSetup ? 'Aogiri' : pageProject ? pageProject.name : showHome || !active ? t('shell.home.title') : shownTitle(active.chat.title)}
-		subtitle={showSettings || showDesk || showSetup || showHome || pageProject || !activeProject || activeProject.home ? '' : activeProject.name}
-		addOptions={showSettings || showDesk || showSetup ? [] : addOptions}
+		heading={!showSettings && !showDesk && !showEgg && !showSetup && !homeShown && !pageProject && !!active}
+		title={showSettings ? t('settings.title') : showDesk ? t('shell.desk.title') : showEgg ? t('egg.title') : showSetup ? 'Aogiri' : pageProject ? pageProject.name : showHome || !active ? t('shell.home.title') : shownTitle(active.chat.title)}
+		subtitle={showEgg ? t(`egg.nav.${eggSection}`) : showSettings || showDesk || showSetup || showHome || pageProject || !activeProject || activeProject.home ? '' : activeProject.name}
+		addOptions={showSettings || showDesk || showEgg || showSetup ? [] : addOptions}
 		onAdd={(key) => mosaicAdd(focusedLeaf, key)}
 	>
 		{#snippet actions()}
-			{@const editorProject = showSettings || showDesk || showSetup || homeShown ? undefined : (pageProject ?? activeProject)}
+			{@const editorProject = showSettings || showDesk || showEgg || showSetup || homeShown ? undefined : (pageProject ?? activeProject)}
 			{#if editorProject && !editorProject.chats && !editorProject.home && !editorProject.agents && !editorProject.stale}<ProjectMenu path={editorProject.path} name={editorProject.name} onOpenGit={() => openPanelTile('git')} />{/if}
-			{#if !showSettings && !showDesk && !showSetup && active && active.surface === 'tui'}
+			{#if !showSettings && !showDesk && !showEgg && !showSetup && active && active.surface === 'tui'}
 				<button class="tile-action" title={t('dock.tui.backToGui')} aria-label={t('dock.tui.backToGui')} onclick={() => active && tuiPanels[active.id]?.backToGui()}>
 					<ChatCircleTextIcon size={16} />
 				</button>
-			{:else if !showSettings && !showDesk && !showSetup && active && tuiCapable(active)}
+			{:else if !showSettings && !showDesk && !showEgg && !showSetup && active && tuiCapable(active)}
 				<button
 					class="tile-action"
 					disabled={!tuiReady(active.id)}
@@ -1835,7 +1879,7 @@
 		     flush with the window edge. Settings covers it as a page; the
 		     session list and canvas stay mounted (hidden) underneath so chats,
 		     terminals and TUI tiles keep their state. -->
-		<div class="panel" class:covered={showSettings || showDesk}>
+		<div class="panel" class:covered={showSettings || showDesk || showEgg}>
 			<!-- LEFT: the navigator — workspace / projects / sessions. Clicking a session
 			     opens or focuses its chat tile on the canvas. -->
 			<Sidebar
@@ -1872,6 +1916,9 @@
 				agentPending={(id) => agentDirectory.pendingFor(id)}
 				pendingCount={agentDirectory.pending}
 				onDesk={() => openDesk(null)}
+				onEgg={egg.live ? () => openEgg() : undefined}
+				eggOpen={showEgg}
+				eggMeta={egg.canDraw ? t('egg.nav.sidebarCan') : ''}
 				onHome={openHome}
 				homeOpen={showHome}
 				footer={{
@@ -2129,6 +2176,9 @@
 					{/snippet}
 				</DeskPage>
 			{/if}
+			{#if showEgg}
+				<CyberEggPage bind:section={eggSection} navWidth={sidebarWidth} onClose={() => (showEgg = false)} onChat={startEggChat} />
+			{/if}
 		</div>
 	</div>
 
@@ -2366,7 +2416,7 @@
 	}
 	/* Under the settings page: hidden but mounted. The frosted settings nav is
 	   translucent, so the session list must not show through it. */
-	.panel.covered > :global(:not(.settings, .desk-page)) {
+	.panel.covered > :global(:not(.settings, .desk-page, .egg-page)) {
 		visibility: hidden;
 	}
 

@@ -160,6 +160,8 @@ Object.assign(window, {
     convertFileSrc: (path: string) => (path.endsWith('.png') ? imageSrc() : /\.(webm|mp4|mov|m4v)$/.test(path) ? VIDEO_SRC : `asset://localhost/${encodeURIComponent(path)}`),
     invoke: async (command: string, args: any) => {
       calls.push({ command, args });
+      // 赛博鸡蛋's client API (?egg, ?eggChat): its sample answers.
+      if (command === 'monoize_cyber_egg') return (await import('../../src/lib/cyberEgg/mock')).mockCall(args.method, args.path, args.body);
       // Provider fixtures (providerFixtures.ts): ?anthropic[=keyed], model lists.
       const builtinAnswer = builtinProviders?.(command, args);
       if (builtinAnswer !== undefined) return builtinAnswer;

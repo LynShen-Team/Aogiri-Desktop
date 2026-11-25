@@ -15,6 +15,7 @@
 	import FolderOpenIcon from 'phosphor-svelte/lib/FolderOpenIcon';
 	import ChatsIcon from 'phosphor-svelte/lib/ChatsIcon';
 	import HouseIcon from 'phosphor-svelte/lib/HouseIcon';
+	import EggIcon from 'phosphor-svelte/lib/EggIcon';
 	import WarningCircleIcon from 'phosphor-svelte/lib/WarningCircleIcon';
 	import CheckIcon from 'phosphor-svelte/lib/CheckIcon';
 	import PushPinIcon from 'phosphor-svelte/lib/PushPinIcon';
@@ -88,6 +89,9 @@
 		onDesk = () => {},
 		onHome = () => {},
 		homeOpen = false,
+		onEgg,
+		eggOpen = false,
+		eggMeta = '',
 		holdOpen = false,
 		onOpenSubagent = () => {},
 		subagentStay = SUBAGENT_STAY_MS,
@@ -143,6 +147,11 @@
 		onHome?: () => void;
 		/** The home page is in front. */
 		homeOpen?: boolean;
+		/** 赛博鸡蛋 (src/lib/cyberEgg): its page; unset while no round runs. */
+		onEgg?: () => void;
+		eggOpen?: boolean;
+		/** What waits there (「可抽」 while today's pack is unopened). */
+		eggMeta?: string;
 		/** A popover opened from the sidebar is showing (a row's right-click menu):
 		 *  a peeking rail stays open under it. */
 		holdOpen?: boolean;
@@ -544,6 +553,19 @@
 		<button class="row" class:on={homeOpen} onclick={() => (onHome(), endPeek())} aria-label={t('shell.home.title')} data-tip={folded ? t('shell.home.title') : undefined} data-tip-side="right">
 			<HouseIcon size={16} weight={homeOpen ? 'fill' : 'regular'} /><span class="label">{t('shell.home.title')}</span>
 		</button>
+		{#if onEgg}
+			<button
+				class="row"
+				class:on={eggOpen}
+				onclick={() => (onEgg?.(), endPeek())}
+				aria-label={eggMeta ? `${t('egg.title')} · ${eggMeta}` : t('egg.title')}
+				data-tip={folded ? t('egg.title') : undefined}
+				data-tip-side="right"
+			>
+				<EggIcon size={16} weight={eggOpen ? 'fill' : 'regular'} /><span class="label">{t('egg.title')}</span>
+				{#if eggMeta}<span class="egg-meta">{eggMeta}</span>{/if}
+			</button>
+		{/if}
 		{#if agentsStatus !== 'off'}
 			<button
 				class="row"
@@ -1019,15 +1041,22 @@
 	.search-row,
 	.list,
 	.primary .label,
-	.primary .count {
+	.primary .count,
+	.primary .egg-meta {
 		transition: opacity var(--t-med) var(--ease-base) 40ms;
+	}
+	.egg-meta {
+		margin-left: auto;
+		font-size: var(--fs-xs);
+		color: var(--dim);
 	}
 	.collapsed .brand-rest,
 	.collapsed .tools,
 	.collapsed .search-row,
 	.collapsed .list,
 	.collapsed .primary .label,
-	.collapsed .primary .count {
+	.collapsed .primary .count,
+	.collapsed .primary .egg-meta {
 		opacity: 0;
 		transition: opacity var(--t-fast) var(--ease-base);
 	}

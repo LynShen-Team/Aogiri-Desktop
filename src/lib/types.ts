@@ -51,6 +51,9 @@ export interface Session {
 	/** Last activity known from before this run (saved tab, daemon list), ms;
 	 *  see `lastActive`. */
 	at?: number;
+	/** On the 赛博鸡蛋 tokens: the engine runs this session on the campaign's
+	 *  endpoint and key (cyberEgg/route.ts), on `model`. */
+	egg?: { model: string };
 	/** Model and effort picked while a draft, applied when it starts. */
 	draftPick?: { model?: string; effort?: string };
 	/** Claude Code / Codex: the custom provider picked while a draft (its id;

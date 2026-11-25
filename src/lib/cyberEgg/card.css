@@ -1,0 +1,1123 @@
+/* 赛博鸡蛋: the cards, the pack and the draw stage, from the gateway's web edition (G94, monoizeovo
+   frontend/src/index.css `.ce-*`). These are the cards' own artwork and lighting, so they keep their literal
+   colours and serif faces in both themes; the interface around them uses the app tokens (design.md §4). */
+/* cyber-egg.spec.md CE-C4: a 赛博鸡蛋 card as a physical object (Card3D.svelte), built
+   like a paper-cut shadow box: far planes sink behind the face, near planes stand up off it. Sizes are in
+   container units of the card (cqw), so the card scales as one piece. Only transform and
+   background-position move; text sits above the sheen and the glare. */
+.ce-card {
+	position: relative;
+	container-type: inline-size;
+	aspect-ratio: 5 / 7;
+	perspective: 1100px;
+	--rx: 0deg;
+	--ry: 0deg;
+	--px: 0;
+	--py: 0;
+	--gx: 50%;
+	--gy: 50%;
+	--hyp: 0;
+	--lift: 0;
+	--pop: 1;
+	user-select: none;
+	-webkit-user-select: none;
+	-webkit-tap-highlight-color: transparent;
+}
+.ce-card[role="button"] {
+	cursor: pointer;
+}
+.ce-card:focus-visible {
+	outline: none;
+}
+.ce-card:focus-visible .ce-skin,
+.ce-card:focus-visible .ce-back {
+	box-shadow: 0 0 0 2px var(--brand-bright);
+}
+.ce-tilt,
+.ce-flip,
+.ce-front,
+.ce-depth {
+	position: absolute;
+	transform-style: preserve-3d;
+}
+.ce-tilt,
+.ce-flip,
+.ce-front {
+	inset: 0;
+}
+.ce-tilt {
+	transform: translateZ(calc(var(--lift) * 1cqw)) rotateX(var(--rx)) rotateY(var(--ry));
+	will-change: transform;
+}
+.ce-flip {
+	transition: transform 0.75s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+.ce-card[data-flipped] .ce-flip {
+	transform: rotateY(180deg);
+}
+.ce-front {
+	transform: translateZ(0.62cqw);
+}
+.ce-front > *,
+.ce-depth > * {
+	backface-visibility: hidden;
+	-webkit-backface-visibility: hidden;
+}
+.ce-face,
+.ce-edge,
+.ce-skin,
+.ce-glaze {
+	position: absolute;
+	inset: 0;
+	border-radius: 4.4cqw;
+}
+.ce-face {
+	overflow: hidden;
+	isolation: isolate;
+	backface-visibility: hidden;
+	-webkit-backface-visibility: hidden;
+}
+.ce-back {
+	transform: rotateY(180deg) translateZ(0.62cqw);
+}
+/* Black-core card stock, with the window cut through so the sunken picture shows. The same on every card of a
+   pack, so a face-down card hides its tier. */
+.ce-edge {
+	background: var(--edge, #1b1a18);
+	transform: translateZ(var(--z));
+}
+.ce-card:not([data-flipped]) .ce-edge {
+	-webkit-mask: var(--hole, none) 0 0 / 100% 100%;
+	mask: var(--hole, none) 0 0 / 100% 100%;
+}
+.ce-shadow {
+	position: absolute;
+	inset: 6% 7% 0%;
+	border-radius: 8cqw;
+	background: rgb(20 16 10 / 0.42);
+	filter: blur(4.5cqw);
+	transform: translate(calc(var(--px) * -5cqw), calc(var(--py) * -4cqw + 4cqw + var(--lift) * 0.6cqw)) scale(calc(1 - var(--lift) * 0.01));
+	opacity: calc(0.85 - var(--lift) * 0.03);
+}
+:root[data-theme='dark'] .ce-shadow {
+	background: rgb(0 0 0 / 0.7);
+}
+.ce-ground,
+.ce-frame {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+}
+.ce-defs {
+	position: absolute;
+	width: 0;
+	height: 0;
+}
+/* The picture: planes in real depth. Far ones (--d < 0) sink; near ones (data-pop) stand up by --pop. */
+.ce-plane {
+	position: absolute;
+	left: -5%;
+	top: -5%;
+	width: 110%;
+	height: 110%;
+	transform: translateZ(calc(var(--d) * 3.6cqw));
+	pointer-events: none;
+}
+.ce-plane[data-pop] {
+	transform: translateZ(calc(0.3cqw + var(--d) * 6cqw * var(--pop)));
+	transition: transform 0.9s cubic-bezier(0.34, 1.4, 0.5, 1);
+}
+.ce-plane > svg {
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}
+.ce-plane[data-pop] > svg {
+	overflow: visible;
+}
+.ce-plane[data-clip] {
+	clip-path: inset(4.55% round 1.6cqw);
+}
+.ce-plane[data-cast] > svg {
+	filter: drop-shadow(0 0.9cqw 1.1cqw rgb(0 0 0 / 0.38));
+}
+.ce-base {
+	background: var(--art-ground);
+}
+/* The frame's shadow on the sunken picture, just behind the face. */
+.ce-wall {
+	inset: 0;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	border-radius: 1.6cqw;
+	box-shadow: inset 0 1.8cqw 2.6cqw -0.4cqw rgb(0 0 0 / 0.55), inset 0 0 0 0.35cqw rgb(0 0 0 / 0.28), inset 0 -0.6cqw 1.2cqw -0.4cqw rgb(255 255 255 / 0.18);
+}
+.ce-skin {
+	overflow: hidden;
+	isolation: isolate;
+	-webkit-mask: var(--hole) 0 0 / 100% 100%;
+	mask: var(--hole) 0 0 / 100% 100%;
+}
+/* Light: a soft glare that follows the pointer over the face. */
+.ce-glare {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	background: radial-gradient(farthest-corner circle at var(--gx) var(--gy), rgb(255 255 255 / 0.5) 0%, rgb(255 255 255 / 0.14) 26%, rgb(255 255 255 / 0) 58%);
+	mix-blend-mode: soft-light;
+	opacity: calc(0.35 + var(--hyp) * 0.65);
+}
+.ce-card[data-tier="ssr"] .ce-glare {
+	mix-blend-mode: screen;
+	opacity: calc(0.08 + var(--hyp) * 0.18);
+}
+/* Clear coat over the whole card: a bevel of light at the rim, two soft window reflections that slide across as
+   it turns, a hot spot where the light falls. */
+.ce-glaze {
+	pointer-events: none;
+	transform: translateZ(0.08cqw);
+	box-shadow: inset 0 0 0 0.25cqw rgb(255 255 255 / 0.22), inset 0 0.5cqw 0.4cqw -0.2cqw rgb(255 255 255 / 0.55), inset 0 -0.6cqw 1cqw rgb(0 0 0 / 0.16);
+	background:
+		radial-gradient(40% 26% at var(--gx) var(--gy), rgb(255 255 255 / calc(0.05 + var(--hyp) * 0.22)), transparent),
+		linear-gradient(112deg, transparent 44%, rgb(255 255 255 / 0.2) 44.4%, rgb(255 255 255 / 0.06) 52%, transparent 52.4%, transparent 54%, rgb(255 255 255 / 0.12) 54.3%, rgb(255 255 255 / 0.03) 56.4%, transparent 56.7%) calc(50% - var(--px) * 60%) 0 / 240% 100% no-repeat;
+	-webkit-mask: linear-gradient(#000 25%, rgb(0 0 0 / 0.35) 90%);
+	mask: linear-gradient(#000 25%, rgb(0 0 0 / 0.35) 90%);
+}
+.ce-glaze-flat {
+	transform: none;
+}
+/* Hologram (流光): a laser rainbow over the face but under the text, with fine diffraction lines. */
+.ce-holo {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	display: none;
+}
+.ce-card[data-tier="ur"] .ce-holo,
+.ce-card[data-special="set"] .ce-holo {
+	display: block;
+	background:
+		repeating-linear-gradient(115deg, rgb(255 255 255 / 0) 0 0.45cqw, rgb(255 255 255 / 0.07) 0.45cqw 0.6cqw),
+		repeating-linear-gradient(110deg, hsl(340 90% 68% / 0.55) 0%, hsl(40 95% 62% / 0.55) 7%, hsl(80 80% 58% / 0.5) 14%, hsl(170 85% 55% / 0.5) 21%, hsl(220 85% 66% / 0.55) 28%, hsl(290 80% 68% / 0.55) 35%, hsl(340 90% 68% / 0.55) 42%);
+	background-size: 100% 100%, 300% 300%;
+	background-position: 0 0, calc(50% + var(--px) * 70%) calc(50% + var(--py) * 70%);
+	mix-blend-mode: color-dodge;
+	opacity: calc(0.16 + var(--hyp) * 0.5);
+}
+.ce-card[data-special="set"] .ce-holo {
+	opacity: calc(0.04 + var(--hyp) * 0.2);
+}
+.ce-text {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	color: var(--ink);
+	z-index: 2;
+}
+.ce-name {
+	position: absolute;
+	left: 9.5%;
+	top: 74.2%;
+	font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", "SimSun", serif;
+	font-size: 6.6cqw;
+	font-weight: 600;
+	line-height: 1;
+	letter-spacing: 0.06em;
+	white-space: nowrap;
+}
+.ce-code {
+	position: absolute;
+	right: 9.5%;
+	top: 75.3%;
+	font-family: Georgia, "Times New Roman", serif;
+	font-size: 3.2cqw;
+	font-weight: 600;
+	letter-spacing: 0.22em;
+	line-height: 1;
+	color: var(--soft);
+}
+.ce-line {
+	position: absolute;
+	left: 9.5%;
+	right: 9.5%;
+	top: 81.6%;
+	font-size: 3.2cqw;
+	line-height: 1.5;
+	opacity: 0.78;
+}
+.ce-foot {
+	position: absolute;
+	left: 11.4%;
+	right: 11.4%;
+	top: 90.3%;
+	display: flex;
+	justify-content: space-between;
+	gap: 2cqw;
+	font-family: Georgia, "Times New Roman", var(--font-sans), serif;
+	font-size: 2.4cqw;
+	letter-spacing: 0.1em;
+	font-variant-numeric: tabular-nums;
+	color: var(--soft);
+	white-space: nowrap;
+}
+.ce-card[data-tier="ssr"] .ce-name,
+.ce-card[data-tier="ssr"] .ce-code {
+	background: linear-gradient(115deg, #8a6424 0%, #e7c777 38%, #fff3cc 50%, #d3a851 62%, #8a6424 100%);
+	background-size: 260% 100%;
+	background-position: calc(50% + var(--px) * 60%) 0;
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+}
+.ce-back-text {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 79%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 1.4cqw;
+	pointer-events: none;
+	text-align: center;
+}
+.ce-back-numeral {
+	font-family: Georgia, "Times New Roman", serif;
+	font-size: 3.4cqw;
+	letter-spacing: 0.3em;
+	padding-left: 0.3em;
+	opacity: 0.85;
+}
+.ce-back-name {
+	font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", "SimSun", serif;
+	font-size: 5cqw;
+	letter-spacing: 0.4em;
+	padding-left: 0.4em;
+}
+.ce-back-brand {
+	font-family: Georgia, "Times New Roman", serif;
+	font-size: 2.1cqw;
+	letter-spacing: 0.32em;
+	padding-left: 0.32em;
+	opacity: 0.55;
+}
+/* Idle motion of the pictures: runs only while the card is live and the page is visible. */
+.ce-spin {
+	transform-box: view-box;
+	transform-origin: 0 0;
+	animation: ce-spin 40s linear infinite;
+}
+@keyframes ce-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+.ce-blink {
+	animation: ce-blink 9s steps(1) infinite;
+}
+@keyframes ce-blink {
+	0%, 62% { opacity: 1; }
+	63%, 78% { opacity: 0.15; }
+	79%, 100% { opacity: 1; }
+}
+.ce-beam {
+	transform-box: view-box;
+	animation: ce-beam 11s ease-in-out infinite alternate;
+}
+.ce-beam-2 {
+	animation-duration: 14s;
+	animation-direction: alternate-reverse;
+}
+@keyframes ce-beam {
+	from { transform: rotate(-16deg); }
+	to { transform: rotate(18deg); }
+}
+.ce-rain {
+	animation: ce-rain 1.6s linear infinite;
+}
+@keyframes ce-rain {
+	from { transform: translate(0, 0); }
+	to { transform: translate(-61px, 278px); }
+}
+.ce-card:not([data-live]) :is(.ce-spin, .ce-blink, .ce-beam, .ce-rain, .ce-anim),
+.ce-paused .ce-card :is(.ce-spin, .ce-blink, .ce-beam, .ce-rain, .ce-anim) {
+	animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+	.ce-card :is(.ce-spin, .ce-blink, .ce-beam, .ce-rain, .ce-anim) {
+		animation: none;
+	}
+	.ce-flip {
+		transition: opacity 0.3s ease;
+	}
+}
+.ce-scan {
+	animation: ce-scan 5.5s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+@keyframes ce-scan {
+	0% { transform: translateX(0); opacity: 0; }
+	10% { opacity: 1; }
+	80% { opacity: 1; }
+	100% { transform: translateX(230px); opacity: 0; }
+}
+.ce-pulse {
+	animation: ce-pulse 3.2s linear infinite;
+}
+@keyframes ce-pulse {
+	from { stroke-dashoffset: 100; }
+	to { stroke-dashoffset: 0; }
+}
+.ce-comet {
+	animation: ce-comet 26s linear infinite;
+}
+@keyframes ce-comet {
+	from { stroke-dashoffset: 1000; }
+	to { stroke-dashoffset: 0; }
+}
+.ce-signal {
+	opacity: 0;
+	animation: ce-signal 4.4s ease-in-out infinite;
+}
+@keyframes ce-signal {
+	0% { stroke-dashoffset: 100; opacity: 0; }
+	8% { opacity: 0.9; }
+	22% { stroke-dashoffset: 0; opacity: 0.9; }
+	30%, 100% { stroke-dashoffset: 0; opacity: 0; }
+}
+.ce-fire {
+	opacity: 0.25;
+	animation: ce-fire 4.4s ease-in-out infinite;
+}
+@keyframes ce-fire {
+	0%, 100% { opacity: 0.25; }
+	10% { opacity: 1; }
+	30% { opacity: 0.25; }
+}
+.ce-drift-far {
+	animation: ce-drift 90s linear infinite;
+}
+.ce-drift-near {
+	animation: ce-drift-near 60s linear infinite;
+}
+@keyframes ce-drift {
+	from { transform: translateX(0); }
+	to { transform: translateX(-292px); }
+}
+@keyframes ce-drift-near {
+	from { transform: translateX(0); }
+	to { transform: translateX(-312px); }
+}
+.ce-tram {
+	animation: ce-tram 22s linear infinite;
+}
+@keyframes ce-tram {
+	from { transform: translateX(-90px); }
+	to { transform: translateX(270px); }
+}
+.ce-orbit {
+	animation: ce-orbit 8s linear infinite;
+}
+@keyframes ce-orbit {
+	from { stroke-dashoffset: 0; }
+	to { stroke-dashoffset: -100; }
+}
+
+/* cyber-egg.spec.md CE-R2: the pack (Pack.svelte, card/pack-engine.ts). A foil pouch with thickness: two faces,
+   a rim, crimped seals; the strip above the tear line is cut in slices that curl away. */
+.ce-pack {
+	position: relative;
+	container-type: inline-size;
+	aspect-ratio: 345 / 500;
+	perspective: 1200px;
+	--tear: 0;
+	--teeth: conic-gradient(from 135deg at 50% 0, #0000, #000 1deg 89deg, #0000 90deg) 0 0 / 3.2cqw 1.6cqw repeat-x, linear-gradient(#000 0 0) 0 1.6cqw / 100% calc(100% - 3.2cqw) no-repeat, conic-gradient(from -45deg at 50% 100%, #0000, #000 1deg 89deg, #0000 90deg) 0 100% / 3.2cqw 1.6cqw repeat-x;
+}
+.ce-pack-shadow {
+	position: absolute;
+	left: 8%;
+	right: 8%;
+	bottom: -7%;
+	height: 9%;
+	border-radius: 50%;
+	background: radial-gradient(closest-side, rgb(20 16 10 / 0.38), transparent);
+	filter: blur(1.4cqw);
+	animation: ce-pack-shadow 5.2s ease-in-out infinite;
+}
+:root[data-theme='dark'] .ce-pack-shadow {
+	background: radial-gradient(closest-side, rgb(0 0 0 / 0.75), transparent);
+}
+.ce-pack-tilt {
+	position: absolute;
+	inset: 0;
+	transform-style: preserve-3d;
+	animation: ce-pack-bob 5.2s ease-in-out infinite;
+}
+@keyframes ce-pack-bob {
+	0%, 100% { transform: translateY(0) rotateX(3deg) rotateY(-7deg) rotateZ(-0.6deg); }
+	50% { transform: translateY(-2.2cqw) rotateX(-2deg) rotateY(6deg) rotateZ(0.6deg); }
+}
+@keyframes ce-pack-shadow {
+	0%, 100% { transform: scale(1); opacity: 1; }
+	50% { transform: scale(0.9); opacity: 0.75; }
+}
+.ce-pack-skin,
+.ce-pack-back {
+	position: absolute;
+	inset: 0;
+	background-size: 100% 100%;
+	backface-visibility: hidden;
+	-webkit-backface-visibility: hidden;
+	-webkit-mask: var(--teeth);
+	mask: var(--teeth);
+}
+.ce-pack-skin {
+	transform: translateZ(2.4cqw);
+	overflow: hidden;
+}
+.ce-pack-back {
+	transform: rotateY(180deg) translateZ(2.4cqw);
+	filter: brightness(0.75);
+}
+/* The pillowy side: a stack of narrower slabs, so the edge rolls away from the faces. */
+.ce-pack-rim {
+	position: absolute;
+	inset: 1.6% 0.8%;
+	border-radius: 2cqw;
+	background: var(--pack-ground);
+	box-shadow: inset 0 0 0 0.3cqw rgb(255 255 255 / 0.06);
+	transform: translateZ(0);
+}
+.ce-pack-rim::before,
+.ce-pack-rim::after {
+	content: "";
+	position: absolute;
+	inset: 0 0.6%;
+	border-radius: inherit;
+	background: inherit;
+}
+.ce-pack-rim::before {
+	transform: translateZ(1.4cqw);
+}
+.ce-pack-rim::after {
+	transform: translateZ(-1.4cqw);
+}
+/* Light inside the pack: it shows only where the strip has come away. */
+.ce-pack-print {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 75.5%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 1.8cqw;
+	color: var(--pack-accent);
+	text-align: center;
+}
+.ce-pack-kicker {
+	font-family: Georgia, "Times New Roman", var(--font-sans), serif;
+	font-size: 3.1cqw;
+	letter-spacing: 0.3em;
+	padding-left: 0.3em;
+	opacity: 0.7;
+}
+.ce-pack-title {
+	font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", "SimSun", serif;
+	font-size: 9.6cqw;
+	letter-spacing: 0.34em;
+	padding-left: 0.34em;
+	line-height: 1;
+	color: #f3ead6;
+}
+.ce-pack-sub {
+	font-size: 3cqw;
+	letter-spacing: 0.2em;
+	padding-left: 0.2em;
+	opacity: 0.6;
+}
+/* A glint down the foil that slides as the pack turns. */
+.ce-pack-glint {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	background:
+		linear-gradient(100deg, transparent 18%, rgb(255 255 255 / 0.16) 26%, rgb(255 255 255 / 0.05) 31%, transparent 38%) 0 0 / 220% 100% no-repeat,
+		linear-gradient(90deg, transparent 2%, rgb(255 255 255 / 0.22) 3.2%, transparent 7%);
+	animation: ce-pack-glint 5.2s ease-in-out infinite;
+}
+@keyframes ce-pack-glint {
+	0%, 100% { background-position: 90% 0, 0 0; }
+	50% { background-position: 20% 0, 0 0; }
+}
+/* The torn edge: the bright metal layer of the foil, thin and uneven. */
+.ce-pack-lip {
+	position: absolute;
+	inset: 0;
+	clip-path: polygon(0 0);
+	background: linear-gradient(100deg, #f4f6fb, #fff 14%, #bfc8da 27%, #fff 42%, #c9d1e1 58%, #fbfcff 72%, #b9c2d4 86%, #eef1f7);
+	transform: translateZ(2.5cqw);
+	pointer-events: none;
+}
+/* The strip still on the pack (clipped to the untorn part) and the torn ribbon, drawn on a canvas that reaches
+   past the pack so the strip can follow the hand. */
+.ce-pack-ribbon {
+	position: absolute;
+	left: -60%;
+	top: -60%;
+	width: 220%;
+	height: 220%;
+	transform: translateZ(2.7cqw);
+	pointer-events: none;
+}
+.ce-pack-notch {
+	position: absolute;
+	right: 0;
+	top: calc(12.5% - 1.6cqw);
+	width: 2.6cqw;
+	height: 3.2cqw;
+	background: rgb(0 0 0 / 0.5);
+	clip-path: polygon(100% 0, 0 50%, 100% 100%);
+	pointer-events: none;
+}
+.ce-pack-notch[data-side="left"] {
+	right: auto;
+	left: 0;
+	clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+.ce-pack-hit {
+	position: absolute;
+	/* The whole pack and a margin round it: a tear can start at any edge (owner 2026-11-24). */
+	inset: -8%;
+	border: 0;
+	padding: 0;
+	margin: 0;
+	background: none;
+	cursor: grab;
+	touch-action: none;
+	border-radius: 2cqw;
+	-webkit-tap-highlight-color: transparent;
+}
+.ce-pack-hit:active {
+	cursor: grabbing;
+}
+.ce-pack-hit:focus-visible {
+	outline: 2px solid var(--brand-bright);
+	outline-offset: 4px;
+}
+.ce-pack-hit:disabled {
+	cursor: default;
+}
+.ce-pack-open .ce-pack-tilt,
+.ce-pack-open .ce-pack-shadow,
+.ce-pack-open .ce-pack-glint {
+	animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+	.ce-pack-tilt,
+	.ce-pack-shadow,
+	.ce-pack-glint {
+		animation: none;
+	}
+}
+
+/* cyber-egg.spec.md CE-R1..CE-R5: the draw stage (DrawStage.svelte). */
+.ce-stage-card {
+	will-change: transform;
+}
+.ce-stage-shake {
+	perspective: 1400px;
+}
+.ce-stage-spin {
+	transform-style: preserve-3d;
+	transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.ce-stage-card.is-pickable:hover {
+	z-index: 30 !important;
+}
+.ce-stage-card.is-pickable:hover .ce-stage-spin,
+.ce-stage-card.is-pickable:focus-within .ce-stage-spin {
+	transform: translateY(-5%) scale(1.04);
+}
+.ce-card-dim {
+	filter: saturate(0.85) brightness(0.96);
+}
+:root[data-theme='dark'] .ce-card-dim {
+	filter: saturate(0.8) brightness(0.8);
+}
+/* The light behind the picked card: the tier's colour; silver turning gold for a gilt card; the spectrum for a hologram.
+   On the dark studio it is light; on a light backdrop (by day) a white glow would vanish, so it takes the metal's tone. */
+/* The light round the picked card (CE-R3). Redrawn 2026-11-24 (owner: 「拆出来好卡的流光光环……很像 AI 做的，我们要做像真
+   人做的」): the card is lit as if held up to a lamp. Behind it, a backlight in the card's own shape, soft, spilling a
+   little on the backdrop; under it, a pool of the same light on the floor; on its frame, a few glints that come and
+   go. No rays and no colour wheel. Gilt breathes slowly; the hologram drifts through pearl tints. */
+.ce-aura {
+	--aura: var(--aura-glow);
+	position: absolute;
+	z-index: 35;
+	pointer-events: none;
+	transition: opacity 0.7s ease;
+}
+:root[data-theme='dark'] .ce-aura {
+	--aura: var(--aura-light);
+	mix-blend-mode: screen;
+}
+.ce-aura::before {
+	content: "";
+	position: absolute;
+	inset: 6% 2% 16%;
+	border-radius: 50%;
+	background: radial-gradient(closest-side, color-mix(in srgb, var(--aura) 30%, transparent), transparent);
+	filter: blur(10px);
+}
+.ce-aura::after {
+	content: "";
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: 43%;
+	height: 59%;
+	border-radius: 6%;
+	background: var(--aura);
+	filter: blur(24px);
+	opacity: 0.85;
+	transform: translate(-50%, -51%);
+}
+.ce-aura-floor {
+	position: absolute;
+	left: 22%;
+	right: 22%;
+	top: 78%;
+	height: 12%;
+	border-radius: 50%;
+	background: radial-gradient(closest-side, color-mix(in srgb, var(--aura) 45%, transparent), transparent);
+	filter: blur(6px);
+}
+.ce-aura-rays::after {
+	animation: ce-aura-breathe 3.6s ease-in-out infinite;
+}
+.ce-aura-prism::before {
+	background: radial-gradient(closest-side, rgb(214 196 240 / 0.4), transparent);
+}
+/* At night the pearl is lighter, as light is on a dark ground. */
+:root[data-theme='dark'] .ce-aura-prism::after {
+	background-image: linear-gradient(135deg, #f6dcea, #faeccc, #d9f2e6, #dce3fa, #f6dcea);
+}
+.ce-aura-prism::after {
+	background: linear-gradient(135deg, #e7b9d2, #efd39f, #b8e1cd, #bccaf0, #e7b9d2);
+	background-size: 300% 300%;
+	animation: ce-aura-pearl 10s linear infinite, ce-aura-breathe 3.6s ease-in-out infinite;
+}
+.ce-aura-prism .ce-aura-floor {
+	background: radial-gradient(closest-side, rgb(206 212 238 / 0.5), transparent);
+}
+@keyframes ce-aura-breathe {
+	0%, 100% { opacity: 0.72; transform: translate(-50%, -51%) scale(0.98); }
+	50% { opacity: 0.95; transform: translate(-50%, -51%) scale(1.025); }
+}
+@keyframes ce-aura-pearl {
+	to { background-position: 300% 300%; }
+}
+/* Glints: where the light catches the frame, one at a time. */
+.ce-glints {
+	position: absolute;
+	z-index: 45;
+	pointer-events: none;
+}
+.ce-glints span {
+	position: absolute;
+	width: 18px;
+	height: 18px;
+	margin: -9px 0 0 -9px;
+	background:
+		radial-gradient(circle, #fff 0 12%, rgb(255 255 255 / 0) 34%),
+		linear-gradient(#fff, #fff) center / 1.2px 100% no-repeat,
+		linear-gradient(#fff, #fff) center / 100% 1.2px no-repeat;
+	-webkit-mask: radial-gradient(circle, #000 20%, transparent 70%);
+	mask: radial-gradient(circle, #000 20%, transparent 70%);
+	opacity: 0;
+	transform: scale(0) rotate(0deg);
+	animation: ce-glint-pop 4.6s ease-in-out infinite;
+}
+@keyframes ce-glint-pop {
+	0%, 68%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
+	74% { opacity: 1; transform: scale(1) rotate(18deg); }
+	82% { opacity: 0; transform: scale(0.2) rotate(40deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+	.ce-aura::after,
+	.ce-glints span {
+		animation: none;
+	}
+}
+.ce-motes {
+	position: absolute;
+	inset: 0;
+	z-index: 36;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+}
+.ce-result-info {
+	opacity: 0;
+	transform: translateY(8px);
+	transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.ce-result-info.is-shown {
+	opacity: 1;
+	transform: none;
+}
+.ce-tier-dot {
+	width: 0.6rem;
+	height: 0.6rem;
+	border-radius: 999px;
+	background: #d9d2c3;
+	box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+}
+.ce-tier-dot[data-tier="r"] { background: linear-gradient(135deg, #e3a27c, #8f4a26); }
+.ce-tier-dot[data-tier="sr"] { background: linear-gradient(135deg, #f4f7f9, #8b949c); }
+.ce-tier-dot[data-tier="ssr"] { background: linear-gradient(135deg, #f3d58a, #8a6424); }
+.ce-tier-dot[data-tier="ur"] { background: conic-gradient(#f7b0c4, #f9d9a1, #b9f0c9, #a9e4f2, #c4b8f5, #f7b0c4); }
+@media (prefers-reduced-motion: reduce) {
+	.ce-aura::before { animation: none; }
+	.ce-stage-spin { transition: none; }
+}
+
+
+/* Motion of the pictures of packs 2 and 3 (artworks/p2-star-sea.tsx, p3-east.tsx). */
+.ce-sway {
+	transform-box: view-box;
+	transform-origin: 0 0;
+}
+.ce-voyage {
+	animation: ce-voyage 26s linear infinite;
+}
+@keyframes ce-voyage {
+	/* Along the dashed route of the chart, M214 70 C 190 120, 130 160, 100 248. */
+	0% { transform: translate(214px, 70px); opacity: 0; }
+	5% { opacity: 1; }
+	12.5% { transform: translate(203.4px, 88.4px); }
+	25% { transform: translate(190.3px, 106.5px); }
+	37.5% { transform: translate(175.3px, 125.1px); }
+	50% { transform: translate(159.3px, 144.8px); }
+	62.5% { transform: translate(142.9px, 166.2px); }
+	75% { transform: translate(127.1px, 190.1px); }
+	87.5% { transform: translate(112.5px, 217.1px); }
+	95% { opacity: 1; }
+	100% { transform: translate(100px, 248px); opacity: 0; }
+}
+.ce-glint-soft {
+	transform-box: fill-box;
+	transform-origin: center;
+	animation: ce-glint-soft 4.5s ease-in-out infinite;
+}
+@keyframes ce-glint-soft {
+	0%, 100% { opacity: 0.55; }
+	50% { opacity: 1; }
+}
+.ce-index-arm,
+.ce-telescope {
+	transform-box: view-box;
+	transform-origin: 0 0;
+}
+.ce-index-arm {
+	animation: ce-index-arm 11s ease-in-out infinite alternate;
+}
+@keyframes ce-index-arm {
+	0%, 12% { transform: rotate(-7deg); }
+	55%, 70% { transform: rotate(5deg); }
+	100% { transform: rotate(3deg); }
+}
+.ce-telescope {
+	animation: ce-telescope 14s ease-in-out infinite alternate;
+}
+@keyframes ce-telescope {
+	from { transform: rotate(-2.5deg); }
+	to { transform: rotate(2deg); }
+}
+.ce-shooting {
+	animation: ce-shooting 9s ease-in infinite;
+}
+@keyframes ce-shooting {
+	0%, 74% { transform: translate(0, 0); opacity: 0; }
+	76% { opacity: 1; }
+	84%, 100% { transform: translate(110px, 40px); opacity: 0; }
+}
+.ce-scarf {
+	transform-box: fill-box;
+	transform-origin: 100% 50%;
+	animation: ce-scarf 3.2s ease-in-out infinite;
+}
+@keyframes ce-scarf {
+	0%, 100% { transform: rotate(-5deg); }
+	30% { transform: rotate(7deg) skewX(5deg); }
+	60% { transform: rotate(-1deg); }
+}
+.ce-shimmer {
+	animation: ce-shimmer 5s ease-in-out infinite alternate;
+}
+@keyframes ce-shimmer {
+	from { opacity: 0.55; }
+	to { opacity: 1; }
+}
+.ce-diamond {
+	transform-box: fill-box;
+	transform-origin: center;
+	animation: ce-diamond 7s ease-in-out infinite;
+}
+@keyframes ce-diamond {
+	0%, 100% { transform: scale(0.45) rotate(0deg); opacity: 0.5; }
+	46% { transform: scale(0.8) rotate(8deg); opacity: 0.85; }
+	52% { transform: scale(1.35) rotate(12deg); opacity: 1; }
+	62% { transform: scale(0.7) rotate(16deg); opacity: 0.75; }
+}
+.ce-aurora {
+	transform-box: fill-box;
+	transform-origin: 50% 100%;
+	animation: ce-aurora 9s ease-in-out infinite alternate;
+}
+.ce-aurora-2 { animation-duration: 12s; animation-direction: alternate-reverse; }
+.ce-aurora-3 { animation-duration: 15s; }
+@keyframes ce-aurora {
+	from { transform: skewX(-8deg) scaleY(0.92); opacity: 0.75; }
+	to { transform: skewX(9deg) scaleY(1.08); opacity: 1; }
+}
+.ce-glint {
+	transform-box: fill-box;
+	transform-origin: center;
+	animation: ce-glint 5s ease-in-out infinite;
+}
+@keyframes ce-glint {
+	0%, 100% { opacity: 0.45; transform: scale(0.7); }
+	50% { opacity: 1; transform: scale(1.1); }
+}
+.ce-rise {
+	animation: ce-rise 20s ease-in-out infinite alternate;
+}
+@keyframes ce-rise {
+	from { transform: translateY(16px); }
+	to { transform: translateY(-4px); }
+}
+.ce-earth-turn {
+	animation: ce-earth-turn 40s linear infinite;
+}
+@keyframes ce-earth-turn {
+	from { transform: translateX(0); }
+	to { transform: translateX(-200px); }
+}
+.ce-sway {
+	animation: ce-sway 5s ease-in-out infinite alternate;
+}
+@keyframes ce-sway {
+	from { transform: rotate(-4deg); }
+	to { transform: rotate(4deg); }
+}
+.ce-ripple {
+	transform-box: fill-box;
+	transform-origin: center;
+	animation: ce-ripple 6s ease-out infinite;
+}
+.ce-ripple-slow { animation-duration: 4.8s; }
+@keyframes ce-ripple {
+	from { transform: scale(0.4); opacity: 0.9; }
+	to { transform: scale(3.2); opacity: 0; }
+}
+.ce-petal {
+	animation: ce-petal 10s linear infinite;
+}
+@keyframes ce-petal {
+	from { transform: translate(0, -20px) rotate(0deg); opacity: 0; }
+	10% { opacity: 1; }
+	to { transform: translate(-60px, 300px) rotate(360deg); opacity: 0.6; }
+}
+.ce-struck {
+	transform-box: view-box;
+	animation: ce-struck 4.8s ease-in-out infinite;
+}
+@keyframes ce-struck {
+	0%, 100% { transform: rotate(0deg); }
+	4% { transform: rotate(3deg); }
+	10% { transform: rotate(-2deg); }
+	16% { transform: rotate(1deg); }
+	22% { transform: rotate(0deg); }
+}
+.ce-bob {
+	animation: ce-bob 6s ease-in-out infinite alternate;
+}
+@keyframes ce-bob {
+	from { transform: translateY(-4px); }
+	to { transform: translateY(5px); }
+}
+.ce-whisker {
+	transform-box: fill-box;
+	transform-origin: 0% 0%;
+	animation: ce-whisker 4s ease-in-out infinite alternate;
+}
+@keyframes ce-whisker {
+	from { transform: rotate(-6deg); }
+	to { transform: rotate(6deg); }
+}
+/* Pack 3 「东方」 (p3-east.tsx, owner 2026-11-24 redraw). */
+.ce-bead-move {
+	animation: ce-bead-move 7s ease-in-out infinite;
+}
+@keyframes ce-bead-move {
+	0%, 30%, 100% { transform: translateY(0); }
+	42%, 82% { transform: translateY(var(--dy, 0px)); }
+}
+.ce-flicker {
+	animation: ce-flicker 3.6s ease-in-out infinite;
+}
+@keyframes ce-flicker {
+	0%, 100% { opacity: 0.85; }
+	18% { opacity: 1; }
+	22% { opacity: 0.7; }
+	26% { opacity: 1; }
+	60% { opacity: 0.9; }
+}
+.ce-lantern,
+.ce-mallet {
+	transform-box: view-box;
+	transform-origin: 0 0;
+}
+.ce-lantern {
+	animation: ce-lantern 7s ease-in-out infinite alternate;
+}
+@keyframes ce-lantern {
+	from { transform: rotate(-1.6deg); }
+	to { transform: rotate(1.6deg); }
+}
+.ce-float-x {
+	animation: ce-float-x 11s ease-in-out infinite alternate;
+}
+@keyframes ce-float-x {
+	from { transform: translateX(-5px); }
+	to { transform: translateX(6px); }
+}
+.ce-sheen {
+	animation: ce-sheen 8s ease-in-out infinite;
+}
+@keyframes ce-sheen {
+	0%, 20% { transform: translateX(-240px); }
+	70%, 100% { transform: translateX(240px); }
+}
+.ce-caustic {
+	animation: ce-caustic 9s ease-in-out infinite alternate;
+}
+.ce-caustic-2 {
+	animation: ce-caustic 7s ease-in-out infinite alternate-reverse;
+}
+@keyframes ce-caustic {
+	from { transform: translate(-7px, -3px); }
+	to { transform: translate(6px, 5px); }
+}
+.ce-tail {
+	transform-box: view-box;
+	transform-origin: 0 0;
+	animation: ce-tail 1.4s ease-in-out infinite alternate;
+}
+@keyframes ce-tail {
+	from { transform: rotate(-14deg); }
+	to { transform: rotate(14deg); }
+}
+.ce-fall {
+	animation: ce-fall 0.9s linear infinite;
+}
+@keyframes ce-fall {
+	to { stroke-dashoffset: -24; }
+}
+.ce-crane {
+	animation: ce-crane 28s linear infinite;
+}
+@keyframes ce-crane {
+	from { transform: translate(300px, 40px); }
+	to { transform: translate(-60px, 10px); }
+}
+.ce-flap {
+	transform-box: fill-box;
+	transform-origin: 50% 100%;
+	animation: ce-flap 0.9s ease-in-out infinite alternate;
+}
+@keyframes ce-flap {
+	from { transform: scaleY(1); }
+	to { transform: scaleY(-0.5); }
+}
+.ce-mallet {
+	animation: ce-mallet 4.8s infinite;
+}
+@keyframes ce-mallet {
+	0% { transform: rotate(0deg); animation-timing-function: ease-out; }
+	12% { transform: rotate(15deg); animation-timing-function: ease-in-out; }
+	80% { transform: rotate(17deg); animation-timing-function: ease-in; }
+	100% { transform: rotate(0deg); }
+}
+
+/* The light leaking from the slit (pack-engine.ts drawLight): between the torn lip and the strip still on. */
+.ce-pack-light {
+	position: absolute;
+	left: -60%;
+	top: -60%;
+	width: 220%;
+	height: 220%;
+	transform: translateZ(2.6cqw);
+	pointer-events: none;
+}
+
+/* Pack 1's added cards (p1-more.tsx). */
+.ce-type {
+	transform-box: fill-box;
+	transform-origin: 0 50%;
+	animation: ce-type 7s steps(1) infinite;
+}
+@keyframes ce-type {
+	0%, 8% { transform: scaleX(0); }
+	14% { transform: scaleX(0.12); }
+	20% { transform: scaleX(0.23); }
+	26% { transform: scaleX(0.34); }
+	32% { transform: scaleX(0.45); }
+	38% { transform: scaleX(0.56); }
+	44% { transform: scaleX(0.67); }
+	50% { transform: scaleX(0.78); }
+	56% { transform: scaleX(0.89); }
+	62%, 100% { transform: scaleX(1); }
+}
+.ce-strike,
+.ce-vu {
+	transform-box: view-box;
+	transform-origin: 0 0;
+}
+.ce-strike {
+	animation: ce-strike 0.84s ease-in-out infinite;
+}
+@keyframes ce-strike {
+	0%, 62%, 100% { transform: scaleY(0.53); }
+	74% { transform: scaleY(1); }
+	82% { transform: scaleY(0.6); }
+}
+.ce-vu {
+	animation: ce-vu 1.9s ease-in-out infinite alternate;
+}
+@keyframes ce-vu {
+	0% { transform: rotate(-18deg); }
+	22% { transform: rotate(14deg); }
+	38% { transform: rotate(4deg); }
+	55% { transform: rotate(30deg); }
+	72% { transform: rotate(10deg); }
+	100% { transform: rotate(22deg); }
+}
+.ce-tape {
+	animation: ce-tape 9.6s steps(8) infinite;
+}
+@keyframes ce-tape {
+	to { transform: translateX(-208px); }
+}
+.ce-write {
+	animation: ce-write 1.2s ease-out infinite;
+}
+@keyframes ce-write {
+	0% { opacity: 1; }
+	40%, 100% { opacity: 0.25; }
+}

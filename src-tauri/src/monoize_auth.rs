@@ -345,6 +345,50 @@ pub fn monoize_desktop_plan() -> Result<Value, String> {
     gateway_key_call("GET", "/api/desktop/oauth/plan", None)
 }
 
+/// The 赛博鸡蛋 campaign's client API with the device key
+/// (`/api/client/cyber-egg/{me,draw,pick,collection,trades,key,usage}`):
+/// `path` is what follows that prefix (`me`, `trades/abc/accept`, `usage?day=…`).
+/// Only GET and POST, and only under the prefix. Errors as
+/// [`gateway_key_call`]'s (a 404: a gateway without the campaign API).
+#[tauri::command(async)]
+pub fn monoize_cyber_egg(method: String, path: String, body: Option<Value>) -> Result<Value, String> {
+    let method = method.to_ascii_uppercase();
+    if !cyber_egg_path_ok(&method, &path) {
+        return Err(json!({ "status": null, "code": "bad_request", "message": "invalid cyber-egg request" }).to_string());
+    }
+    gateway_key_call(&method, &format!("/api/client/cyber-egg/{path}"), body)
+}
+
+/// A campaign request the app may make: GET or POST, a path of plain
+/// segments (letters, digits, `-`, `_`), an optional plain query.
+fn cyber_egg_path_ok(method: &str, path: &str) -> bool {
+    if method != "GET" && method != "POST" {
+        return false;
+    }
+    let (route, query) = path.split_once('?').unwrap_or((path, ""));
+    let plain = |c: char| c.is_ascii_alphanumeric() || c == '-' || c == '_';
+    !route.is_empty()
+        && route.split('/').all(|seg| !seg.is_empty() && seg.chars().all(plain))
+        && query.chars().all(|c| plain(c) || c == '=' || c == '&' || c == '.' || c == ':')
+}
+
+#[cfg(test)]
+mod cyber_egg_tests {
+    use super::cyber_egg_path_ok;
+
+    #[test]
+    fn only_plain_campaign_paths() {
+        assert!(cyber_egg_path_ok("GET", "me"));
+        assert!(cyber_egg_path_ok("POST", "trades/t_1/accept"));
+        assert!(cyber_egg_path_ok("GET", "usage?day=2026-11-25"));
+        assert!(!cyber_egg_path_ok("DELETE", "me"));
+        assert!(!cyber_egg_path_ok("GET", "../dashboard/me"));
+        assert!(!cyber_egg_path_ok("GET", "me//x"));
+        assert!(!cyber_egg_path_ok("GET", ""));
+        assert!(!cyber_egg_path_ok("GET", "me?x=%2e%2e"));
+    }
+}
+
 /// The models this device key can use, with names, vendors, versions,
 /// health, prices and plan coverage (`GET /api/desktop/models/catalog`,
 /// gateway contract MC-API). Errors as [`gateway_key_call`]'s (a 404: a

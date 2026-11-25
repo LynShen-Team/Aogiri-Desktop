@@ -9,7 +9,11 @@
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    // The 赛博鸡蛋 card art (src/lib/cyberEgg/card) is JSX drawn by its own small runtime, not React.
+    "jsx": "react",
+    "jsxFactory": "ceJsx",
+    "jsxFragmentFactory": "CeFragment"
   }
   // Path aliases are handled by https://svelte.dev/docs/kit/configuration#alias
   // except $lib which is handled by https://svelte.dev/docs/kit/configuration#files

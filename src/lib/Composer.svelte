@@ -28,6 +28,7 @@
 	import CircleNotchIcon from 'phosphor-svelte/lib/CircleNotchIcon';
 	import GitBranchIcon from 'phosphor-svelte/lib/GitBranchIcon';
 	import CaretDownIcon from 'phosphor-svelte/lib/CaretDownIcon';
+	import EggIcon from 'phosphor-svelte/lib/EggIcon';
 	import BranchMenu from '$lib/composer/BranchMenu.svelte';
 	import CommandIcon from 'phosphor-svelte/lib/CommandIcon';
 	import { toast } from '$lib/ui/toast.svelte';
@@ -65,6 +66,8 @@
 	import { trial } from '$lib/trial.svelte';
 	import { credits, tightestWindow, windowLabel } from '$lib/trial';
 	import { resetText } from '$lib/planStop';
+	import { egg } from '$lib/cyberEgg/store.svelte';
+	import { wan } from '$lib/cyberEgg/format';
 
 	let {
 		chat,
@@ -80,6 +83,7 @@
 		backendLocked = true,
 		toolProvider,
 		gateway = null,
+		eggModel = null,
 		gitBranch = '',
 		gitCwd = '',
 		filesRoot,
@@ -139,6 +143,8 @@
 		/** An OpenCode session: whether it runs on the LynShen gateway (the
 		 *  model menu's switch; null: not offered). */
 		gateway?: boolean | null;
+		/** On the 赛博鸡蛋 tokens: the round's model this conversation runs on. */
+		eggModel?: string | null;
 		/** Current git branch for the footer strip ('' hides the chip). */
 		gitBranch?: string;
 		/** Where the branch chip's picker runs git; '' leaves the chip read-only. */
@@ -1119,7 +1125,7 @@
 			</span>
 		{/if}
 		<div class="fspace"></div>
-		{#if payer}
+		{#if payer && !eggModel}
 			<span class="fbtn static payer" class:warn={payer.warn} role="note" title={payer.title} aria-label={payer.title}>{payer.label}</span>
 		{/if}
 		{#if chat.backendId === 'acp' && chat.agentApprovals === false}
@@ -1139,8 +1145,9 @@
 			>
 				{#key chat.model}
 					<span class="mswap">
-						{#if chat.backendId !== 'lynshen'}<BackendIcon backend={chat.backendId} agent={chat.acpAgentId} size={14} />{/if}
-						<span class="m">{modelDisplayName || stripGroupSuffix(chat.modelLabel || '') || chat.model || backendLabel}</span>
+						{#if eggModel}<EggIcon size={14} />
+						{:else if chat.backendId !== 'lynshen'}<BackendIcon backend={chat.backendId} agent={chat.acpAgentId} size={14} />{/if}
+						<span class="m">{eggModel ? `${t('egg.title')} · ${eggModel}` : modelDisplayName || stripGroupSuffix(chat.modelLabel || '') || chat.model || backendLabel}</span>
 					</span>
 				{/key}
 				{#if chat.ultracode}<span class="u">Ultracode</span>{/if}
@@ -1151,9 +1158,14 @@
 				><BackendIcon backend={chat.backendId} agent={chat.acpAgentId} size={14} /><span class="m">{modelDisplayName || stripGroupSuffix(chat.modelLabel || '') || chat.model}</span></span
 			>
 		{/if}
+		{#if eggModel}
+			<!-- Today's campaign tokens left, beside the model they run on. -->
+			<span class="fbtn static egg-left" role="note">{t('egg.picker.footLeft', { n: wan(egg.remaining) })}</span>
+		{/if}
 		{#if modelPopoverVisible}
 			<ModelMenu
 				{chat}
+				{eggModel}
 				canPickModel={bcaps.modelPicker}
 				rows={bcaps.modelPicker ? modelRows : []}
 				{backendLocked}
@@ -1487,6 +1499,12 @@
 	   once the plan cannot pay. */
 	.fbtn.noappr {
 		color: var(--warn);
+	}
+	/* Today's 赛博鸡蛋 tokens: figures in mono (design.md §4 Type). */
+	.fbtn.egg-left {
+		font-family: var(--font-mono);
+		font-variant-numeric: tabular-nums;
+		white-space: nowrap;
 	}
 	.fbtn.payer {
 		flex-shrink: 1;
