@@ -300,6 +300,7 @@
 	/** A new conversation on today's 赛博鸡蛋 tokens: a LynShen chat on the
 	 *  round's first model (the model menu's group switches among them). */
 	async function startEggChat() {
+		if (!egg.usable) return;
 		try {
 			const id = await store.newChat();
 			if (!id) return;

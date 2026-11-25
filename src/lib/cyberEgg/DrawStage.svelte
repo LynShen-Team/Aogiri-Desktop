@@ -23,6 +23,7 @@
 
 	type EggPicked = { me: EggMe; draw: EggDraw; secret: string | null };
 	import { left, wan } from './format';
+	import { egg } from './store.svelte';
 
 	type Phase = 'sealed' | 'dealing' | 'fanned' | 'picking' | 'revealing' | 'done';
 	interface Spot {
@@ -410,7 +411,7 @@
 					{lapse ? t('egg.result.validLeft', { h: lapse.h, m: lapse.m }) : t('egg.result.validEnded')}
 				</p>
 				<div class="actions">
-					<Button variant="primary" onclick={onChat}><ChatCircleIcon size={16} />{t('egg.result.chat')}</Button>
+					{#if egg.usable}<Button variant="primary" onclick={onChat}><ChatCircleIcon size={16} />{t('egg.result.chat')}</Button>{/if}
 					<Button variant="secondary" onclick={onAlbum}>{t('egg.result.album')}</Button>
 					{#if phase === 'done' && onBonus && (me.chances?.available ?? 0) > 0}
 						<Button variant="secondary" onclick={onBonus}>{t('egg.result.again')}</Button>

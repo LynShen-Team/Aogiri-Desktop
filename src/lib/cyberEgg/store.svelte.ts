@@ -4,6 +4,7 @@
 import { GatewayError } from '$lib/protocol';
 import { eggApi, type EggMe, type EggOwnedCard, type EggTrades } from './api';
 import { usedShare } from './format';
+import { eggRoutable } from './route';
 
 const PICKER_KEY = 'lynshen-cyber-egg-picker';
 /** Read again at most this often on focus. */
@@ -80,9 +81,10 @@ export class EggStore {
 	get models(): string[] {
 		return this.me?.campaign?.models ?? [];
 	}
-	/** The group can carry a conversation: a round runs, tokens are left, the key is known. */
+	/** A conversation can run on today's tokens: a round runs, tokens are left, the key works, and the daemon can
+	 *  give one session the campaign's provider (route.ts). */
 	get usable(): boolean {
-		return this.live && this.remaining > 0 && !this.me?.blocked && this.me?.key?.suspended == null;
+		return this.live && this.remaining > 0 && !this.me?.blocked && this.me?.key?.suspended == null && eggRoutable();
 	}
 
 	setInPicker(on: boolean) {

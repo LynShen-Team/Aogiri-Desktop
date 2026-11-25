@@ -1335,7 +1335,7 @@
 		const onEgg = parseEggCommand(picked);
 		if (onEgg) {
 			chat.closePicker();
-			void store.setEgg(session.id, onEgg);
+			store.setEgg(session.id, onEgg).catch((e) => toast.error(e instanceof Error ? e.message : String(e)));
 			return;
 		}
 		if (session.egg && (picked.startsWith('/model ') || picked.startsWith('@switch '))) {

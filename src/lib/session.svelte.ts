@@ -1471,6 +1471,9 @@ export class SessionStore {
 	async setEgg(id: string, model: string | null) {
 		const s = this.allSessions.find((x) => x.id === id);
 		if (!s || s.backendId !== 'lynshen') return;
+		// A daemon that can't run one session on its own provider would run it on the account's: never put a
+		// conversation on the campaign's tokens there (it would spend the balance under the 赛博鸡蛋 label).
+		if (model && !eggRoutable()) throw new Error(t('egg.picker.needsUpdate'));
 		const was = s.egg?.model ?? null;
 		s.egg = model ? { model } : undefined;
 		if (s.draft) {
