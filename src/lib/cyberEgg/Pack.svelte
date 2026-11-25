@@ -4,8 +4,7 @@
 	// fingers grip only at an edge, the tear runs only while the strip is pulled taut, a tear let go stays,
 	// the body tears ragged, the crinkle follows the tear's speed.
 	import { createPack, type TearHint } from './card/pack-engine';
-	import { wrapperUrl } from './card/pack-art';
-	import { packLook, ROMAN } from './card/tiers';
+	import { ROMAN, artUrl, packOf } from './art';
 	import { t } from '$lib/i18n';
 
 	let {
@@ -38,18 +37,19 @@
 	let engine: ReturnType<typeof createPack> | null = null;
 	// What the engine reads live.
 	const live = {
-		period: 0,
+		wrapper: '',
 		disabled: false,
 		onTorn: () => onTorn(),
 		onOpen: () => (done = true),
 		onHint: (hint: TearHint) => onHint?.(hint)
 	};
-	const wrapper = $derived(wrapperUrl(period));
-	const look = $derived(packLook(period));
+	// The printed wrapper and the pack's colours, from the shared card-art bundle.
+	const pack = $derived(packOf(period));
+	const wrapper = $derived(pack ? artUrl(pack.wrapper) : '');
 
 	$effect(() => {
 		if (!root || !tilt || !skin || !back || !rim || !canvas || !light) return;
-		live.period = period;
+		live.wrapper = wrapper;
 		const made = createPack({ root, tilt, skin, back, rim, canvas, light }, live);
 		engine = made;
 		return () => {
@@ -73,7 +73,7 @@
 	}
 </script>
 
-<div bind:this={root} class="ce-pack" class:ce-pack-open={done} style:--pack-ground={look.back.ground} style:--pack-accent={look.back.accent}>
+<div bind:this={root} class="ce-pack" class:ce-pack-open={done} style:--pack-ground={pack?.back.ground} style:--pack-accent={pack?.back.accent}>
 	<div class="ce-pack-shadow" aria-hidden="true"></div>
 	<div bind:this={tilt} class="ce-pack-tilt">
 		<div bind:this={rim} class="ce-pack-rim" aria-hidden="true"></div>

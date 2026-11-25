@@ -2,7 +2,7 @@
 // signed in and again on focus; the campaign key's secret while the app runs; and the choice to show
 // the 「赛博鸡蛋」 group in the model menu.
 import { GatewayError } from '$lib/protocol';
-import { eggApi, type EggCollection, type EggMe, type EggOwnedCard } from './api';
+import { eggApi, type EggMe, type EggOwnedCard, type EggTrades } from './api';
 import { usedShare } from './format';
 
 const PICKER_KEY = 'lynshen-cyber-egg-picker';
@@ -22,10 +22,8 @@ export class EggStore {
 	/** off: no round, or a gateway without the campaign API (the entry hides). */
 	status = $state<'idle' | 'loading' | 'ready' | 'off' | 'error'>('idle');
 	error = $state<string | null>(null);
-	/** Every card the user owns, newest first (the album and the nav's count). */
-	cards = $state<EggOwnedCard[]>([]);
-	packs = $state<EggCollection['packs']>([]);
-	#cardsAt = 0;
+	/** The swaps sent to this user and by it (the market's requests, the nav's count). */
+	trades = $state<EggTrades | null>(null);
 	/** The campaign key in full, from a draw, a rotation or `GET key` (memory only). */
 	secret = $state<string | null>(null);
 	/** Show the 「赛博鸡蛋」 group in the model menu. */
@@ -49,13 +47,26 @@ export class EggStore {
 		return this.status === 'ready' && !!this.me?.campaign && this.me.campaign.state === 'running';
 	}
 	get canDraw(): boolean {
-		return this.live && !!this.me && !this.me.today && this.me.membership !== 'review' && this.me.membership !== 'refused' && !this.me.blocked;
+		const me = this.me;
+		if (!this.live || !me || me.today || me.blocked || me.banned || me.paused) return false;
+		if (me.membership === 'review' || me.membership === 'refused') return false;
+		// Not joined yet: a first draw joins, once every requirement is met (CE-E1..E3).
+		return me.membership === 'joined' || me.checks.every((c) => c.ok);
 	}
+	/** Today's grant: the tokens of today's draws (CE-API-1 `campaign.per_user_cap_tokens` for a player). */
 	get granted(): number {
-		return this.me?.granted_tokens ?? 0;
+		return this.me?.today ? (this.me.campaign?.per_user_cap_tokens ?? this.me.today.card.tokens) : 0;
 	}
 	get used(): number {
-		return this.me?.used_tokens ?? 0;
+		return this.me?.my_used_tokens ?? 0;
+	}
+	/** Every card the user owns, newest first. */
+	get cards(): EggOwnedCard[] {
+		return this.me?.collection ?? [];
+	}
+	/** Swaps that wait for this user's answer. */
+	get waiting(): number {
+		return this.trades?.incoming.filter((x) => x.state === 'open').length ?? 0;
 	}
 	get remaining(): number {
 		return Math.max(0, this.granted - this.used);
@@ -108,23 +119,22 @@ export class EggStore {
 		return this.#reading;
 	}
 
-	/** Reads the album (at most once a minute unless `force`). */
-	async loadCards(force = false) {
-		if (!force && Date.now() - this.#cardsAt < STALE_MS) return;
-		this.#cardsAt = Date.now();
+	/** Reads the swaps (the market and the nav's count). */
+	async loadTrades() {
 		try {
-			const answer = await eggApi.collection();
-			this.cards = answer.cards;
-			this.packs = answer.packs;
+			this.trades = await eggApi.trades();
 		} catch {
-			this.#cardsAt = 0;
+			/* the count stays as it was */
 		}
 	}
 
 	/** The key in full for a conversation that uses the campaign: kept, or asked of the gateway. */
 	async keySecret(): Promise<string | null> {
 		if (this.secret) return this.secret;
-		const answer = await eggApi.key();
+		const campaign = this.me?.campaign;
+		if (!campaign) return null;
+		// CE-K7: the device may read the working key in full.
+		const answer = await eggApi.key(campaign.id);
 		if (answer.key?.secret) this.secret = answer.key.secret;
 		return this.secret;
 	}
@@ -133,6 +143,7 @@ export class EggStore {
 	reset() {
 		this.me = null;
 		this.secret = null;
+		this.trades = null;
 		this.status = 'idle';
 	}
 }

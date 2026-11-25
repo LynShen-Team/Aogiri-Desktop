@@ -9,15 +9,13 @@
 	import Modal from '$lib/ui/Modal.svelte';
 	import { toast } from '$lib/ui/toast.svelte';
 	import Card3D from './Card3D.svelte';
-	import { cardById, packOf } from './card/cards';
-	import { TIERS, type CardTier } from './card/tiers';
+	import { TIERS, cardById, packOf, type Tier as CardTier } from './art';
 	import { egg } from './store.svelte';
-	import { eggApi, eggErrorText, type EggListing, type EggMe, type EggTrades } from './api';
+	import { account } from '$lib/accountSession.svelte';
+	import { eggApi, eggErrorText, type EggListing, type EggTrade } from './api';
 
-	let { me }: { me: EggMe } = $props();
-
-	let tab = $state<'hall' | 'requests'>(untrack(() => (me.trades_waiting ? 'requests' : 'hall')));
-	let data = $state<EggTrades | null>(null);
+	let tab = $state<'hall' | 'requests'>(untrack(() => (egg.waiting ? 'requests' : 'hall')));
+	let listings = $state<EggListing[] | null>(null);
 	let busy = $state<string | null>(null);
 	/** Taking a listing: which of this user's cards to give. */
 	let taking = $state<EggListing | null>(null);
@@ -26,14 +24,27 @@
 	let listCard = $state<string | null>(null);
 	let listTier = $state<CardTier | null>(null);
 
-	$effect(() => {
-		eggApi.trades().then(
-			(answer) => (data = answer),
+	const loadHall = () =>
+		eggApi.market().then(
+			(answer) => (listings = answer.listings),
 			(error) => toast.error(eggErrorText(error))
 		);
+	$effect(() => {
+		void loadHall();
+		void egg.loadTrades();
 	});
 
-	const waiting = $derived(data?.trades.filter((x) => !x.mine && x.state === 'open').length ?? me.trades_waiting);
+	/** The swaps: sent to this user, sent by it, then those done (sent by it when it is their `from`). */
+	const swaps = $derived<Array<EggTrade & { mine: boolean }>>(
+		egg.trades
+			? [
+					...egg.trades.incoming.map((x) => ({ ...x, mine: false })),
+					...egg.trades.outgoing.map((x) => ({ ...x, mine: true })),
+					...egg.trades.done.map((x) => ({ ...x, mine: x.from === account.user?.username }))
+				]
+			: []
+	);
+	const waiting = $derived(egg.waiting);
 	const name = (id: string) => cardById(id)?.name ?? id;
 	const tierName = (tier: CardTier) => t(`egg.tier.${tier}`);
 	const wants = (l: EggListing) =>
@@ -46,12 +57,13 @@
 		return minutes < 60 ? t('egg.market.minutesAgo', { n: minutes }) : minutes < 1440 ? t('egg.market.hoursAgo', { n: Math.round(minutes / 60) }) : t('egg.market.daysAgo', { n: Math.round(minutes / 1440) });
 	};
 
-	async function act(id: string, run: () => Promise<EggTrades>, done: string) {
+	async function act(id: string, run: () => Promise<unknown>, done: string) {
 		busy = id;
 		try {
-			data = await run();
+			await run();
 			toast.success(done);
-			void egg.loadCards(true);
+			void loadHall();
+			void egg.loadTrades();
 			void egg.refresh();
 		} catch (error) {
 			toast.error(eggErrorText(error));
@@ -74,12 +86,12 @@
 		</button>
 	</div>
 
-	{#if !data}
+	{#if tab === 'hall' && !listings}
 		<p class="none">{t('egg.loading')}</p>
-	{:else if tab === 'hall'}
-		{#if data.listings.length}
+	{:else if tab === 'hall' && listings}
+		{#if listings.length}
 			<div class="list">
-				{#each data.listings as l (l.id)}
+				{#each listings as l (l.id)}
 					{@const def = cardById(l.give.card_id)}
 					<div class="row">
 						<div class="thumb">{#if def}<Card3D card={def} period={def.period} packName={packOf(def.period)?.name ?? ''} live={false} interactive={false} />{/if}</div>
@@ -88,7 +100,7 @@
 							<p class="desc">{t('egg.market.wants', { what: wants(l) })} · {l.mine ? t('egg.market.yours') : l.owner} · {ago(l.at)}</p>
 						</div>
 						{#if l.mine}
-							<Button size="sm" variant="ghost" disabled={busy === l.id} onclick={() => act(l.id, () => eggApi.answer(l.id, 'cancel'), t('egg.market.withdrawn'))}>{t('egg.market.withdraw')}</Button>
+							<Button size="sm" variant="ghost" disabled={busy === l.id} onclick={() => act(l.id, () => eggApi.unlist(l.id), t('egg.market.withdrawn'))}>{t('egg.market.withdraw')}</Button>
 						{:else}
 							<Button size="sm" disabled={!fits(l).length || busy === l.id} title={fits(l).length ? undefined : t('egg.market.noFit')} onclick={() => (taking = l)}>{t('egg.market.take')}</Button>
 						{/if}
@@ -98,9 +110,11 @@
 		{:else}
 			<p class="none">{t('egg.market.emptyHall')}</p>
 		{/if}
-	{:else if data.trades.length}
+	{:else if !egg.trades}
+		<p class="none">{t('egg.loading')}</p>
+	{:else if swaps.length}
 		<div class="list">
-			{#each data.trades as x (x.id)}
+			{#each swaps as x (x.id)}
 				{@const theirs = x.mine ? x.want : x.give}
 				{@const ours = x.mine ? x.give : x.want}
 				<div class="row">

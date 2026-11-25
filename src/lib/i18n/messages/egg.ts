@@ -68,7 +68,8 @@ const egg = {
 			tab: '第 {n} 期 {name}',
 			missing: '未获得',
 			fromTrade: '交换得来',
-			fromDraw: '抽到 {n} 万'
+			fromDraw: '抽到 {n} 万',
+			setCode: '典藏'
 		},
 		usage: {
 			left: '今天还能用',
@@ -83,7 +84,7 @@ const egg = {
 			modelsDesc: '本期可用的模型',
 			startTitle: '新开一个对话，用今天的额度',
 			calls: '今天的调用',
-			viaKey: '专用 Key',
+			split: '输入 {input} · 缓存 {cached} · 输出 {output}',
 			noCalls: '今天还没有调用。'
 		},
 		key: {
@@ -220,7 +221,8 @@ const egg = {
 			tab: 'Round {n} {name}',
 			missing: 'Not yet',
 			fromTrade: 'From a swap',
-			fromDraw: 'Drew {n}×10k'
+			fromDraw: 'Drew {n}×10k',
+			setCode: 'Set'
 		},
 		usage: {
 			left: 'Left today',
@@ -235,7 +237,7 @@ const egg = {
 			modelsDesc: "This round's models",
 			startTitle: "A new conversation on today's tokens",
 			calls: "Today's calls",
-			viaKey: 'Campaign key',
+			split: 'in {input} · cached {cached} · out {output}',
 			noCalls: 'No calls yet today.'
 		},
 		key: {

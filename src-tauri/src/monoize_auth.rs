@@ -345,18 +345,18 @@ pub fn monoize_desktop_plan() -> Result<Value, String> {
     gateway_key_call("GET", "/api/desktop/oauth/plan", None)
 }
 
-/// The 赛博鸡蛋 campaign's client API with the device key
-/// (`/api/client/cyber-egg/{me,draw,pick,collection,trades,key,usage}`):
-/// `path` is what follows that prefix (`me`, `trades/abc/accept`, `usage?day=…`).
-/// Only GET and POST, and only under the prefix. Errors as
-/// [`gateway_key_call`]'s (a 404: a gateway without the campaign API).
+/// The 赛博鸡蛋 campaign for the Aogiri clients with the device key (gateway
+/// spec CE-API-8, `/api/desktop/oauth/cyber-egg/…`): `path` is what follows
+/// that prefix (`me`, `<id>/draw`, `trades/<id>/accept`, `market`). Only GET
+/// and POST, and only under the prefix. Errors as [`gateway_key_call`]'s (a
+/// 404: a gateway without the campaign API).
 #[tauri::command(async)]
 pub fn monoize_cyber_egg(method: String, path: String, body: Option<Value>) -> Result<Value, String> {
     let method = method.to_ascii_uppercase();
     if !cyber_egg_path_ok(&method, &path) {
         return Err(json!({ "status": null, "code": "bad_request", "message": "invalid cyber-egg request" }).to_string());
     }
-    gateway_key_call(&method, &format!("/api/client/cyber-egg/{path}"), body)
+    gateway_key_call(&method, &format!("/api/desktop/oauth/cyber-egg/{path}"), body)
 }
 
 /// A campaign request the app may make: GET or POST, a path of plain
@@ -380,7 +380,8 @@ mod cyber_egg_tests {
     fn only_plain_campaign_paths() {
         assert!(cyber_egg_path_ok("GET", "me"));
         assert!(cyber_egg_path_ok("POST", "trades/t_1/accept"));
-        assert!(cyber_egg_path_ok("GET", "usage?day=2026-11-25"));
+        assert!(cyber_egg_path_ok("POST", "c3f9a2e1-77d0-4b8e-9a51-0f2c6d1e8b40/draw"));
+        assert!(cyber_egg_path_ok("GET", "live?at=2026-11-25"));
         assert!(!cyber_egg_path_ok("DELETE", "me"));
         assert!(!cyber_egg_path_ok("GET", "../dashboard/me"));
         assert!(!cyber_egg_path_ok("GET", "me//x"));

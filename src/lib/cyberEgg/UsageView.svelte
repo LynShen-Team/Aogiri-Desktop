@@ -9,26 +9,21 @@
 	import { toast } from '$lib/ui/toast.svelte';
 	import { confirm } from '$lib/ui/confirm.svelte';
 	import { copyText } from '$lib/clipboard';
-	import { cardById } from './card/cards';
+	import { cardById } from './art';
 	import { egg } from './store.svelte';
-	import { eggApi, eggErrorText, type EggMe, type EggUsage } from './api';
+	import { eggApi, eggErrorText, type EggMe } from './api';
 	import { clock, left, shortTokens, wan } from './format';
 
 	let { me, onChat }: { me: EggMe; onChat: () => void } = $props();
 
-	let usage = $state<EggUsage | null>(null);
 	let busy = $state(false);
 	let picker = $state(egg.inPicker);
 	const lapse = $derived(left(egg.resetsAt, egg.now));
 	const source = $derived(me.today ? cardById(me.today.card.card_id) : undefined);
 	const key = $derived(me.key);
 
-	$effect(() => {
-		eggApi.usage().then(
-			(answer) => (usage = answer),
-			() => (usage = { rows: [], granted_tokens: egg.granted, used_tokens: egg.used })
-		);
-	});
+	/** Today's calls (CE-API-1 `usage`, newest first). */
+	const calls = $derived(me.today ? me.usage.filter((row) => row.at >= me.today!.expires_at - 86_400_000) : []);
 
 	async function copyKey() {
 		try {
@@ -43,11 +38,13 @@
 	async function rotate() {
 		const ok = await confirm({ title: t('egg.key.rotateTitle'), message: t('egg.key.rotateBody'), confirmLabel: t('egg.key.rotate') });
 		if (!ok) return;
+		const campaign = me.campaign;
+		if (!campaign) return;
 		busy = true;
 		try {
-			const answer = await eggApi.rotateKey();
-			egg.secret = answer.secret;
-			if (egg.me) egg.me = { ...egg.me, key: answer.key };
+			const key = await eggApi.rotateKey(campaign.id);
+			if (key.secret) egg.secret = key.secret;
+			if (egg.me) egg.me = { ...egg.me, key: { ...key, secret: undefined } };
 			toast.success(t('egg.key.rotated'));
 		} catch (error) {
 			toast.error(eggErrorText(error));
@@ -122,18 +119,18 @@
 
 	<h3>{t('egg.usage.calls')}</h3>
 	<section class="panel">
-		{#if usage?.rows.length}
-			{#each usage.rows as row (row.id)}
+		{#if calls.length}
+			{#each calls as row (row.id)}
 				<div class="row call">
 					<div class="txt">
-						<p class="title">{row.client === 'aogiri' ? `Aogiri · ${row.title ?? row.model}` : `${t('egg.usage.viaKey')} · ${row.model}`}</p>
-						<p class="desc">{clock(row.at)}</p>
+						<p class="title">{row.model}</p>
+						<p class="desc">{clock(row.at)} · {t('egg.usage.split', { input: shortTokens(row.input_tokens), cached: shortTokens(row.cached_input_tokens), output: shortTokens(row.output_tokens) })}</p>
 					</div>
 					<span class="value mono">{shortTokens(row.counted_tokens)}</span>
 				</div>
 			{/each}
 		{:else}
-			<p class="none">{usage ? t('egg.usage.noCalls') : t('egg.loading')}</p>
+			<p class="none">{t('egg.usage.noCalls')}</p>
 		{/if}
 	</section>
 </div>

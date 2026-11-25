@@ -5,8 +5,7 @@
 	import { t } from '$lib/i18n';
 	import Modal from '$lib/ui/Modal.svelte';
 	import Card3D from './Card3D.svelte';
-	import { PACKS, packOf, type CardDef } from './card/cards';
-	import { TIER_LOOK } from './card/tiers';
+	import { PACKS, TIER_LOOK, packCards, packOf, type ArtCard } from './art';
 	import { egg } from './store.svelte';
 	import { wan } from './format';
 	import type { EggMe, EggOwnedCard } from './api';
@@ -14,10 +13,10 @@
 	let { me }: { me: EggMe } = $props();
 
 	let period = $state(untrack(() => me.pack.period));
-	let open = $state<{ def: CardDef; copies: EggOwnedCard[] } | null>(null);
+	let open = $state<{ def: ArtCard; copies: EggOwnedCard[] } | null>(null);
 
 	/** The packs to show: open ones and those announced, in order. */
-	const shelf = $derived(PACKS.filter((p) => p.period === me.pack.period || egg.packs.some((x) => x.period === p.period)));
+	const shelf = $derived(PACKS.filter((p) => p.period === me.pack.period || me.packs.some((x) => x.period === p.period)));
 	const byCard = $derived.by(() => {
 		const map = new Map<string, EggOwnedCard[]>();
 		for (const card of egg.cards) map.set(card.card_id, [...(map.get(card.card_id) ?? []), card]);
@@ -26,10 +25,8 @@
 	const total = $derived(egg.cards.length);
 	const spare = $derived([...byCard.values()].reduce((sum, copies) => sum + Math.max(0, copies.filter((c) => !c.locked).length - 1), 0));
 	const shown = $derived(packOf(period));
-	const count = (p: number) => {
-		const pack = packOf(p);
-		return pack ? pack.cards.filter((c) => byCard.has(c.id)).length : 0;
-	};
+	const shownCards = $derived(packCards(period));
+	const count = (p: number) => packCards(p).filter((c) => byCard.has(c.id)).length;
 </script>
 
 <div class="album">
@@ -41,13 +38,13 @@
 		{#each shelf as p (p.period)}
 			<button class="tab" class:on={period === p.period} role="tab" aria-selected={period === p.period} onclick={() => (period = p.period)}>
 				{t('egg.album.tab', { n: p.period, name: p.name })}
-				<span class="n">{count(p.period)}/{p.cards.length}</span>
+				<span class="n">{count(p.period)}/{packCards(p.period).length}</span>
 			</button>
 		{/each}
 	</div>
 	{#if shown}
 		<div class="grid">
-			{#each shown.cards as def (def.id)}
+			{#each shownCards as def (def.id)}
 				{@const copies = byCard.get(def.id) ?? []}
 				<div class="slot">
 					{#if copies.length}

@@ -1,7 +1,7 @@
 // cyber-egg.spec.md CE-R6: the sounds of opening a pack, made in the browser (Web Audio), no audio files:
 // the rustle of the wrapper, the crackle of foil tearing, the flick of a card turning, a soft chime for
 // the higher tiers. Quiet by design; one switch turns them off and is remembered on this device.
-import type { CardTier } from "./tiers";
+import type { Tier as CardTier } from "../art";
 
 const KEY = "cyberEgg.sound";
 let context: AudioContext | null = null;

@@ -20,8 +20,14 @@
 //     of a side); a smaller hole only lets light out and the line under the pack says so.
 // Light comes from inside through whatever is torn: a hot line along each torn edge, warm haze leaving it, motes.
 // Enter on it (keyboard) tears it by itself: a made-up hand pinches a notch and pulls the strip across.
-import { seeded } from "./geometry";
-import { wrapperUrl } from "./pack-art";
+/** A deterministic random source (each tear wanders its own way). */
+function seeded(seed: number) {
+  let state = (seed >>> 0) || 1;
+  return () => {
+    state = (state * 1_664_525 + 1_013_904_223) >>> 0;
+    return state / 4_294_967_296;
+  };
+}
 import { playCrackle, playRip, playRustle } from "./sound";
 
 /** The notches, one on each side, where light leaks before the pack is torn (share of the height). */
@@ -402,7 +408,8 @@ export interface PackElements {
 }
 
 export interface PackProps {
-  period: number;
+  /** The printed wrapper (the shared art bundle's `wrappers/<period>.svg`): drawn on the torn pieces too. */
+  wrapper: string;
   disabled?: boolean;
   onTorn: () => void;
   /** The pack came open (its look changes). */
@@ -429,7 +436,7 @@ export function createPack(els: PackElements, props: PackProps) {
   const lightRaf = { current: 0 };
   const motes: { current: Mote[] } = { current: [] };
   const image: { current: HTMLImageElement | null } = { current: null };
-  const wrapper = wrapperUrl(props.period);
+  const wrapper = props.wrapper;
   const setDone = (_done: boolean) => props.onOpen?.();
   const state: { current: State } = {current: {
     size: { w: 1, h: 1 },

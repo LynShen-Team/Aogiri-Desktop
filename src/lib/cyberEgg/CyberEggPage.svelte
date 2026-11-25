@@ -21,7 +21,7 @@
 	import MarketView from './MarketView.svelte';
 	import UsageView from './UsageView.svelte';
 	import RulesModal from './RulesModal.svelte';
-	import { packOf } from './card/cards';
+	import { packCards } from './art';
 
 	let {
 		section = $bindable('draw'),
@@ -39,22 +39,22 @@
 	let rules = $state(false);
 	const me = $derived(egg.me);
 	const lapse = $derived(left(egg.resetsAt, egg.now));
-	const pack = $derived(me ? packOf(me.pack.period) : undefined);
 	const album = $derived.by(() => {
-		if (!me || !pack) return '';
+		const cards = me ? packCards(me.pack.period) : [];
+		if (!me || !cards.length) return '';
 		const have = new Set(egg.cards.filter((c) => c.period === me.pack.period).map((c) => c.card_id));
-		return `${have.size}/${pack.cards.length}`;
+		return `${have.size}/${cards.length}`;
 	});
 	const items = $derived([
 		{ id: 'draw' as const, icon: EggIcon, label: t('egg.nav.draw'), meta: !me?.campaign ? '' : egg.canDraw ? t('egg.nav.canDraw') : me.today ? t('egg.nav.drawn') : '' },
 		{ id: 'album' as const, icon: CardsIcon, label: t('egg.nav.album'), meta: album },
-		{ id: 'market' as const, icon: ArrowsLeftRightIcon, label: t('egg.nav.market'), meta: me?.trades_waiting ? t('egg.nav.requests', { n: me.trades_waiting }) : '' },
+		{ id: 'market' as const, icon: ArrowsLeftRightIcon, label: t('egg.nav.market'), meta: egg.waiting ? t('egg.nav.requests', { n: egg.waiting }) : '' },
 		{ id: 'usage' as const, icon: KeyIcon, label: t('egg.nav.usage'), meta: me?.today ? `${wan(egg.remaining)}${t('egg.wan')}` : '' }
 	]);
 
 	$effect(() => {
 		void egg.refresh();
-		void egg.loadCards();
+		void egg.loadTrades();
 	});
 
 	function onKey(event: KeyboardEvent) {
@@ -114,7 +114,6 @@
 						onDrawn={(answer) => {
 							egg.me = answer.me;
 							if (answer.secret) egg.secret = answer.secret;
-							void egg.loadCards(true);
 						}}
 						{onChat}
 						onAlbum={() => (section = 'album')}
@@ -124,7 +123,7 @@
 		{:else if section === 'album'}
 			<AlbumView {me} />
 		{:else if section === 'market'}
-			<MarketView {me} />
+			<MarketView />
 		{:else}
 			<UsageView {me} {onChat} />
 		{/if}

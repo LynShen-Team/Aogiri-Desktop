@@ -16,11 +16,12 @@
 	import Card3D from './Card3D.svelte';
 	import Pack from './Pack.svelte';
 	import Motes from './Motes.svelte';
-	import { cardById } from './card/cards';
+	import { TIER_LOOK, cardById, type Tier as CardTier } from './art';
 	import type { TearHint } from './card/pack-engine';
-	import { TIER_LOOK, type CardTier } from './card/tiers';
 	import { playDeal, playFlip, playReveal, playRustle } from './card/sound';
-	import { eggApi, eggErrorText, type EggDraw, type EggMe, type EggPicked } from './api';
+	import { eggApi, eggErrorText, type EggDraw, type EggMe } from './api';
+
+	type EggPicked = { me: EggMe; draw: EggDraw; secret: string | null };
 	import { left, wan } from './format';
 
 	type Phase = 'sealed' | 'dealing' | 'fanned' | 'picking' | 'revealing' | 'done';
@@ -83,7 +84,6 @@
 	let motes = $state<'gold' | 'prism' | null>(null);
 	let shown = $state(!!initial);
 	let tearHint = $state<TearHint>(null);
-	let drawId: string | null = null;
 
 	// Waits that a skip resolves at once.
 	let skipped = false;
@@ -167,17 +167,6 @@
 
 	async function onTorn() {
 		const reduced = reducedMotion();
-		// The server opens the pack while the stack slides out; a refusal puts the pack back.
-		const opening = eggApi.draw(false).then(
-			(answer) => {
-				drawId = answer.draw_id;
-				return true;
-			},
-			(error) => {
-				toast.error(eggErrorText(error));
-				return false;
-			}
-		);
 		phase = 'dealing';
 		const start = inPack();
 		spots = start;
@@ -191,12 +180,6 @@
 		}
 		spots = start.map((spot, k) => ({ ...spot, y: spot.y - spot.w * 0.3 - k * 0.6, opacity: 1, ms: reduced ? 0 : 420, delay: 0 }));
 		await wait(reduced ? 0 : 620);
-		if (!(await opening)) {
-			packBox?.getAnimations().forEach((a) => a.cancel());
-			spots = [];
-			phase = 'sealed';
-			return;
-		}
 		playDeal(0);
 		spots = start.map((spot, k) => ({ ...spot, y: spot.y - spot.w * 1.1 - k * 0.8, opacity: 1, ms: reduced ? 0 : 540, delay: 0 }));
 		if (!reduced) {
@@ -296,7 +279,8 @@
 	}
 
 	async function pick(index: number) {
-		if (phase !== 'fanned' || !drawId) return;
+		const campaign = me.campaign;
+		if (phase !== 'fanned' || !campaign) return;
 		picked = index;
 		phase = 'picking';
 		// The picking pause: the picked card rises, the others settle back.
@@ -305,7 +289,8 @@
 		);
 		let answer: EggPicked;
 		try {
-			[answer] = await Promise.all([eggApi.pick(drawId, index), wait(reducedMotion() ? 0 : 650)]);
+			// CE-R1: only now does the server draw (a first draw joins the round).
+			[answer] = await Promise.all([eggApi.draw(campaign.id, index), wait(reducedMotion() ? 0 : 650)]);
 		} catch (error) {
 			toast.error(eggErrorText(error));
 			picked = null;
@@ -371,7 +356,7 @@
 		raf = requestAnimationFrame(step);
 		return () => cancelAnimationFrame(raf);
 	});
-	const pityLine = $derived(me.pity_left.sr ? t('egg.draw.pity', { n: me.pity_left.sr }) : '');
+	const pityLine = $derived(me.pity_left?.sr ? t('egg.draw.pity', { n: me.pity_left.sr }) : '');
 	const range = $derived.by(() => {
 		const low = Math.min(...me.tiers.map((r) => r.min_tokens));
 		const high = Math.max(...me.tiers.map((r) => r.max_tokens));

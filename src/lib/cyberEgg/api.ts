@@ -1,18 +1,19 @@
-// The 赛博鸡蛋 campaign's client API (gateway `/api/client/cyber-egg/*`, signed with this computer's
-// device key through `monoize_cyber_egg`). Token amounts are integers, money integer CNY fen, times
-// Unix ms. The shapes follow the gateway's web edition (frontend/src/lib/cyber-egg-api.ts, G94); the
-// client contract is ~/lynshen-wt/deliverables/网关/赛博鸡蛋/客户端API.md.
+// The 赛博鸡蛋 campaign for the Aogiri clients (gateway spec CE-API-8): the player endpoints under
+// `/api/desktop/oauth/cyber-egg`, signed with this computer's device key (`monoize_cyber_egg`). Same handlers,
+// bodies and answers as the web page's (CE-API-1..5, frontend/src/lib/cyber-egg-api.ts); only the fields the
+// desktop reads are typed here. Token amounts are integers, money integer CNY fen, times Unix ms. Cards are
+// named by `card_id` (`p1-08`); their pictures come from the shared card-art bundle (art.ts, CE-API-9).
 //
-// With `localStorage['lynshen-cyber-egg-mock']` set the answers come from `mock.ts` (the browser
-// fixtures answer `monoize_cyber_egg` with it too).
+// With `localStorage['lynshen-cyber-egg-mock']` set the answers come from `mock.ts` (the browser fixtures
+// answer `monoize_cyber_egg` with it too).
 import { invoke } from '@tauri-apps/api/core';
 import { GatewayError } from '$lib/protocol';
 import { t } from '$lib/i18n';
-import type { CardTier } from './card/tiers';
+import type { Tier } from './art';
 
-export type Tier = CardTier;
+export type { Tier };
 
-/** One round (一期) of the campaign. */
+/** CE-T1: one round (一期); its pool is daily. */
 export interface EggCampaign {
 	id: string;
 	name: string;
@@ -20,12 +21,25 @@ export interface EggCampaign {
 	models: string[];
 	/** Which day of the round today is, how many it has, and when today's tokens lapse (00:00 Beijing). */
 	day: { index: number; count: number; resets_at: number };
+	/** For a player: today's grant, the tokens of today's draws (daily and extra). */
+	per_user_cap_tokens: number;
 	starts_at: number;
 	ends_at: number;
 	state: 'scheduled' | 'running' | 'paused' | 'ended';
 }
 
-/** One card a user owns: `card_id` names the design (`p1-08`), `serial` this copy. */
+/** CE-E1..E3: one requirement with the user's own numbers. */
+export interface EggCheck {
+	key: 'funds' | 'account_age' | 'one_per_person';
+	ok: boolean;
+	balance_fen?: number;
+	min_balance_fen?: number;
+	account_days?: number;
+	min_account_days?: number;
+	eligible_at?: number;
+}
+
+/** CE-C5: one card a user owns. */
 export interface EggOwnedCard {
 	id: string;
 	card_id: string;
@@ -36,13 +50,13 @@ export interface EggOwnedCard {
 	tokens: number;
 	at: number;
 	from: 'draw' | 'trade';
-	/** In the pack's 典藏: kept in the album, not tradable. */
-	locked?: boolean;
 	/** A copy swapped in can't be offered again before this instant. */
 	relist_after?: number;
+	/** In the pack's 典藏: kept in the album, not tradable. */
+	locked?: boolean;
 }
 
-/** Today's draw: the card picked, the four not picked, and when its tokens lapse. */
+/** CE-R1: a draw: the card picked, the four not picked, and when its tokens lapse. */
 export interface EggDraw {
 	card: EggOwnedCard;
 	kind?: 'daily' | 'bonus';
@@ -50,7 +64,7 @@ export interface EggDraw {
 	expires_at: number;
 }
 
-/** The campaign key: only its ends, and the secret where the device may see it. */
+/** CE-K: the campaign key; the secret only where the device may see it (CE-K7). */
 export interface EggKey {
 	id: string;
 	prefix: string;
@@ -63,6 +77,17 @@ export interface EggKey {
 	suspended: 'leak' | null;
 }
 
+export interface EggUsageRow {
+	id: string;
+	at: number;
+	model: string;
+	input_tokens: number;
+	cached_input_tokens: number;
+	output_tokens: number;
+	/** CE-M1: uncached input + cached input + output, all in full. */
+	counted_tokens: number;
+}
+
 export interface EggTierRule {
 	tier: Tier;
 	min_tokens: number;
@@ -70,51 +95,48 @@ export interface EggTierRule {
 	weight_bp: number;
 }
 
-/** `GET me`: the user's view of the running round. */
+/** CE-API-1 `GET /me`: the user's view of the current round. */
 export interface EggMe {
 	campaign: EggCampaign | null;
-	/** none: may join; review: held for a check; refused. */
+	checks: EggCheck[];
+	/** none: may join; review: held for a check (CE-A3); refused. */
 	membership: 'none' | 'joined' | 'review' | 'refused';
-	/** Paused because the paid balance fell below the minimum. */
+	/** CE-E4: paused because the paid balance fell below the minimum. */
 	blocked: 'low_balance' | null;
-	/** Today's tokens: what today's draws gave, and what is used. */
-	granted_tokens: number;
-	used_tokens: number;
-	today: EggDraw | null;
-	/** When the next draw opens. */
-	next_draw_at: number;
-	pack: { period: number; name: string };
-	/** Draws left until a 白银 or better is guaranteed; null when off. */
-	pity_left: { sr: number | null };
-	tiers: EggTierRule[];
+	/** Today's tokens used (every draw of the day counts in the grant). */
+	my_used_tokens: number;
 	key: EggKey | null;
-	/** The campaign endpoint the key calls (`https://api.lynshen.org/new/v1`). */
+	/** CE-K5: the campaign endpoint. */
 	api_base_url: string;
-	/** Extra draws earned this round. */
-	chances?: { available: number };
-	/** Trade requests waiting for this user's answer. */
-	trades_waiting: number;
-}
-
-/** `POST draw`: a pack opened on the server; nothing is drawn until a card is picked. */
-export interface EggOpened {
-	draw_id: string;
-}
-
-/** `POST pick`: the card picked (and the key's secret when the draw made the key). */
-export interface EggPicked {
-	me: EggMe;
-	draw: EggDraw;
-	secret: string | null;
-}
-
-export interface EggCollection {
-	cards: EggOwnedCard[];
-	/** The packs players can see: open, back for a rerun, or announced. */
+	/** Recent calls with the campaign's tokens. */
+	usage: EggUsageRow[];
+	tiers: EggTierRule[];
+	/** CE-D6: draws left to each guarantee (the guaranteed one counted); null when off. */
+	pity_left: { sr: number | null; ssr: number | null; ur: number | null };
+	pack: { period: number; name: string };
+	today: EggDraw | null;
+	next_draw_at: number;
+	/** Every card the user owns, newest first. */
+	collection: EggOwnedCard[];
 	packs: Array<{ period: number; state: 'open' | 'rerun' | 'upcoming' }>;
+	/** CE-H3: extra draws this round. */
+	chances?: { enabled?: boolean; available: number } | null;
+	banned?: { reason: 'refund'; at: number } | null;
+	paused?: { reason: 'invite_refund'; at: number } | null;
 }
 
-/** A card put up in the trading hall, and what is wanted for it. */
+/** CE-X2: a swap between two users. */
+export interface EggTrade {
+	id: string;
+	from: string;
+	to: string;
+	give: EggOwnedCard[];
+	want: EggOwnedCard[];
+	state: 'open' | 'accepted' | 'declined' | 'cancelled' | 'expired';
+	at: number;
+}
+
+/** CE-X4: a card put up in the hall, and what is wanted for it. */
 export interface EggListing {
 	id: string;
 	owner: string;
@@ -126,40 +148,10 @@ export interface EggListing {
 	at: number;
 }
 
-/** A swap between two users. */
-export interface EggTrade {
-	id: string;
-	from: string;
-	to: string;
-	/** Sent by this user (else received). */
-	mine: boolean;
-	give: EggOwnedCard[];
-	want: EggOwnedCard[];
-	state: 'open' | 'accepted' | 'declined' | 'cancelled' | 'expired';
-	at: number;
-}
-
 export interface EggTrades {
-	listings: EggListing[];
-	trades: EggTrade[];
-}
-
-/** One call made with the campaign's tokens. */
-export interface EggUsageRow {
-	id: string;
-	at: number;
-	model: string;
-	/** Uncached input + cached input + output, all in full. */
-	counted_tokens: number;
-	/** Where it came from: an Aogiri conversation (with its title) or the key in another tool. */
-	client: 'aogiri' | 'key';
-	title?: string;
-}
-
-export interface EggUsage {
-	rows: EggUsageRow[];
-	granted_tokens: number;
-	used_tokens: number;
+	incoming: EggTrade[];
+	outgoing: EggTrade[];
+	done: EggTrade[];
 }
 
 const MOCK_KEY = 'lynshen-cyber-egg-mock';
@@ -199,25 +191,27 @@ async function call<T>(method: 'GET' | 'POST', path: string, body?: unknown): Pr
 	}
 }
 
+const id = (value: string) => encodeURIComponent(value);
+
 export const eggApi = {
 	me: () => call<EggMe>('GET', 'me'),
-	/** Opens today's pack (or an extra one). */
-	draw: (bonus = false) => call<EggOpened>('POST', 'draw', { bonus }),
-	/** Picks one of the five face-down cards (0–4): only now is the card drawn. */
-	pick: (drawId: string, index: number) => call<EggPicked>('POST', 'pick', { draw_id: drawId, index }),
-	collection: () => call<EggCollection>('GET', 'collection'),
+	/** CE-R1: picks one of the five face-down cards (0–4); only now does the server draw. A first draw joins. */
+	draw: (campaignId: string, pick: number, bonus = false) =>
+		call<{ me: EggMe; draw: EggDraw; secret: string | null }>('POST', `${id(campaignId)}/draw`, bonus ? { pick, bonus } : { pick }),
+	live: (campaignId: string) => call<{ pool_used_tokens: number; my_used_tokens: number }>('GET', `${id(campaignId)}/live`),
+	/** CE-K7: the working key in full (no secret while it is stopped for a leak). */
+	key: (campaignId: string) => call<{ key: EggKey | null; api_base_url: string }>('GET', `${id(campaignId)}/key`),
+	/** A new key (the old one stops at once), with its secret. */
+	rotateKey: (campaignId: string) => call<EggKey>('POST', `${id(campaignId)}/key/rotate`),
 	trades: () => call<EggTrades>('GET', 'trades'),
+	answer: (tradeId: string, action: 'accept' | 'decline' | 'cancel') => call<EggTrade>('POST', `trades/${id(tradeId)}/${action}`),
+	market: () => call<{ listings: EggListing[] }>('GET', 'market'),
 	/** Puts a card up in the hall. */
-	list: (cardId: string, want: { card_id?: string; tier?: Tier | null }) =>
-		call<EggTrades>('POST', 'trades/list', { card: cardId, want_card_id: want.card_id ?? null, want_tier: want.tier ?? null }),
+	list: (give: string, want: { card_id?: string | null; tier?: Tier | null }) =>
+		call<EggListing>('POST', 'market', { give, want_card_id: want.card_id ?? null, want_tier: want.tier ?? null, topup: null }),
 	/** Takes a listing, giving one of this user's cards for it. */
-	take: (listingId: string, cardId: string) => call<EggTrades>('POST', `trades/${listingId}/take`, { card: cardId }),
-	/** Answers or withdraws a swap. */
-	answer: (tradeId: string, action: 'accept' | 'decline' | 'cancel') => call<EggTrades>('POST', `trades/${tradeId}/${action}`),
-	key: () => call<{ key: EggKey | null; api_base_url: string }>('GET', 'key'),
-	/** A new key (the old one stops); the answer carries the secret. */
-	rotateKey: () => call<{ key: EggKey; secret: string }>('POST', 'key'),
-	usage: () => call<EggUsage>('GET', 'usage')
+	take: (listingId: string, give: string) => call<{ received: EggOwnedCard }>('POST', `market/${id(listingId)}/take`, { give }),
+	unlist: (listingId: string) => call<{ ok: true }>('POST', `market/${id(listingId)}/cancel`)
 };
 
 /** What a refusal says to the user. */

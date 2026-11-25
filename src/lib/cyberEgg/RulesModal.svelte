@@ -3,7 +3,7 @@
 	// rules in a few lines.
 	import { t } from '$lib/i18n';
 	import Modal from '$lib/ui/Modal.svelte';
-	import { TIER_LOOK } from './card/tiers';
+	import { TIER_LOOK } from './art';
 	import type { EggMe } from './api';
 	import { wan } from './format';
 
