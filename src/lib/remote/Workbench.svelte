@@ -74,7 +74,9 @@
 			daemon
 				.request({ op: 'plan_quota' })
 				.then((reply) => {
-					const windows = (reply.windows as { kind: string; used_pct: number }[]) ?? [];
+					// A model-scoped window (`models`, e.g. Claude only) stops only its
+					// models, so the plan's use is read from the windows for every model.
+					const windows = ((reply.windows as { kind: string; used_pct: number; models?: string[] }[]) ?? []).filter((w) => !w.models?.length);
 					const top = windows.reduce<{ kind: string; used_pct: number } | null>((a, w) => (!a || w.used_pct > a.used_pct ? w : a), null);
 					quota = top ? { pct: Math.round(top.used_pct), label: top.kind } : null;
 				})
