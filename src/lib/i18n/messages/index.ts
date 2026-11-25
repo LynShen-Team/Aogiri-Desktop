@@ -13,6 +13,7 @@ import editor from './editor';
 import web from './web';
 import preview from './preview';
 import models from './models';
+import egg from './egg';
 
 export type Locale = 'zh' | 'en';
 
@@ -27,7 +28,8 @@ export const catalog = {
 		editor: editor.zh,
 		web: web.zh,
 		preview: preview.zh,
-		models: models.zh
+		models: models.zh,
+		egg: egg.zh
 	},
 	en: {
 		common: common.en,
@@ -39,6 +41,7 @@ export const catalog = {
 		editor: editor.en,
 		web: web.en,
 		preview: preview.en,
-		models: models.en
+		models: models.en,
+		egg: egg.en
 	}
 } as const;

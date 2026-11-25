@@ -105,6 +105,14 @@
 	//                           `window.__daemon.decided` the answers,
 	//                           `window.__connectRequest(frame)` sends another,
 	//                           `window.__notified` the system notifications
+	//   &egg[=drawn|none]       赛博鸡蛋 (src/lib/cyberEgg, answers from its mock.ts):
+	//                           its page over the navigator and canvas, today's
+	//                           pack sealed (=drawn: today's card drawn; =none:
+	//                           no round running); &eggSection=album|market|usage
+	//                           opens that section
+	//   &eggChat                the conversation runs on the 赛博鸡蛋 tokens (its
+	//                           group in the model menu, 今天剩 in the footer);
+	//                           with &features=session_provider the daemon can run it
 	//   &deliver[=old]          a third turn that presented an image, a video and
 	//                           a page, proposed a scheduled task and started a
 	//                           conversation (=old: a daemon whose tasks carry no
@@ -151,6 +159,8 @@
 	import { setLocale } from '../../src/lib/i18n';
 	import { fileName, withFiles, withVideo } from '../../src/lib/attachments';
 	import HomePage from '../../src/lib/HomePage.svelte';
+	import CyberEggPage, { type EggSection } from '../../src/lib/cyberEgg/CyberEggPage.svelte';
+	import { egg } from '../../src/lib/cyberEgg/store.svelte';
 	import ProjectPickDialog from '../../src/lib/ProjectPickDialog.svelte';
 	import { matches } from '../../src/lib/shortcuts';
 	import SettingsPage from '../../src/lib/settings/SettingsPage.svelte';
@@ -166,6 +176,10 @@
 	let collapsed = $state(mode.has('collapsed'));
 	const home = mode.has('home');
 	const settings = mode.has('settings');
+	// 赛博鸡蛋: its page (&egg), a conversation on its tokens (&eggChat).
+	let eggPage = $state(mode.has('egg'));
+	let eggSection = $state<EggSection>((mode.get('eggSection') as EggSection) || 'draw');
+	if (mode.has('egg') || mode.has('eggChat')) void egg.refresh();
 	let section = $state(mode.get('settings') || 'general');
 	setLocale(mode.get('lang') === 'en' ? 'en' : 'zh');
 	provideRequirements(new Requirements(daemon));
@@ -199,6 +213,7 @@
 	const session = store.allSessions.find((s) => s.id === first.sessions[0].id)!;
 	let picking = $state(false);
 	store.activeId = session.id;
+	if (mode.has('eggChat')) session.egg = { model: 'deepseek-v4.1-flash' };
 	// ?claudeChat: a Claude Code conversation that has started (ticket #40:
 	// it can go on in a new LynShen conversation).
 	if (mode.has('claudeChat')) {
@@ -767,18 +782,18 @@
 		leftWidth={settings || !collapsed ? NAV_W : SIDEBAR_RAIL_WIDTH}
 		sidebarOpen={!collapsed}
 		onToggleSidebar={() => (collapsed = !collapsed)}
-		heading={!settings && !home}
-		title={settings ? '设置' : home ? '主页' : session.chat.title || '对话宽度跟随窗口'}
-		subtitle={settings || home ? '' : 'lynshen-desktop'}
-		addOptions={settings ? [] : [{ key: 'term', label: '终端' }]}
+		heading={!settings && !home && !eggPage}
+		title={eggPage ? '赛博鸡蛋' : settings ? '设置' : home ? '主页' : session.chat.title || '对话宽度跟随窗口'}
+		subtitle={eggPage ? { draw: '抽卡', album: '卡册', market: '交易市场', usage: '调用' }[eggSection] : settings || home ? '' : 'lynshen-desktop'}
+		addOptions={settings || eggPage ? [] : [{ key: 'term', label: '终端' }]}
 		onAdd={() => {}}
 	>
 		{#snippet actions()}
-			{#if !settings && !home}<ProjectMenu path={first.path} name={first.name} onOpenGit={() => opened.push('git')} />{/if}
+			{#if !settings && !home && !eggPage}<ProjectMenu path={first.path} name={first.name} onOpenGit={() => opened.push('git')} />{/if}
 		{/snippet}
 	</TitleBar>
 	<div class="body">
-		<div class="panel" class:covered={settings}>
+		<div class="panel" class:covered={settings || eggPage}>
 			<Sidebar
 				projects={store.userProjects}
 				activeId={home ? '' : session.id}
@@ -787,6 +802,9 @@
 				onToggleCollapsed={() => (collapsed = !collapsed)}
 				onHome={() => {}}
 				homeOpen={home}
+				onEgg={egg.live ? () => (eggPage = true) : undefined}
+				eggOpen={eggPage}
+				eggMeta={egg.canDraw ? '可抽' : ''}
 				onSelect={(id) => withSubagents && opened.push(`select:${id}`)}
 				onNewProject={() => {}}
 				onNewSession={() => {}}
@@ -853,6 +871,9 @@
 				{/if}
 			</div>
 			<ConnectRequestDialog />
+			{#if eggPage}
+				<CyberEggPage bind:section={eggSection} navWidth={NAV_W} onClose={() => (eggPage = false)} onChat={() => ((eggPage = false), opened.push('egg-chat'))} />
+			{/if}
 			{#if settings}
 				<!-- 导入's result: folders added and conversations opened go to `window.__opened`. -->
 				<SettingsPage
@@ -914,7 +935,7 @@
 		overflow: hidden;
 		position: relative;
 	}
-	.panel.covered > :global(:not(.settings)) {
+	.panel.covered > :global(:not(.settings, .egg-page)) {
 		visibility: hidden;
 	}
 	.canvas {

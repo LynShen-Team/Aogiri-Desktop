@@ -1,0 +1,3352 @@
+{
+ "format": "lynshen-cyber-egg-art",
+ "version": 1,
+ "source": {
+  "repo": "https://github.com/LynShen-Team/monoizeovo.git",
+  "commit": "abdf72ebf508e9b547fee47c585490f3d570897e",
+  "dirty": false,
+  "path": "frontend/src/pages/cyber-egg/card",
+  "exportedAt": "2026-11-25T11:16:06.665Z",
+  "exporter": "aogiri scripts/cyber-egg/export-art.ts"
+ },
+ "geometry": {
+  "units": "card units: a card is 300 × 420; the web sizes things in cqw, 1cqw = 3 units",
+  "card": {
+   "w": 300,
+   "h": 420,
+   "radius": 13.2
+  },
+  "window": {
+   "x": 24,
+   "y": 24,
+   "w": 252,
+   "h": 278,
+   "radius": 5
+  },
+  "planeBox": {
+   "x": -12.6,
+   "y": -13.9,
+   "w": 277.2,
+   "h": 305.8
+  },
+  "clipRadius": 4.8,
+  "perspective": 3.6666666666666665,
+  "depth": "a plane stands lift = (pop ? 0.3 + depth × 6 × popAmount : depth × 3.6) × 3 units above the face",
+  "text": {
+   "name": {
+    "left": 28.5,
+    "top": 311.64,
+    "size": 19.8,
+    "weight": 600,
+    "spacing": 0.06,
+    "family": "Songti SC",
+    "baseline": 0.8094618055555556
+   },
+   "code": {
+    "top": 316.26,
+    "size": 9.6,
+    "weight": 600,
+    "spacing": 0.22,
+    "family": "Georgia",
+    "baseline": 0.8347066243489584,
+    "left": {
+     "N": 261.5166931152344,
+     "R": 261.907958984375,
+     "SR": 253.56573486328125,
+     "SSR": 245.2078857421875,
+     "UR": 251.781494140625,
+     "典藏": 248.22857666015625
+    }
+   },
+   "line": {
+    "left": 28.5,
+    "right": 271.5,
+    "top": 342.72,
+    "size": 9.6,
+    "lineHeight": 1.5,
+    "opacity": 0.78
+   },
+   "foot": {
+    "left": 34.2,
+    "right": 265.8,
+    "top": 379.26,
+    "size": 7.2,
+    "spacing": 0.1,
+    "family": "Georgia"
+   },
+   "ssrGold": [
+    "#8a6424",
+    "#e7c777",
+    "#fff3cc",
+    "#d3a851",
+    "#8a6424"
+   ]
+  }
+ },
+ "tiers": {
+  "n": {
+   "code": "N",
+   "ground": "#f2eee5",
+   "ink": "#2f2d29",
+   "soft": "#8b8578",
+   "metal": "ink",
+   "dark": false,
+   "edge": "#e4ddcc",
+   "light": "#fff7e6",
+   "glow": "#c2b391"
+  },
+  "r": {
+   "code": "R",
+   "ground": "#f2e9de",
+   "ink": "#43291c",
+   "soft": "#9a7963",
+   "metal": "copper",
+   "dark": false,
+   "edge": "#b06a43",
+   "light": "#f4a875",
+   "glow": "#c47a4d"
+  },
+  "sr": {
+   "code": "SR",
+   "ground": "#edeff0",
+   "ink": "#232c35",
+   "soft": "#7c8790",
+   "metal": "silver",
+   "dark": false,
+   "edge": "#c2c8cd",
+   "light": "#eef5fa",
+   "glow": "#8c97a2"
+  },
+  "ssr": {
+   "code": "SSR",
+   "ground": "#17130f",
+   "ink": "#e9d3a0",
+   "soft": "#8a7048",
+   "metal": "gold",
+   "dark": true,
+   "edge": "#caa14d",
+   "light": "#ffd27a",
+   "glow": "#c99a3e"
+  },
+  "ur": {
+   "code": "UR",
+   "ground": "#f5f3f2",
+   "ink": "#26242e",
+   "soft": "#8d88a0",
+   "metal": "holo",
+   "dark": false,
+   "edge": "#dcd4e8",
+   "light": "#ffffff",
+   "glow": "#a497d6"
+  }
+ },
+ "packs": [
+  {
+   "period": 1,
+   "name": "机器之心",
+   "line": "从齿轮到神经网络，机器学会思考的一路",
+   "ready": true,
+   "cards": [
+    "p1-01",
+    "p1-02",
+    "p1-03",
+    "p1-04",
+    "p1-05",
+    "p1-06",
+    "p1-07",
+    "p1-08",
+    "p1-09",
+    "p1-10",
+    "p1-11",
+    "p1-12",
+    "p1-13",
+    "p1-14",
+    "p1-15"
+   ],
+   "set": "p1-set",
+   "back": {
+    "ground": "#1b1a18",
+    "line": "#8c8476",
+    "accent": "#d6cab2",
+    "svg": "svg/backs/1.svg"
+   },
+   "wrapper": "svg/wrappers/1.svg",
+   "thumbs": "jpg/thumbs-p1.jpg",
+   "app": "app/pack1.json"
+  },
+  {
+   "period": 2,
+   "name": "星海",
+   "line": "抬头是星，低头是海，地图画到哪里，人就走到哪里",
+   "ready": false,
+   "cards": [
+    "p2-01",
+    "p2-02",
+    "p2-03",
+    "p2-04",
+    "p2-05",
+    "p2-06",
+    "p2-07",
+    "p2-08",
+    "p2-09",
+    "p2-10"
+   ],
+   "set": "p2-set",
+   "back": {
+    "ground": "#141a20",
+    "line": "#7d8b96",
+    "accent": "#c9d3da",
+    "svg": "svg/backs/2.svg"
+   },
+   "wrapper": "svg/wrappers/2.svg",
+   "thumbs": "jpg/thumbs-p2.jpg",
+   "app": "app/pack2.json"
+  },
+  {
+   "period": 3,
+   "name": "东方",
+   "line": "旧东西里的新念头：算盘、活字、铜镜和龙",
+   "ready": false,
+   "cards": [
+    "p3-01",
+    "p3-02",
+    "p3-03",
+    "p3-04",
+    "p3-05",
+    "p3-06",
+    "p3-07",
+    "p3-08",
+    "p3-09",
+    "p3-10"
+   ],
+   "set": "p3-set",
+   "back": {
+    "ground": "#241717",
+    "line": "#9a7b74",
+    "accent": "#e0c2a8",
+    "svg": "svg/backs/3.svg"
+   },
+   "wrapper": "svg/wrappers/3.svg",
+   "thumbs": "jpg/thumbs-p3.jpg",
+   "app": "app/pack3.json"
+  }
+ ],
+ "cards": [
+  {
+   "id": "p1-01",
+   "period": 1,
+   "no": 1,
+   "of": 15,
+   "tier": "n",
+   "name": "穿孔卡",
+   "line": "一排孔，就是一行程序。",
+   "ground": "#ece5d6",
+   "thumb": {
+    "file": "jpg/thumbs-p1.jpg",
+    "x": 0,
+    "y": 0,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.2,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-01-0.svg"
+    },
+    {
+     "depth": 1.1,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-01-1.svg",
+     "shadow": {
+      "file": "png/shadows/p1-01-1.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "p1-02",
+   "period": 1,
+   "no": 2,
+   "of": 15,
+   "tier": "n",
+   "name": "差分机",
+   "line": "齿轮咬合之处，数字自己往前走。",
+   "ground": "#ece5d6",
+   "thumb": {
+    "file": "jpg/thumbs-p1.jpg",
+    "x": 345,
+    "y": 0,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-02-0.svg"
+    },
+    {
+     "depth": 1.1,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-02-1.svg",
+     "shadow": {
+      "file": "png/shadows/p1-02-1.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "p1-03",
+   "period": 1,
+   "no": 3,
+   "of": 15,
+   "tier": "n",
+   "name": "打字机",
+   "line": "一下一下敲出来的字，最先教会了机器听话。",
+   "ground": "#ece5d6",
+   "thumb": {
+    "file": "jpg/thumbs-p1.jpg",
+    "x": 690,
+    "y": 0,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.2,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-03-0.svg"
+    },
+    {
+     "depth": 0.3,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-03-1.svg",
+     "shadow": {
+      "file": "png/shadows/p1-03-1.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    },
+    {
+     "depth": 0.8,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-03-2.svg",
+     "shadow": {
+      "file": "png/shadows/p1-03-2.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "p1-04",
+   "period": 1,
+   "no": 4,
+   "of": 15,
+   "tier": "n",
+   "name": "真空管",
+   "line": "玻璃里点一盏小灯，就能算数。",
+   "ground": "#ece5d6",
+   "thumb": {
+    "file": "jpg/thumbs-p1.jpg",
+    "x": 1035,
+    "y": 0,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.2,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-04-0.svg"
+    },
+    {
+     "depth": 0.2,
+     "pop": true,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-04-1.svg"
+    },
+    {
+     "depth": 0.7,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-04-2.svg",
+     "shadow": {
+      "file": "png/shadows/p1-04-2.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "p1-05",
+   "period": 1,
+   "no": 5,
+   "of": 15,
+   "tier": "n",
+   "name": "磁带",
+   "line": "转一圈，就记住一点。",
+   "ground": "#ece5d6",
+   "thumb": {
+    "file": "jpg/thumbs-p1.jpg",
+    "x": 0,
+    "y": 483,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.2,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-05-0.svg"
+    },
+    {
+     "depth": 0.3,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-05-1.svg",
+     "shadow": {
+      "file": "png/shadows/p1-05-1.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    },
+    {
+     "depth": 0.9,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-05-2.svg",
+     "shadow": {
+      "file": "png/shadows/p1-05-2.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "p1-06",
+   "period": 1,
+   "no": 6,
+   "of": 15,
+   "tier": "n",
+   "name": "图灵机",
+   "line": "一条纸带，一个读写头，就够了。",
+   "ground": "#ece5d6",
+   "thumb": {
+    "file": "jpg/thumbs-p1.jpg",
+    "x": 345,
+    "y": 483,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.2,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-06-0.svg"
+    },
+    {
+     "depth": 0.4,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-06-1.svg",
+     "shadow": {
+      "file": "png/shadows/p1-06-1.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    },
+    {
+     "depth": 1.1,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-06-2.svg",
+     "shadow": {
+      "file": "png/shadows/p1-06-2.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "p1-07",
+   "period": 1,
+   "no": 7,
+   "of": 15,
+   "tier": "r",
+   "name": "电路",
+   "line": "铜线上跑的，是光速的念头。",
+   "ground": "#121a15",
+   "thumb": {
+    "file": "jpg/thumbs-p1.jpg",
+    "x": 690,
+    "y": 483,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-07-0.svg"
+    },
+    {
+     "depth": 0.25,
+     "pop": true,
+     "cast": false,
+     "clip": true,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-07-1.svg"
+    },
+    {
+     "depth": 1.4,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-07-2.svg",
+     "shadow": {
+      "file": "png/shadows/p1-07-2.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "p1-08",
+   "period": 1,
+   "no": 8,
+   "of": 15,
+   "tier": "r",
+   "name": "洛伦兹",
+   "line": "一只蝴蝶，永不重复的轨迹。",
+   "ground": "#efe7da",
+   "thumb": {
+    "file": "jpg/thumbs-p1.jpg",
+    "x": 1035,
+    "y": 483,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-08-0.svg"
+    },
+    {
+     "depth": 0.9,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-08-1.svg",
+     "shadow": {
+      "file": "png/shadows/p1-08-1.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    },
+    {
+     "depth": 1.3,
+     "pop": true,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-08-2.svg"
+    }
+   ]
+  },
+  {
+   "id": "p1-09",
+   "period": 1,
+   "no": 9,
+   "of": 15,
+   "tier": "r",
+   "name": "晶圆",
+   "line": "一片硅上，住着几百颗大脑。",
+   "ground": "#121820",
+   "thumb": {
+    "file": "jpg/thumbs-p1.jpg",
+    "x": 0,
+    "y": 966,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.4,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-09-0.svg"
+    },
+    {
+     "depth": 0.4,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-09-1.svg",
+     "shadow": {
+      "file": "png/shadows/p1-09-1.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    },
+    {
+     "depth": 1.4,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-09-2.svg",
+     "shadow": {
+      "file": "png/shadows/p1-09-2.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "p1-10",
+   "period": 1,
+   "no": 10,
+   "of": 15,
+   "tier": "sr",
+   "name": "神经网络",
+   "line": "一层一层亮起来，就懂了。",
+   "ground": "#161c22",
+   "thumb": {
+    "file": "jpg/thumbs-p1.jpg",
+    "x": 345,
+    "y": 966,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.4,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-10-0.svg"
+    },
+    {
+     "depth": 0.35,
+     "pop": true,
+     "cast": false,
+     "clip": true,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-10-1.svg"
+    },
+    {
+     "depth": 1.2,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-10-2.svg",
+     "shadow": {
+      "file": "png/shadows/p1-10-2.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "p1-11",
+   "period": 1,
+   "no": 11,
+   "of": 15,
+   "tier": "sr",
+   "name": "黄昏电车",
+   "line": "下班路上，云比代码好看。",
+   "ground": "#3b3047",
+   "thumb": {
+    "file": "jpg/thumbs-p1.jpg",
+    "x": 690,
+    "y": 966,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.8,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-11-0.svg"
+    },
+    {
+     "depth": -1.1,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-11-1.svg"
+    },
+    {
+     "depth": -0.5,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-11-2.svg"
+    },
+    {
+     "depth": 0.7,
+     "pop": true,
+     "cast": true,
+     "clip": true,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-11-3.svg",
+     "shadow": {
+      "file": "png/shadows/p1-11-3.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    },
+    {
+     "depth": 1.5,
+     "pop": true,
+     "cast": false,
+     "clip": true,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-11-4.svg"
+    }
+   ]
+  },
+  {
+   "id": "p1-12",
+   "period": 1,
+   "no": 12,
+   "of": 15,
+   "tier": "ssr",
+   "name": "天球仪",
+   "line": "把整个天空，装进几道金环。",
+   "ground": "#0d0a07",
+   "thumb": {
+    "file": "jpg/thumbs-p1.jpg",
+    "x": 1035,
+    "y": 966,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.4,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-12-0.svg"
+    },
+    {
+     "depth": 0.4,
+     "pop": true,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-12-1.svg"
+    },
+    {
+     "depth": 1.3,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-12-2.svg",
+     "shadow": {
+      "file": "png/shadows/p1-12-2.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "p1-13",
+   "period": 1,
+   "no": 13,
+   "of": 15,
+   "tier": "ssr",
+   "name": "不夜城",
+   "line": "算力不眠，城市也不眠。",
+   "ground": "#0b0907",
+   "thumb": {
+    "file": "jpg/thumbs-p1.jpg",
+    "x": 0,
+    "y": 1449,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.6,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-13-0.svg"
+    },
+    {
+     "depth": -0.7,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-13-1.svg"
+    },
+    {
+     "depth": 1,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -13,
+      "y": -29,
+      "w": 278,
+      "h": 321
+     },
+     "file": "svg/cards/p1-13-2.svg",
+     "shadow": {
+      "file": "png/shadows/p1-13-2.png",
+      "box": {
+       "x": -20,
+       "y": -36,
+       "w": 292,
+       "h": 335
+      }
+     }
+    },
+    {
+     "depth": -0.1,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-13-3.svg"
+    }
+   ]
+  },
+  {
+   "id": "p1-14",
+   "period": 1,
+   "no": 14,
+   "of": 15,
+   "tier": "ur",
+   "name": "奇点",
+   "line": "光也逃不出去的地方。",
+   "ground": "#050407",
+   "thumb": {
+    "file": "jpg/thumbs-p1.jpg",
+    "x": 345,
+    "y": 1449,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.8,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-14-0.svg"
+    },
+    {
+     "depth": -0.4,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-14-1.svg"
+    },
+    {
+     "depth": 0.5,
+     "pop": true,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-14-2.svg"
+    },
+    {
+     "depth": 1.3,
+     "pop": true,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-14-3.svg"
+    }
+   ]
+  },
+  {
+   "id": "p1-15",
+   "period": 1,
+   "no": 15,
+   "of": 15,
+   "tier": "ur",
+   "name": "莫比乌斯",
+   "line": "只有一面，走下去就回到起点。",
+   "ground": "#f3f1f4",
+   "thumb": {
+    "file": "jpg/thumbs-p1.jpg",
+    "x": 690,
+    "y": 1449,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.2,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-15-0.svg"
+    },
+    {
+     "depth": 1.3,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-15-1.svg",
+     "shadow": {
+      "file": "png/shadows/p1-15-1.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "p1-set",
+   "period": 1,
+   "no": 0,
+   "of": 15,
+   "tier": "ssr",
+   "name": "机器之心 · 典藏",
+   "line": "一期集齐，才有这一张。",
+   "ground": "#0a0806",
+   "special": "set",
+   "thumb": {
+    "file": "jpg/thumbs-p1.jpg",
+    "x": 1035,
+    "y": 1449,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.6,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-set-0.svg"
+    },
+    {
+     "depth": -0.8,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-set-1.svg"
+    },
+    {
+     "depth": 0.4,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-set-2.svg",
+     "shadow": {
+      "file": "png/shadows/p1-set-2.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    },
+    {
+     "depth": 1.2,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-set-3.svg",
+     "shadow": {
+      "file": "png/shadows/p1-set-3.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    },
+    {
+     "depth": 1.6,
+     "pop": true,
+     "cast": false,
+     "clip": true,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p1-set-4.svg"
+    }
+   ]
+  },
+  {
+   "id": "p2-01",
+   "period": 2,
+   "no": 1,
+   "of": 10,
+   "tier": "n",
+   "name": "星盘",
+   "line": "把整片天空，刻进一块铜里。",
+   "ground": "#e6dcc4",
+   "thumb": {
+    "file": "jpg/thumbs-p2.jpg",
+    "x": 0,
+    "y": 0,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.2,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-01-0.svg"
+    },
+    {
+     "depth": 0.5,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-01-1.svg",
+     "shadow": {
+      "file": "png/shadows/p2-01-1.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    },
+    {
+     "depth": 1.1,
+     "pop": true,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-01-2.svg"
+    },
+    {
+     "depth": 1.6,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-01-3.svg",
+     "shadow": {
+      "file": "png/shadows/p2-01-3.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "p2-02",
+   "period": 2,
+   "no": 2,
+   "of": 10,
+   "tier": "n",
+   "name": "六分仪",
+   "line": "量一量太阳有多高，就知道船在哪。",
+   "ground": "#e6dcc4",
+   "thumb": {
+    "file": "jpg/thumbs-p2.jpg",
+    "x": 345,
+    "y": 0,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.2,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-02-0.svg"
+    },
+    {
+     "depth": 0.9,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-02-1.svg",
+     "shadow": {
+      "file": "png/shadows/p2-02-1.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    },
+    {
+     "depth": 1.5,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-02-2.svg",
+     "shadow": {
+      "file": "png/shadows/p2-02-2.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "p2-03",
+   "period": 2,
+   "no": 3,
+   "of": 10,
+   "tier": "r",
+   "name": "航海图",
+   "line": "画出来的海，才敢开过去。",
+   "ground": "#e9dec6",
+   "thumb": {
+    "file": "jpg/thumbs-p2.jpg",
+    "x": 690,
+    "y": 0,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-03-0.svg"
+    },
+    {
+     "depth": 0.3,
+     "pop": true,
+     "cast": false,
+     "clip": true,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-03-1.svg"
+    },
+    {
+     "depth": 1,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-03-2.svg",
+     "shadow": {
+      "file": "png/shadows/p2-03-2.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    },
+    {
+     "depth": 1.4,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-03-3.svg",
+     "shadow": {
+      "file": "png/shadows/p2-03-3.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "p2-04",
+   "period": 2,
+   "no": 4,
+   "of": 10,
+   "tier": "r",
+   "name": "望远镜",
+   "line": "1610 年，有人第一次把它对准了月亮。",
+   "ground": "#0f151b",
+   "thumb": {
+    "file": "jpg/thumbs-p2.jpg",
+    "x": 1035,
+    "y": 0,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.6,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-04-0.svg"
+    },
+    {
+     "depth": -0.2,
+     "pop": false,
+     "cast": false,
+     "clip": true,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-04-1.svg"
+    },
+    {
+     "depth": 1.1,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-04-2.svg",
+     "shadow": {
+      "file": "png/shadows/p2-04-2.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "p2-05",
+   "period": 2,
+   "no": 5,
+   "of": 10,
+   "tier": "sr",
+   "name": "土星",
+   "line": "戴着环的那颗，从不着急。",
+   "ground": "#0c1117",
+   "thumb": {
+    "file": "jpg/thumbs-p2.jpg",
+    "x": 0,
+    "y": 483,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.6,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-05-0.svg"
+    },
+    {
+     "depth": -0.4,
+     "pop": false,
+     "cast": false,
+     "clip": true,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-05-1.svg"
+    },
+    {
+     "depth": 0.4,
+     "pop": true,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-05-2.svg"
+    },
+    {
+     "depth": 1.4,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -24,
+      "y": -14,
+      "w": 301,
+      "h": 306
+     },
+     "file": "svg/cards/p2-05-3.svg",
+     "shadow": {
+      "file": "png/shadows/p2-05-3.png",
+      "box": {
+       "x": -31,
+       "y": -21,
+       "w": 315,
+       "h": 320
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "p2-06",
+   "period": 2,
+   "no": 6,
+   "of": 10,
+   "tier": "sr",
+   "name": "极光",
+   "line": "天上换了窗帘，冰面也跟着换。",
+   "ground": "#08141a",
+   "thumb": {
+    "file": "jpg/thumbs-p2.jpg",
+    "x": 345,
+    "y": 483,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.8,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-06-0.svg"
+    },
+    {
+     "depth": -1.2,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-06-1.svg"
+    },
+    {
+     "depth": -0.6,
+     "pop": false,
+     "cast": false,
+     "clip": true,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-06-2.svg"
+    },
+    {
+     "depth": 1.2,
+     "pop": true,
+     "cast": true,
+     "clip": true,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-06-3.svg",
+     "shadow": {
+      "file": "png/shadows/p2-06-3.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "p2-07",
+   "period": 2,
+   "no": 7,
+   "of": 10,
+   "tier": "ssr",
+   "name": "月相",
+   "line": "圆了又缺，缺了又圆。",
+   "ground": "#100c08",
+   "thumb": {
+    "file": "jpg/thumbs-p2.jpg",
+    "x": 690,
+    "y": 483,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.4,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-07-0.svg"
+    },
+    {
+     "depth": 0.3,
+     "pop": true,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-07-1.svg"
+    },
+    {
+     "depth": 1.4,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-07-2.svg",
+     "shadow": {
+      "file": "png/shadows/p2-07-2.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "p2-08",
+   "period": 2,
+   "no": 8,
+   "of": 10,
+   "tier": "ssr",
+   "name": "日食",
+   "line": "太阳被遮住的那两分钟，天上开出一朵金花。",
+   "ground": "#040302",
+   "thumb": {
+    "file": "jpg/thumbs-p2.jpg",
+    "x": 1035,
+    "y": 483,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.6,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-08-0.svg"
+    },
+    {
+     "depth": -0.2,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-08-1.svg"
+    },
+    {
+     "depth": 0.6,
+     "pop": true,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-08-2.svg"
+    },
+    {
+     "depth": 1.2,
+     "pop": true,
+     "cast": true,
+     "clip": true,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-08-3.svg",
+     "shadow": {
+      "file": "png/shadows/p2-08-3.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "p2-09",
+   "period": 2,
+   "no": 9,
+   "of": 10,
+   "tier": "ur",
+   "name": "银河",
+   "line": "一千亿颗太阳，慢慢地转。",
+   "ground": "#030306",
+   "thumb": {
+    "file": "jpg/thumbs-p2.jpg",
+    "x": 0,
+    "y": 966,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.8,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-09-0.svg"
+    },
+    {
+     "depth": 0.8,
+     "pop": true,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-09-1.svg"
+    },
+    {
+     "depth": 1.3,
+     "pop": true,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-09-2.svg"
+    }
+   ]
+  },
+  {
+   "id": "p2-10",
+   "period": 2,
+   "no": 10,
+   "of": 10,
+   "tier": "ur",
+   "name": "地出",
+   "line": "第一次，从月亮上看家。",
+   "ground": "#020203",
+   "thumb": {
+    "file": "jpg/thumbs-p2.jpg",
+    "x": 345,
+    "y": 966,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.8,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-10-0.svg"
+    },
+    {
+     "depth": -0.6,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-10-1.svg"
+    },
+    {
+     "depth": 1.2,
+     "pop": true,
+     "cast": true,
+     "clip": true,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-10-2.svg",
+     "shadow": {
+      "file": "png/shadows/p2-10-2.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "p2-set",
+   "period": 2,
+   "no": 0,
+   "of": 10,
+   "tier": "ssr",
+   "name": "星海 · 典藏",
+   "line": "一期集齐，才有这一张。",
+   "ground": "#0a0806",
+   "special": "set",
+   "thumb": {
+    "file": "jpg/thumbs-p2.jpg",
+    "x": 690,
+    "y": 966,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.6,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-set-0.svg"
+    },
+    {
+     "depth": -0.8,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-set-1.svg"
+    },
+    {
+     "depth": 0.4,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-set-2.svg",
+     "shadow": {
+      "file": "png/shadows/p2-set-2.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    },
+    {
+     "depth": 1.2,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-set-3.svg",
+     "shadow": {
+      "file": "png/shadows/p2-set-3.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    },
+    {
+     "depth": 1.6,
+     "pop": true,
+     "cast": false,
+     "clip": true,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p2-set-4.svg"
+    }
+   ]
+  },
+  {
+   "id": "p3-01",
+   "period": 3,
+   "no": 1,
+   "of": 10,
+   "tier": "n",
+   "name": "算盘",
+   "line": "上二下五，拨一拨就是答案。",
+   "ground": "#ece4d2",
+   "thumb": {
+    "file": "jpg/thumbs-p3.jpg",
+    "x": 0,
+    "y": 0,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.2,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-01-0.svg"
+    },
+    {
+     "depth": 0.2,
+     "pop": true,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-01-1.svg"
+    },
+    {
+     "depth": 0.7,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-01-2.svg",
+     "shadow": {
+      "file": "png/shadows/p3-01-2.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    },
+    {
+     "depth": 1.4,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-01-3.svg",
+     "shadow": {
+      "file": "png/shadows/p3-01-3.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "p3-02",
+   "period": 3,
+   "no": 2,
+   "of": 10,
+   "tier": "n",
+   "name": "活字",
+   "line": "反着刻，才能正着印。",
+   "ground": "#ece4d2",
+   "thumb": {
+    "file": "jpg/thumbs-p3.jpg",
+    "x": 345,
+    "y": 0,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.2,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-02-0.svg"
+    },
+    {
+     "depth": 0.3,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-02-1.svg",
+     "shadow": {
+      "file": "png/shadows/p3-02-1.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    },
+    {
+     "depth": 1.4,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-02-2.svg",
+     "shadow": {
+      "file": "png/shadows/p3-02-2.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "p3-03",
+   "period": 3,
+   "no": 3,
+   "of": 10,
+   "tier": "r",
+   "name": "灯笼",
+   "line": "一盏灯，就把整条街照成了节日。",
+   "ground": "#1a0c0a",
+   "thumb": {
+    "file": "jpg/thumbs-p3.jpg",
+    "x": 690,
+    "y": 0,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.8,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-03-0.svg"
+    },
+    {
+     "depth": -0.8,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-03-1.svg"
+    },
+    {
+     "depth": 0.9,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-03-2.svg",
+     "shadow": {
+      "file": "png/shadows/p3-03-2.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "p3-04",
+   "period": 3,
+   "no": 4,
+   "of": 10,
+   "tier": "r",
+   "name": "铜镜",
+   "line": "两千年前的镜子，背面比正面好看。",
+   "ground": "#141b26",
+   "thumb": {
+    "file": "jpg/thumbs-p3.jpg",
+    "x": 1035,
+    "y": 0,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.4,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-04-0.svg"
+    },
+    {
+     "depth": 0.7,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-04-1.svg",
+     "shadow": {
+      "file": "png/shadows/p3-04-1.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    },
+    {
+     "depth": 1.5,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-04-2.svg",
+     "shadow": {
+      "file": "png/shadows/p3-04-2.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "p3-05",
+   "period": 3,
+   "no": 5,
+   "of": 10,
+   "tier": "sr",
+   "name": "锦鲤",
+   "line": "绕了一圈又一圈，好运就来了。",
+   "ground": "#10312f",
+   "thumb": {
+    "file": "jpg/thumbs-p3.jpg",
+    "x": 0,
+    "y": 483,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.8,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-05-0.svg"
+    },
+    {
+     "depth": -0.9,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-05-1.svg"
+    },
+    {
+     "depth": 0.2,
+     "pop": true,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-05-2.svg"
+    },
+    {
+     "depth": 0.9,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-05-3.svg",
+     "shadow": {
+      "file": "png/shadows/p3-05-3.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    },
+    {
+     "depth": 1.6,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-05-4.svg",
+     "shadow": {
+      "file": "png/shadows/p3-05-4.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "p3-06",
+   "period": 3,
+   "no": 6,
+   "of": 10,
+   "tier": "sr",
+   "name": "月门",
+   "line": "推开圆门，月亮刚好在那里。",
+   "ground": "#1d2140",
+   "thumb": {
+    "file": "jpg/thumbs-p3.jpg",
+    "x": 345,
+    "y": 483,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.8,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-06-0.svg"
+    },
+    {
+     "depth": -1,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-06-1.svg"
+    },
+    {
+     "depth": 0.3,
+     "pop": true,
+     "cast": true,
+     "clip": true,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-06-2.svg",
+     "shadow": {
+      "file": "png/shadows/p3-06-2.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    },
+    {
+     "depth": 1.4,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-06-3.svg",
+     "shadow": {
+      "file": "png/shadows/p3-06-3.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "p3-07",
+   "period": 3,
+   "no": 7,
+   "of": 10,
+   "tier": "ssr",
+   "name": "夜市",
+   "line": "雨里的招牌，比白天还亮。",
+   "ground": "#0b0907",
+   "thumb": {
+    "file": "jpg/thumbs-p3.jpg",
+    "x": 690,
+    "y": 483,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.6,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-07-0.svg"
+    },
+    {
+     "depth": -0.8,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-07-1.svg"
+    },
+    {
+     "depth": 0.4,
+     "pop": true,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -13,
+      "y": -279,
+      "w": 406,
+      "h": 575
+     },
+     "file": "svg/cards/p3-07-2.svg"
+    },
+    {
+     "depth": 1.4,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -17,
+      "y": -14,
+      "w": 294,
+      "h": 306
+     },
+     "file": "svg/cards/p3-07-3.svg",
+     "shadow": {
+      "file": "png/shadows/p3-07-3.png",
+      "box": {
+       "x": -24,
+       "y": -21,
+       "w": 308,
+       "h": 320
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "p3-08",
+   "period": 3,
+   "no": 8,
+   "of": 10,
+   "tier": "ssr",
+   "name": "编钟",
+   "line": "两千年前的钟，还能敲出 do re mi。",
+   "ground": "#120d08",
+   "thumb": {
+    "file": "jpg/thumbs-p3.jpg",
+    "x": 1035,
+    "y": 483,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.6,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-08-0.svg"
+    },
+    {
+     "depth": -0.8,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-08-1.svg"
+    },
+    {
+     "depth": 0.4,
+     "pop": true,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-08-2.svg"
+    },
+    {
+     "depth": 1.2,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-08-3.svg",
+     "shadow": {
+      "file": "png/shadows/p3-08-3.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    },
+    {
+     "depth": 1.7,
+     "pop": true,
+     "cast": true,
+     "clip": true,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-08-4.svg",
+     "shadow": {
+      "file": "png/shadows/p3-08-4.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "p3-09",
+   "period": 3,
+   "no": 9,
+   "of": 10,
+   "tier": "ur",
+   "name": "浮岛",
+   "line": "蓬莱不在海上，在云里。",
+   "ground": "#2a2450",
+   "thumb": {
+    "file": "jpg/thumbs-p3.jpg",
+    "x": 0,
+    "y": 966,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.8,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-09-0.svg"
+    },
+    {
+     "depth": -1.2,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-09-1.svg"
+    },
+    {
+     "depth": -0.5,
+     "pop": false,
+     "cast": false,
+     "clip": true,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-09-2.svg"
+    },
+    {
+     "depth": 0.7,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-09-3.svg",
+     "shadow": {
+      "file": "png/shadows/p3-09-3.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    },
+    {
+     "depth": 1.1,
+     "pop": true,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -13,
+      "y": -14,
+      "w": 330,
+      "h": 306
+     },
+     "file": "svg/cards/p3-09-4.svg"
+    },
+    {
+     "depth": 1.6,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-09-5.svg",
+     "shadow": {
+      "file": "png/shadows/p3-09-5.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "p3-10",
+   "period": 3,
+   "no": 10,
+   "of": 10,
+   "tier": "ur",
+   "name": "云龙",
+   "line": "云从龙，风从虎。",
+   "ground": "#0d0b18",
+   "thumb": {
+    "file": "jpg/thumbs-p3.jpg",
+    "x": 345,
+    "y": 966,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.8,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-10-0.svg"
+    },
+    {
+     "depth": -0.9,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-10-1.svg"
+    },
+    {
+     "depth": 0.8,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -13,
+      "y": -14,
+      "w": 289,
+      "h": 306
+     },
+     "file": "svg/cards/p3-10-2.svg",
+     "shadow": {
+      "file": "png/shadows/p3-10-2.png",
+      "box": {
+       "x": -20,
+       "y": -21,
+       "w": 303,
+       "h": 320
+      }
+     }
+    },
+    {
+     "depth": 1.5,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-10-3.svg",
+     "shadow": {
+      "file": "png/shadows/p3-10-3.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "p3-set",
+   "period": 3,
+   "no": 0,
+   "of": 10,
+   "tier": "ssr",
+   "name": "东方 · 典藏",
+   "line": "一期集齐，才有这一张。",
+   "ground": "#0a0806",
+   "special": "set",
+   "thumb": {
+    "file": "jpg/thumbs-p3.jpg",
+    "x": 690,
+    "y": 966,
+    "w": 345,
+    "h": 483
+   },
+   "planes": [
+    {
+     "depth": -1.6,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-set-0.svg"
+    },
+    {
+     "depth": -0.8,
+     "pop": false,
+     "cast": false,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-set-1.svg"
+    },
+    {
+     "depth": 0.4,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-set-2.svg",
+     "shadow": {
+      "file": "png/shadows/p3-set-2.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    },
+    {
+     "depth": 1.2,
+     "pop": true,
+     "cast": true,
+     "clip": false,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-set-3.svg",
+     "shadow": {
+      "file": "png/shadows/p3-set-3.png",
+      "box": {
+       "x": -19.6,
+       "y": -20.9,
+       "w": 291.2,
+       "h": 319.8
+      }
+     }
+    },
+    {
+     "depth": 1.6,
+     "pop": true,
+     "cast": false,
+     "clip": true,
+     "box": {
+      "x": -12.6,
+      "y": -13.9,
+      "w": 277.2,
+      "h": 305.8
+     },
+     "file": "svg/cards/p3-set-4.svg"
+    }
+   ]
+  }
+ ],
+ "frames": {
+  "n:1": "svg/frames/n-1.svg",
+  "r:1": "svg/frames/r-1.svg",
+  "sr:1": "svg/frames/sr-1.svg",
+  "ssr:1": "svg/frames/ssr-1.svg",
+  "ur:1": "svg/frames/ur-1.svg",
+  "n:2": "svg/frames/n-2.svg",
+  "r:2": "svg/frames/r-2.svg",
+  "sr:2": "svg/frames/sr-2.svg",
+  "ssr:2": "svg/frames/ssr-2.svg",
+  "ur:2": "svg/frames/ur-2.svg",
+  "n:3": "svg/frames/n-3.svg",
+  "r:3": "svg/frames/r-3.svg",
+  "sr:3": "svg/frames/sr-3.svg",
+  "ssr:3": "svg/frames/ssr-3.svg",
+  "ur:3": "svg/frames/ur-3.svg"
+ },
+ "grounds": {
+  "n": {
+   "svg": "svg/grounds/n.svg",
+   "grain": "png/grain-light.png"
+  },
+  "r": {
+   "svg": "svg/grounds/r.svg",
+   "grain": "png/grain-light.png"
+  },
+  "sr": {
+   "svg": "svg/grounds/sr.svg",
+   "grain": "png/grain-light.png"
+  },
+  "ssr": {
+   "svg": "svg/grounds/ssr.svg",
+   "grain": "png/grain-dark.png"
+  },
+  "ur": {
+   "svg": "svg/grounds/ur.svg",
+   "grain": "png/grain-light.png"
+  }
+ },
+ "grain": {
+  "light": {
+   "file": "png/grain-light.png",
+   "tile": 105
+  },
+  "dark": {
+   "file": "png/grain-dark.png",
+   "tile": 105
+  },
+  "back": {
+   "file": "png/grain-back.png",
+   "tile": 105
+  }
+ },
+ "cardShadow": {
+  "file": "png/card-shadow.png",
+  "box": {
+   "x": -45,
+   "y": -45,
+   "w": 390,
+   "h": 510
+  },
+  "rest": {
+   "dx": 0,
+   "dy": 12
+  }
+ },
+ "animations": {
+  "ce-spin": "@keyframes ce-spin{to{transform:rotate(1turn)}}",
+  "ce-blink": "@keyframes ce-blink{0%,62%{opacity:1}63%,78%{opacity:.15}79%,to{opacity:1}}",
+  "ce-beam": "@keyframes ce-beam{0%{transform:rotate(-16deg)}to{transform:rotate(18deg)}}",
+  "ce-rain": "@keyframes ce-rain{0%{transform:translate(0)}to{transform:translate(-61px,278px)}}",
+  "ce-scan": "@keyframes ce-scan{0%{transform:translateX(0);opacity:0}10%{opacity:1}80%{opacity:1}to{transform:translateX(230px);opacity:0}}",
+  "ce-pulse": "@keyframes ce-pulse{0%{stroke-dashoffset:100}to{stroke-dashoffset:0}}",
+  "ce-comet": "@keyframes ce-comet{0%{stroke-dashoffset:1000}to{stroke-dashoffset:0}}",
+  "ce-signal": "@keyframes ce-signal{0%{stroke-dashoffset:100;opacity:0}8%{opacity:.9}22%{stroke-dashoffset:0;opacity:.9}30%,to{stroke-dashoffset:0;opacity:0}}",
+  "ce-fire": "@keyframes ce-fire{0%,to{opacity:.25}10%{opacity:1}30%{opacity:.25}}",
+  "ce-drift": "@keyframes ce-drift{0%{transform:translateX(0)}to{transform:translateX(-292px)}}",
+  "ce-drift-near": "@keyframes ce-drift-near{0%{transform:translateX(0)}to{transform:translateX(-312px)}}",
+  "ce-tram": "@keyframes ce-tram{0%{transform:translateX(-90px)}to{transform:translateX(270px)}}",
+  "ce-orbit": "@keyframes ce-orbit{0%{stroke-dashoffset:0}to{stroke-dashoffset:-100}}",
+  "ce-voyage": "@keyframes ce-voyage{0%{transform:translate(214px,70px);opacity:0}5%{opacity:1}12.5%{transform:translate(203.4px,88.4px)}25%{transform:translate(190.3px,106.5px)}37.5%{transform:translate(175.3px,125.1px)}50%{transform:translate(159.3px,144.8px)}62.5%{transform:translate(142.9px,166.2px)}75%{transform:translate(127.1px,190.1px)}87.5%{transform:translate(112.5px,217.1px)}95%{opacity:1}to{transform:translate(100px,248px);opacity:0}}",
+  "ce-glint-soft": "@keyframes ce-glint-soft{0%,to{opacity:.55}50%{opacity:1}}",
+  "ce-index-arm": "@keyframes ce-index-arm{0%,12%{transform:rotate(-7deg)}55%,70%{transform:rotate(5deg)}to{transform:rotate(3deg)}}",
+  "ce-telescope": "@keyframes ce-telescope{0%{transform:rotate(-2.5deg)}to{transform:rotate(2deg)}}",
+  "ce-shooting": "@keyframes ce-shooting{0%,74%{transform:translate(0);opacity:0}76%{opacity:1}84%,to{transform:translate(110px,40px);opacity:0}}",
+  "ce-scarf": "@keyframes ce-scarf{0%,to{transform:rotate(-5deg)}30%{transform:rotate(7deg) skewX(5deg)}60%{transform:rotate(-1deg)}}",
+  "ce-shimmer": "@keyframes ce-shimmer{0%{opacity:.55}to{opacity:1}}",
+  "ce-diamond": "@keyframes ce-diamond{0%,to{transform:scale(.45) rotate(0deg);opacity:.5}46%{transform:scale(.8) rotate(8deg);opacity:.85}52%{transform:scale(1.35) rotate(12deg);opacity:1}62%{transform:scale(.7) rotate(16deg);opacity:.75}}",
+  "ce-aurora": "@keyframes ce-aurora{0%{transform:skewX(-8deg) scaleY(.92);opacity:.75}to{transform:skewX(9deg) scaleY(1.08);opacity:1}}",
+  "ce-glint": "@keyframes ce-glint{0%,to{opacity:.45;transform:scale(.7)}50%{opacity:1;transform:scale(1.1)}}",
+  "ce-rise": "@keyframes ce-rise{0%{transform:translateY(16px)}to{transform:translateY(-4px)}}",
+  "ce-earth-turn": "@keyframes ce-earth-turn{0%{transform:translateX(0)}to{transform:translateX(-200px)}}",
+  "ce-sway": "@keyframes ce-sway{0%{transform:rotate(-4deg)}to{transform:rotate(4deg)}}",
+  "ce-ripple": "@keyframes ce-ripple{0%{transform:scale(.4);opacity:.9}to{transform:scale(3.2);opacity:0}}",
+  "ce-petal": "@keyframes ce-petal{0%{transform:translateY(-20px) rotate(0deg);opacity:0}10%{opacity:1}to{transform:translate(-60px,300px) rotate(1turn);opacity:.6}}",
+  "ce-struck": "@keyframes ce-struck{0%,to{transform:rotate(0deg)}4%{transform:rotate(3deg)}10%{transform:rotate(-2deg)}16%{transform:rotate(1deg)}22%{transform:rotate(0deg)}}",
+  "ce-bob": "@keyframes ce-bob{0%{transform:translateY(-4px)}to{transform:translateY(5px)}}",
+  "ce-whisker": "@keyframes ce-whisker{0%{transform:rotate(-6deg)}to{transform:rotate(6deg)}}",
+  "ce-bead-move": "@keyframes ce-bead-move{0%,30%,to{transform:translateY(0)}42%,82%{transform:translateY(var(--dy,0))}}",
+  "ce-flicker": "@keyframes ce-flicker{0%,to{opacity:.85}18%{opacity:1}22%{opacity:.7}26%{opacity:1}60%{opacity:.9}}",
+  "ce-lantern": "@keyframes ce-lantern{0%{transform:rotate(-1.6deg)}to{transform:rotate(1.6deg)}}",
+  "ce-float-x": "@keyframes ce-float-x{0%{transform:translateX(-5px)}to{transform:translateX(6px)}}",
+  "ce-sheen": "@keyframes ce-sheen{0%,20%{transform:translateX(-240px)}70%,to{transform:translateX(240px)}}",
+  "ce-caustic": "@keyframes ce-caustic{0%{transform:translate(-7px,-3px)}to{transform:translate(6px,5px)}}",
+  "ce-tail": "@keyframes ce-tail{0%{transform:rotate(-14deg)}to{transform:rotate(14deg)}}",
+  "ce-fall": "@keyframes ce-fall{to{stroke-dashoffset:-24}}",
+  "ce-crane": "@keyframes ce-crane{0%{transform:translate(300px,40px)}to{transform:translate(-60px,10px)}}",
+  "ce-flap": "@keyframes ce-flap{0%{transform:scaleY(1)}to{transform:scaleY(-.5)}}",
+  "ce-mallet": "@keyframes ce-mallet{0%{transform:rotate(0deg);animation-timing-function:ease-out}12%{transform:rotate(15deg);animation-timing-function:ease-in-out}80%{transform:rotate(17deg);animation-timing-function:ease-in}to{transform:rotate(0deg)}}",
+  "ce-type": "@keyframes ce-type{0%,8%{transform:scaleX(0)}14%{transform:scaleX(.12)}20%{transform:scaleX(.23)}26%{transform:scaleX(.34)}32%{transform:scaleX(.45)}38%{transform:scaleX(.56)}44%{transform:scaleX(.67)}50%{transform:scaleX(.78)}56%{transform:scaleX(.89)}62%,to{transform:scaleX(1)}}",
+  "ce-strike": "@keyframes ce-strike{0%,62%,to{transform:scaleY(.53)}74%{transform:scaleY(1)}82%{transform:scaleY(.6)}}",
+  "ce-vu": "@keyframes ce-vu{0%{transform:rotate(-18deg)}22%{transform:rotate(14deg)}38%{transform:rotate(4deg)}55%{transform:rotate(30deg)}72%{transform:rotate(10deg)}to{transform:rotate(22deg)}}",
+  "ce-tape": "@keyframes ce-tape{to{transform:translateX(-208px)}}",
+  "ce-write": "@keyframes ce-write{0%{opacity:1}40%,to{opacity:.25}}"
+ },
+ "app": {
+  "face": "app/face.json",
+  "wrappers": "app/wrappers.json",
+  "packs": {
+   "1": "app/pack1.json",
+   "2": "app/pack2.json",
+   "3": "app/pack3.json"
+  }
+ }
+}

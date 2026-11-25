@@ -149,6 +149,7 @@
 	import { telemetry } from '$lib/telemetry.svelte';
 	import { teamSwitch } from '$lib/agents/teamSwitch.svelte';
 	import { mentionRoot } from '$lib/mention';
+	import { EGG_PROVIDER, parseEggCommand } from '$lib/cyberEgg/route';
 
 	// One full conversation (transcript + composer + approvals + pickers) for a
 	// single session, extracted from the page so several chats can tile side by
@@ -944,6 +945,8 @@
 
 	// The model button's name: the catalog's, or one read from the id, as the
 	// model pickers show it (src/lib/models). Claude Code / Codex keep theirs.
+	/** On the 赛博鸡蛋 tokens: the round's model it runs on (as picked, or as the engine reports it). */
+	const eggModel = $derived(session.egg?.model ?? (chat.provider === EGG_PROVIDER ? chat.model || null : null));
 	const shownModelName = $derived.by(() => {
 		const stored = stripGroupSuffix(providersList.find((p) => p.id === chat.provider)?.models.find((m) => m.name === chat.model)?.display_name || '');
 		if (chat.backendId !== 'lynshen' || !chat.model) return stored || undefined;
@@ -1327,6 +1330,19 @@
 	});
 
 	function selectRow(picked: string) {
+		// A 赛博鸡蛋 row: this conversation runs on the day's drawn tokens
+		// (cyberEgg/route.ts); any other model takes it back to the account.
+		const onEgg = parseEggCommand(picked);
+		if (onEgg) {
+			chat.closePicker();
+			store.setEgg(session.id, onEgg).catch((e) => toast.error(e instanceof Error ? e.message : String(e)));
+			return;
+		}
+		if (session.egg && (picked.startsWith('/model ') || picked.startsWith('@switch '))) {
+			chat.closePicker();
+			void store.setEgg(session.id, null).then(() => selectRow(picked));
+			return;
+		}
 		// A Provider row: pin the model to it (`monoize_providers`, sent as
 		// X-Monoize-Provider from the next request), then pick the model.
 		const { command, route } = splitRoute(picked);
@@ -2234,6 +2250,7 @@
 			onModelClose={() => chat.closePicker()}
 			modelRows={filteredRows}
 			modelDisplayName={shownModelName}
+			eggModel={eggModel}
 			modelSearch={showPickerSearch}
 			{backendLocked}
 			toolProvider={toolModel

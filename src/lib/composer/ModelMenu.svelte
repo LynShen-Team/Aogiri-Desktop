@@ -30,6 +30,10 @@
 	import { readConfig, writeConfig, type LynShenGroup } from '$lib/protocol';
 	import { toast } from '$lib/ui/toast.svelte';
 	import { modelSetup } from '$lib/modelSetupState.svelte';
+	import EggIcon from 'phosphor-svelte/lib/EggIcon';
+	import { egg } from '$lib/cyberEgg/store.svelte';
+	import { wan } from '$lib/cyberEgg/format';
+	import { eggCommand, eggRoutable } from '$lib/cyberEgg/route';
 
 	// The composer's model menu, opened from the model button: everything about
 	// "who answers and how hard it thinks" in one place. On top, the quick
@@ -55,7 +59,8 @@
 		onSessionOption,
 		onRefreshModels,
 		onContinueOnLynShen,
-		gateway = null
+		gateway = null,
+		eggModel = null
 	}: {
 		chat: ChatState;
 		/** The engine has a model catalog (not ACP agents). */
@@ -83,7 +88,18 @@
 		/** An OpenCode session: whether it runs on the LynShen gateway (null:
 		 *  no gateway switch here). */
 		gateway?: boolean | null;
+		/** On the 赛博鸡蛋 tokens: the round's model this conversation runs on. */
+		eggModel?: string | null;
 	} = $props();
+
+	// The 「赛博鸡蛋」 group (cyberEgg/route.ts): a LynShen conversation can run on
+	// the day's drawn tokens, on one of the round's models. Shown while a round
+	// runs and the user keeps it in the menu (调用 page); its rows wait for
+	// tokens and a daemon that can run one session on its own provider.
+	const eggShown = $derived(chat.backendId === 'lynshen' && canPickModel && egg.live && egg.inPicker && egg.models.length > 0);
+	const eggBlocked = $derived(
+		!eggRoutable() ? t('egg.picker.needsUpdate') : !egg.me?.today ? t('egg.picker.drawFirst') : egg.remaining <= 0 ? t('egg.picker.noTokens') : ''
+	);
 
 	// Opens above the model button, right edges aligned (the button sits at the
 	// right of the composer); below it when there is no room above.
@@ -188,7 +204,12 @@
 	// catalog where it knows the model (read again when older than a minute).
 	// A chat picker lists models that chat: image models are set in
 	// Settings → 图片生成 (one already in use still shows).
-	const items = $derived(itemsFromRows(rows, gatewayCatalog.lookup).filter((i) => !i.drawsImages || i.active));
+	// On the 赛博鸡蛋 tokens the check is on its group's row, not on the account's model of the same name.
+	const items = $derived(
+		itemsFromRows(rows, gatewayCatalog.lookup)
+			.filter((i) => !i.drawsImages || i.active)
+			.map((i) => (eggModel && i.active ? { ...i, active: false } : i))
+	);
 	const facts = $derived(factsOptions());
 	const trial = $derived(onTrial());
 	onMount(refreshCatalog);
@@ -277,7 +298,26 @@
 <button class="mm-backdrop" aria-label={t('common.close')} tabindex="-1" onclick={onClose}></button>
 <div use:overBrowser class="pop mm" role="dialog" out:popOut|global aria-label={t('chat.switchModel')} bind:this={popEl} style:left="{popLeft}px" style:top="{popTop}px">
 	{#if page === 'main'}
+		{#if eggShown}
+			<section class="egg" role="group" aria-label={t('egg.picker.group')}>
+				<div class="egg-head">
+					<span>{t('egg.picker.group')}</span>
+					<span class="egg-left">{t('egg.picker.left', { n: wan(egg.remaining) })}</span>
+				</div>
+				{#each egg.models as m (m)}
+					<button class="pop-row two" class:sel={eggModel === m} disabled={!!eggBlocked && eggModel !== m} onclick={() => onSelect(eggCommand(m))}>
+						<span class="pop-ico"><EggIcon size={16} /></span>
+						<span class="pop-txt">
+							<span class="pop-label">{m}</span>
+							<span class="pop-desc">{eggBlocked && eggModel !== m ? eggBlocked : t('egg.picker.desc')}</span>
+						</span>
+						<span class="pop-check" class:off={eggModel !== m}><CheckIcon size={16} /></span>
+					</button>
+				{/each}
+			</section>
+		{/if}
 		<section class="current">
+			{#if eggShown}<div class="egg-head">LynShen</div>{/if}
 			{#if canPickModel}
 				<QuickSwitcher {items} {trial} {facts} onPick={pickItem} onBrowse={(q) => (browsing = q)} onRoutes={routesOf} />
 			{:else}
@@ -468,6 +508,25 @@
 	}
 	.current .pop-row {
 		font-weight: 500;
+	}
+	.egg-head {
+		display: flex;
+		justify-content: space-between;
+		gap: 8px;
+		padding: 4px 8px 4px;
+		font-size: var(--fs-xs);
+		color: var(--dim);
+	}
+	.egg-left {
+		font-family: var(--font-mono);
+		font-variant-numeric: tabular-nums;
+	}
+	.egg .pop-row.sel {
+		background: var(--surface2);
+	}
+	.egg .pop-row:disabled {
+		opacity: 0.45;
+		cursor: default;
 	}
 	.pop-row.static {
 		cursor: default;

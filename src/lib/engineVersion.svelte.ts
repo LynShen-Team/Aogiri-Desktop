@@ -29,9 +29,19 @@ export const UNQUEUE_SINCE = '0.4.27';
  *  custom providers; `acp_presets`, the built-in ACP agents the daemon
  *  starts by id; `term_attach`, a session's TUI that any client views and a
  *  view that leaves only detaches; `schedule_runs`, scheduled tasks with
- *  run records, failures, a cost limit and worktree runs. A daemon from
- *  before sends none. */
-export type EngineFeature = 'queue' | 'files' | 'fork' | 'engine_probe' | 'tool_providers' | 'acp_presets' | 'term_attach' | 'schedule_runs';
+ *  run records, failures, a cost limit and worktree runs; `session_provider`,
+ *  a LynShen session on a provider of its own (`session_create` `provider`,
+ *  the 赛博鸡蛋 campaign). A daemon from before sends none. */
+export type EngineFeature =
+	| 'queue'
+	| 'files'
+	| 'fork'
+	| 'engine_probe'
+	| 'tool_providers'
+	| 'acp_presets'
+	| 'term_attach'
+	| 'schedule_runs'
+	| 'session_provider';
 
 /** The daemon this page talks to has `feature` (see `EngineFeature`). */
 export function engineHas(feature: EngineFeature): boolean {
