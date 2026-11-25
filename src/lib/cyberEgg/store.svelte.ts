@@ -119,6 +119,31 @@ export class EggStore {
 		return this.#reading;
 	}
 
+	/**
+	 * Follows today's use while the page shows (CE-API-3 `live`, every 10 s while the window is visible), so
+	 * 还能用 moves as conversations spend. Returns the stop.
+	 */
+	watchLive(): () => void {
+		let seq = 0;
+		let busy = false;
+		const tickLive = async () => {
+			const campaign = this.me?.campaign;
+			if (busy || !campaign || !this.me?.today || document.hidden) return;
+			busy = true;
+			try {
+				const live = await eggApi.live(campaign.id, seq || undefined);
+				if (live.seq) seq = live.seq;
+				if (this.me && this.me.campaign?.id === campaign.id) this.me = { ...this.me, my_used_tokens: live.my_used_tokens };
+			} catch {
+				/* the next tick tries again */
+			} finally {
+				busy = false;
+			}
+		};
+		const timer = setInterval(tickLive, 10_000);
+		return () => clearInterval(timer);
+	}
+
 	/** Reads the swaps (the market and the nav's count). */
 	async loadTrades() {
 		try {

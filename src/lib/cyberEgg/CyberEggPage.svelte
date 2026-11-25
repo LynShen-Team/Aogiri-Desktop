@@ -11,6 +11,7 @@
 	import CardsIcon from 'phosphor-svelte/lib/CardsIcon';
 	import ArrowsLeftRightIcon from 'phosphor-svelte/lib/ArrowsLeftRightIcon';
 	import KeyIcon from 'phosphor-svelte/lib/KeyIcon';
+	import { untrack } from 'svelte';
 	import { paneOut } from '$lib/ui/motion';
 	import { t } from '$lib/i18n';
 	import './card.css';
@@ -37,6 +38,8 @@
 	} = $props();
 
 	let rules = $state(false);
+	/** Extra packs opened this visit (CE-H2): each one is a fresh stage. */
+	let bonusRound = $state(0);
 	const me = $derived(egg.me);
 	const lapse = $derived(left(egg.resetsAt, egg.now));
 	const album = $derived.by(() => {
@@ -46,16 +49,33 @@
 		return `${have.size}/${cards.length}`;
 	});
 	const items = $derived([
-		{ id: 'draw' as const, icon: EggIcon, label: t('egg.nav.draw'), meta: !me?.campaign ? '' : egg.canDraw ? t('egg.nav.canDraw') : me.today ? t('egg.nav.drawn') : '' },
+		{
+			id: 'draw' as const,
+			icon: EggIcon,
+			label: t('egg.nav.draw'),
+			meta: !me?.campaign
+				? ''
+				: egg.canDraw
+					? t('egg.nav.canDraw')
+					: me.today && (me.chances?.available ?? 0) > 0
+						? t('egg.result.chancesLeft', { n: me.chances?.available ?? 0 })
+						: me.today
+							? t('egg.nav.drawn')
+							: ''
+		},
 		{ id: 'album' as const, icon: CardsIcon, label: t('egg.nav.album'), meta: album },
 		{ id: 'market' as const, icon: ArrowsLeftRightIcon, label: t('egg.nav.market'), meta: egg.waiting ? t('egg.nav.requests', { n: egg.waiting }) : '' },
 		{ id: 'usage' as const, icon: KeyIcon, label: t('egg.nav.usage'), meta: me?.today ? `${wan(egg.remaining)}${t('egg.wan')}` : '' }
 	]);
 
-	$effect(() => {
-		void egg.refresh();
-		void egg.loadTrades();
-	});
+	// Once, on opening: the store's methods read its own state, which must not re-run this (AGENTS.md).
+	$effect(() =>
+		untrack(() => {
+			void egg.refresh();
+			void egg.loadTrades();
+			return egg.watchLive();
+		})
+	);
 
 	function onKey(event: KeyboardEvent) {
 		if (event.key === 'Escape' && !rules && !event.defaultPrevented && document.activeElement?.closest('.egg-page')) onClose();
@@ -107,10 +127,12 @@
 					<span class="ctx">{t('egg.draw.context', { n: me.pack.period, name: me.pack.name })}</span>
 					<button class="link" onclick={() => (rules = true)}>{t('egg.rules.open')}</button>
 				</header>
-				{#key me.campaign.id}
+				{#key `${me.campaign.id}:${bonusRound}`}
 					<DrawStage
 						{me}
 						now={egg.now}
+						bonus={bonusRound > 0}
+						onBonus={() => (bonusRound += 1)}
 						onDrawn={(answer) => {
 							egg.me = answer.me;
 							if (answer.secret) egg.secret = answer.secret;

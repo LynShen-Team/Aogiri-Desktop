@@ -120,9 +120,25 @@ export interface EggMe {
 	collection: EggOwnedCard[];
 	packs: Array<{ period: number; state: 'open' | 'rerun' | 'upcoming' }>;
 	/** CE-H3: extra draws this round. */
-	chances?: { enabled?: boolean; available: number } | null;
+	chances?: { enabled?: boolean; available: number; earned?: number; used?: number } | null;
+	/** CE-H2: today's extra draws, oldest first. */
+	today_bonus?: EggDraw[];
+	/** CE-S1: the 集齐 reward of each open pack (a 典藏 card, cash and gift balance), once per player. */
+	sets?: EggSet[];
 	banned?: { reason: 'refund'; at: number } | null;
 	paused?: { reason: 'invite_refund'; at: number } | null;
+}
+
+/** CE-S1: a pack's 集齐 reward and this user's claim of it. */
+export interface EggSet {
+	period: number;
+	bonus_cash_fen: number;
+	bonus_gift_fen: number;
+	completed: number;
+	claimed: { at: number; rank: number; serial: number; cash_fen: number; gift_fen: number } | null;
+	/** First come, first served: how many in all, how many left. */
+	cap: number;
+	left: number;
 }
 
 /** CE-X2: a swap between two users. */
@@ -198,7 +214,11 @@ export const eggApi = {
 	/** CE-R1: picks one of the five face-down cards (0–4); only now does the server draw. A first draw joins. */
 	draw: (campaignId: string, pick: number, bonus = false) =>
 		call<{ me: EggMe; draw: EggDraw; secret: string | null }>('POST', `${id(campaignId)}/draw`, bonus ? { pick, bonus } : { pick }),
-	live: (campaignId: string) => call<{ pool_used_tokens: number; my_used_tokens: number }>('GET', `${id(campaignId)}/live`),
+	/** CE-API-3: the pool and this user's use now (`after`: the last `seq` seen). */
+	live: (campaignId: string, after?: number) =>
+		call<{ seq?: number; pool_used_tokens: number; my_used_tokens: number }>('GET', `${id(campaignId)}/live${after ? `?after=${after}` : ''}`),
+	/** CE-S2: the 典藏 card and the set's reward, once the pack is complete. */
+	claimSet: (period: number) => call<{ me: EggMe; set: EggSet }>('POST', `sets/${period}/claim`),
 	/** CE-K7: the working key in full (no secret while it is stopped for a leak). */
 	key: (campaignId: string) => call<{ key: EggKey | null; api_base_url: string }>('GET', `${id(campaignId)}/key`),
 	/** A new key (the old one stops at once), with its secret. */
@@ -215,17 +235,39 @@ export const eggApi = {
 };
 
 /** What a refusal says to the user. */
+/** The campaign's own refusals (the web's CYBER_EGG_ERRORS); each has its text under egg.error.codes. */
+const EGG_ERRORS = new Set([
+	'cyber_egg_not_running',
+	'cyber_egg_not_eligible',
+	'cyber_egg_linked',
+	'cyber_egg_already_joined',
+	'cyber_egg_pool_empty',
+	'cyber_egg_cap_reached',
+	'cyber_egg_prepaid_insufficient',
+	'cyber_egg_rotation_limit',
+	'cyber_egg_key_leaked',
+	'cyber_egg_set_incomplete',
+	'cyber_egg_set_claimed',
+	'cyber_egg_card_locked',
+	'cyber_egg_topup_disabled',
+	'cyber_egg_topup_limit',
+	'cyber_egg_topup_balance',
+	'cyber_egg_set_sold_out',
+	'cyber_egg_no_chance',
+	'cyber_egg_banned',
+	'cyber_egg_paused_refund',
+	'cyber_egg_trade_not_eligible',
+	'cyber_egg_trade_linked',
+	'cyber_egg_trade_rare_limit',
+	'cyber_egg_card_cooling',
+	'cyber_egg_model_unavailable'
+]);
+
 export function eggErrorText(error: unknown): string {
 	if (error instanceof GatewayError) {
-		const known: Record<string, string> = {
-			not_signed_in: 'egg.error.signIn',
-			already_drawn: 'egg.error.drawn',
-			pool_empty: 'egg.error.pool',
-			campaign_ended: 'egg.error.ended',
-			low_balance: 'egg.error.balance',
-			rate_limited: 'egg.error.busy'
-		};
-		if (error.code && known[error.code]) return t(known[error.code]);
+		if (error.code && EGG_ERRORS.has(error.code)) return t(`egg.error.codes.${error.code}`);
+		if (error.code === 'not_signed_in' || error.status === 401) return t('egg.error.signIn');
+		if (error.status === 429) return t('egg.error.busy');
 		if (error.status === null) return t('egg.error.network');
 		return error.message || t('egg.error.generic');
 	}

@@ -29,10 +29,12 @@
 			(answer) => (listings = answer.listings),
 			(error) => toast.error(eggErrorText(error))
 		);
-	$effect(() => {
-		void loadHall();
-		void egg.loadTrades();
-	});
+	$effect(() =>
+		untrack(() => {
+			void loadHall();
+			void egg.loadTrades();
+		})
+	);
 
 	/** The swaps: sent to this user, sent by it, then those done (sent by it when it is their `from`). */
 	const swaps = $derived<Array<EggTrade & { mine: boolean }>>(

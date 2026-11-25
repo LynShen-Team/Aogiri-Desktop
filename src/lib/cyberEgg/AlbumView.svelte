@@ -5,7 +5,10 @@
 	import { t } from '$lib/i18n';
 	import Modal from '$lib/ui/Modal.svelte';
 	import Card3D from './Card3D.svelte';
-	import { PACKS, TIER_LOOK, packCards, packOf, type ArtCard } from './art';
+	import { PACKS, TIER_LOOK, cardById, packCards, packOf, type ArtCard } from './art';
+	import Button from '$lib/ui/Button.svelte';
+	import { toast } from '$lib/ui/toast.svelte';
+	import { eggApi, eggErrorText } from './api';
 	import { egg } from './store.svelte';
 	import { wan } from './format';
 	import type { EggMe, EggOwnedCard } from './api';
@@ -27,6 +30,24 @@
 	const shown = $derived(packOf(period));
 	const shownCards = $derived(packCards(period));
 	const count = (p: number) => packCards(p).filter((c) => byCard.has(c.id)).length;
+	// CE-S1: the pack's 集齐 reward: a 典藏 card, cash and gift balance, once per player.
+	const set = $derived(me.sets?.find((s) => s.period === period) ?? null);
+	const setCard = $derived(cardById(`p${period}-set`));
+	const complete = $derived(shownCards.length > 0 && shownCards.every((c) => byCard.has(c.id)));
+	const yuan = (fen: number) => (fen % 100 === 0 ? String(fen / 100) : (fen / 100).toFixed(2));
+	let claiming = $state(false);
+	async function claim() {
+		claiming = true;
+		try {
+			const answer = await eggApi.claimSet(period);
+			egg.me = answer.me;
+			toast.success(t('egg.album.setClaimed'));
+		} catch (error) {
+			toast.error(eggErrorText(error));
+		} finally {
+			claiming = false;
+		}
+	}
 </script>
 
 <div class="album">
@@ -42,6 +63,18 @@
 			</button>
 		{/each}
 	</div>
+	{#if set}
+		<div class="set">
+			<span>
+				{#if set.claimed}{t('egg.album.setDone', { rank: set.claimed.rank })} · {t('egg.album.setCash')}
+				{:else if complete}{t('egg.album.setReady', { cash: yuan(set.bonus_cash_fen), gift: yuan(set.bonus_gift_fen), left: set.left })}
+				{:else}{t('egg.album.setSoon', { n: shownCards.length, total: yuan(set.bonus_cash_fen + set.bonus_gift_fen) })}{/if}
+			</span>
+			{#if complete && !set.claimed && set.left > 0}
+				<Button size="sm" variant="primary" disabled={claiming} onclick={claim}>{t('egg.album.setClaim')}</Button>
+			{/if}
+		</div>
+	{/if}
 	{#if shown}
 		<div class="grid">
 			{#each shownCards as def (def.id)}
@@ -64,6 +97,12 @@
 					{/if}
 				</div>
 			{/each}
+			{#if set?.claimed && setCard}
+				<div class="slot">
+					<Card3D card={setCard} period={period} packName={shown.name} serial={set.claimed.serial} live={false} onclick={() => (open = { def: setCard, copies: [] })} label={setCard.name} />
+					<p class="cap"><span>{setCard.name}</span></p>
+				</div>
+			{/if}
 		</div>
 	{/if}
 </div>
@@ -73,7 +112,7 @@
 	<Modal title={open.def.name} width={640} onClose={() => (open = null)}>
 		<div class="detail">
 			<div class="big">
-				<Card3D card={open.def} period={open.def.period} packName={packOf(open.def.period)?.name ?? ''} serial={open.copies[0].serial} sway />
+				<Card3D card={open.def} period={open.def.period} packName={packOf(open.def.period)?.name ?? ''} serial={open.copies[0]?.serial ?? set?.claimed?.serial ?? null} sway />
 			</div>
 			<div class="facts">
 				<p class="tier">{t(`egg.tier.${open.def.tier}`)} · {look.code}</p>
@@ -147,6 +186,15 @@
 		font-family: var(--font-mono);
 		font-size: var(--fs-xs);
 		font-variant-numeric: tabular-nums;
+	}
+	.set {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		min-height: 28px;
+		margin: -6px 0 18px;
+		font-size: var(--fs-xs);
+		color: var(--dim);
 	}
 	.grid {
 		display: grid;

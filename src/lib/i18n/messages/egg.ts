@@ -49,7 +49,10 @@ const egg = {
 			validEnded: '今天的额度已清零',
 			chat: '用这份额度开始对话',
 			album: '去卡册',
-			others: '另外四张'
+			others: '另外四张',
+			again: '再开一包',
+			chancesLeft: '还有 {n} 次额外机会',
+			bonusOpening: '额外机会 · 还剩 {n} 次'
 		},
 		rules: {
 			open: '规则与概率',
@@ -69,7 +72,14 @@ const egg = {
 			missing: '未获得',
 			fromTrade: '交换得来',
 			fromDraw: '抽到 {n} 万',
-			setCode: '典藏'
+			setCode: '典藏',
+			setTitle: '集齐奖励',
+			setReady: '这期集齐了：领一张典藏卡，奖励 ¥{cash} 可提现、¥{gift} 赠送余额（还剩 {left} 份）。',
+			setDone: '已领典藏 · 第 {rank} 位集齐',
+			setSoon: '集齐这一期 {n} 张，可领典藏卡和 ¥{total} 奖励。',
+			setClaim: '领取典藏',
+			setClaimed: '已领到典藏卡',
+			setCash: '提现在网页上办理。'
 		},
 		usage: {
 			left: '今天还能用',
@@ -144,6 +154,32 @@ const egg = {
 			chatTitle: '赛博鸡蛋'
 		},
 		error: {
+			codes: {
+				cyber_egg_not_running: '活动没有在进行。',
+				cyber_egg_not_eligible: '还不满足参加条件。',
+				cyber_egg_linked: '这台设备或网络已有其他账号参加过。',
+				cyber_egg_already_joined: '你已经参加过了。',
+				cyber_egg_pool_empty: '今日奖池已抽完，明天 0:00 再来。',
+				cyber_egg_cap_reached: '今天的额度已用完。',
+				cyber_egg_prepaid_insufficient: '余额低于参加门槛，充值后自动恢复。',
+				cyber_egg_rotation_limit: '今天的重新获取次数已用完，明天再试。',
+				cyber_egg_key_leaked: 'Key 疑似泄漏，已停用，请重新获取。',
+				cyber_egg_set_incomplete: '这期还没集齐。',
+				cyber_egg_set_claimed: '这期的典藏卡已经领过了。',
+				cyber_egg_card_locked: '这张已收进典藏，不能交换。',
+				cyber_egg_topup_disabled: '这期活动还没开放补差价。',
+				cyber_egg_topup_limit: '超过了一笔能补的上限。',
+				cyber_egg_topup_balance: '已充值余额不够。',
+				cyber_egg_set_sold_out: '本期集齐奖励已经领完了，下一期再来。',
+				cyber_egg_no_chance: '没有可用的额外机会了。',
+				cyber_egg_banned: '账号因退款已停用赛博鸡蛋。',
+				cyber_egg_paused_refund: '本期抽卡暂停，等待审核。',
+				cyber_egg_trade_not_eligible: '交换鎏金、流光，双方都要注册满 7 天，并且预存不少于 ¥20 或有套餐。',
+				cyber_egg_trade_linked: '关联账号之间不能交换。',
+				cyber_egg_trade_rare_limit: '每期每人最多换入 1 张鎏金或流光。',
+				cyber_egg_card_cooling: '换来的卡还在冷却：鎏金、流光 7 天，其余 24 小时后才能再挂出。',
+				cyber_egg_model_unavailable: '本期模型暂时不可用，已通知管理员。'
+			},
 			signIn: '先登录 LynShen 账号。',
 			drawn: '今天已经抽过了，明天再来。',
 			pool: '今天的奖池抽完了，明天再来。',
@@ -202,7 +238,10 @@ const egg = {
 			validEnded: "Today's tokens have reset",
 			chat: 'Start a conversation on these tokens',
 			album: 'Open album',
-			others: 'The other four'
+			others: 'The other four',
+			again: 'Open another pack',
+			chancesLeft: '{n} extra draws left',
+			bonusOpening: 'Extra draw · {n} left'
 		},
 		rules: {
 			open: 'Rules and odds',
@@ -222,7 +261,14 @@ const egg = {
 			missing: 'Not yet',
 			fromTrade: 'From a swap',
 			fromDraw: 'Drew {n}×10k',
-			setCode: 'Set'
+			setCode: 'Set',
+			setTitle: 'Set reward',
+			setReady: 'This pack is complete: claim its set card, ¥{cash} withdrawable and ¥{gift} gift balance ({left} left).',
+			setDone: 'Set card claimed · #{rank} to complete',
+			setSoon: 'Complete these {n} cards for the set card and ¥{total}.',
+			setClaim: 'Claim the set card',
+			setClaimed: 'Set card claimed',
+			setCash: 'Withdrawals are on the website.'
 		},
 		usage: {
 			left: 'Left today',
@@ -297,6 +343,32 @@ const egg = {
 			chatTitle: 'Cyber Egg'
 		},
 		error: {
+			codes: {
+				cyber_egg_not_running: 'The campaign is not running.',
+				cyber_egg_not_eligible: "You don't meet the requirements yet.",
+				cyber_egg_linked: 'Another account has already taken part from this device or network.',
+				cyber_egg_already_joined: 'You have already joined.',
+				cyber_egg_pool_empty: "Today's pool is empty. Come back after 0:00.",
+				cyber_egg_cap_reached: "Today's tokens are used up.",
+				cyber_egg_prepaid_insufficient: 'Your balance is below the minimum; it resumes once you top up.',
+				cyber_egg_rotation_limit: 'No more new keys today. Try tomorrow.',
+				cyber_egg_key_leaked: 'The key looks leaked and is stopped. Get a new one.',
+				cyber_egg_set_incomplete: 'This pack is not complete yet.',
+				cyber_egg_set_claimed: "You've already claimed this pack's set card.",
+				cyber_egg_card_locked: 'This card is in a set and cannot be swapped.',
+				cyber_egg_topup_disabled: 'Top-ups are not open in this round.',
+				cyber_egg_topup_limit: 'Over the most one swap may carry.',
+				cyber_egg_topup_balance: 'Not enough paid balance.',
+				cyber_egg_set_sold_out: "This round's set rewards are all claimed.",
+				cyber_egg_no_chance: 'No extra draws left.',
+				cyber_egg_banned: 'Cyber Egg is stopped for this account after a refund.',
+				cyber_egg_paused_refund: 'Draws are paused in this round pending review.',
+				cyber_egg_trade_not_eligible: 'Swapping Gilt or Holo cards needs both accounts 7 days old with ¥20 prepaid or a plan.',
+				cyber_egg_trade_linked: "Linked accounts can't swap.",
+				cyber_egg_trade_rare_limit: 'At most one Gilt or Holo card swapped in per round.',
+				cyber_egg_card_cooling: 'A card swapped in cools down (Gilt and Holo 7 days, others 24 hours) before it can go up again.',
+				cyber_egg_model_unavailable: "This round's models are unavailable for now; the admins know."
+			},
 			signIn: 'Sign in to LynShen first.',
 			drawn: 'Already drawn today. Come back tomorrow.',
 			pool: "Today's pool is empty. Come back tomorrow.",

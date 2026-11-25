@@ -40,16 +40,22 @@
 	let {
 		me,
 		now,
+		bonus = false,
 		onDrawn,
 		onChat,
-		onAlbum
+		onAlbum,
+		onBonus
 	}: {
 		me: EggMe;
 		now: number;
+		/** CE-H2: this pack is one of the round's extra chances. */
+		bonus?: boolean;
 		onDrawn: (result: EggPicked) => void;
 		/** Start a conversation on today's tokens. */
 		onChat: () => void;
 		onAlbum: () => void;
+		/** Open another pack with an extra chance (offered under the result while some are left). */
+		onBonus?: () => void;
 	} = $props();
 
 	/** The width a card is drawn at; smaller places scale it down (keeps the art crisp). */
@@ -63,7 +69,7 @@
 	const reducedMotion = () => typeof window !== 'undefined' && Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
 
 	// Opened today already (a later visit): the result, drawn directly.
-	const initial = untrack(() => me.today);
+	const initial = untrack(() => (bonus ? null : me.today));
 	let phase = $state<Phase>(initial ? 'done' : 'sealed');
 	let staticResult = $state(!!initial);
 	let stage = $state<HTMLDivElement>();
@@ -290,7 +296,7 @@
 		let answer: EggPicked;
 		try {
 			// CE-R1: only now does the server draw (a first draw joins the round).
-			[answer] = await Promise.all([eggApi.draw(campaign.id, index), wait(reducedMotion() ? 0 : 650)]);
+			[answer] = await Promise.all([eggApi.draw(campaign.id, index, bonus), wait(reducedMotion() ? 0 : 650)]);
 		} catch (error) {
 			toast.error(eggErrorText(error));
 			picked = null;
@@ -406,6 +412,10 @@
 				<div class="actions">
 					<Button variant="primary" onclick={onChat}><ChatCircleIcon size={16} />{t('egg.result.chat')}</Button>
 					<Button variant="secondary" onclick={onAlbum}>{t('egg.result.album')}</Button>
+					{#if phase === 'done' && onBonus && (me.chances?.available ?? 0) > 0}
+						<Button variant="secondary" onclick={onBonus}>{t('egg.result.again')}</Button>
+						<span class="chances">{t('egg.result.chancesLeft', { n: me.chances?.available ?? 0 })}</span>
+					{/if}
 				</div>
 				<div class="others">
 					<p class="label">{t('egg.result.others')}</p>
@@ -442,7 +452,7 @@
 				<p class="hint" aria-live="polite">
 					{t(tearHint === 'small' ? 'egg.draw.tearMore' : tearHint === 'edge' ? 'egg.draw.tearEdge' : tearHint === 'slack' ? 'egg.draw.tearSlack' : 'egg.draw.tearHint')}
 				</p>
-				<p class="sub">{[pityLine, range].filter(Boolean).join(' · ')}</p>
+				<p class="sub">{[bonus ? t('egg.result.bonusOpening', { n: me.chances?.available ?? 0 }) : '', pityLine, range].filter(Boolean).join(' · ')}</p>
 			</div>
 		</div>
 	{/if}
@@ -678,6 +688,11 @@
 		flex-wrap: wrap;
 		gap: 10px;
 		margin-top: 22px;
+	}
+	.chances {
+		align-self: center;
+		font-size: var(--fs-xs);
+		color: var(--dim);
 	}
 	.others {
 		margin-top: 22px;

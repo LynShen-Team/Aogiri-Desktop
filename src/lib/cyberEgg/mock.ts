@@ -133,7 +133,8 @@ function me(): EggMe {
 			{ period: 2, state: 'upcoming' },
 			{ period: 3, state: 'upcoming' }
 		],
-		chances: { enabled: true, available: 0 },
+		chances: { enabled: true, available: params.has('eggChances') ? 2 : 0 },
+		sets: [{ period: 1, bonus_cash_fen: 30_000, bonus_gift_fen: 20_000, completed: 12, claimed: null, cap: 100, left: 88 }],
 		banned: null,
 		paused: null
 	};
