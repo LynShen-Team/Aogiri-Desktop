@@ -19,6 +19,7 @@
 		refreshShellEnv,
 		type AgentUpdate,
 		type BackendStatus,
+		type CliCommand,
 		type ShellEnvStatus
 	} from '$lib/protocol';
 	import { NATIVE_BACKEND_IDS, BACKEND_LABELS, type BackendId } from '$lib/backends';
@@ -37,7 +38,7 @@
 	import Button from '$lib/ui/Button.svelte';
 	import Select from '$lib/ui/Select.svelte';
 	import IconButton from '$lib/ui/IconButton.svelte';
-	import { t } from '$lib/i18n';
+	import { t, getLocale } from '$lib/i18n';
 	import SettingsSection from './SettingsSection.svelte';
 	import SettingsRow from './SettingsRow.svelte';
 	import ToolProviders from './ToolProviders.svelte';
@@ -124,10 +125,24 @@
 	// become a terminal command.
 	const appCli = (path?: string | null) => !!path && /[\\/]\.lynshen[\\/]bin[\\/]lynshen(\.exe)?$/.test(path);
 	let cliCommand = $state<{ ok: boolean; text: string } | null>(null);
+	// It may read the login shell's PATH, which takes a moment.
+	let cliBusy = $state(false);
+	function cliCommandText(done: CliCommand): string {
+		const path = done.path;
+		if (done.add_path_yourself) return t('settings.backend.cliCommandAddPath', { path });
+		if (done.added_to.length)
+			return t('settings.backend.cliCommandAdded', {
+				path,
+				files: done.added_to.join(getLocale() === 'zh' ? '、' : ', ')
+			});
+		return t('settings.backend.cliCommandDone', { path });
+	}
 	function addCliCommand() {
+		cliBusy = true;
 		installCliCommand()
-			.then((where) => (cliCommand = { ok: true, text: t('settings.backend.cliCommandDone', { path: where }) }))
-			.catch((e) => (cliCommand = { ok: false, text: String(e) }));
+			.then((done) => (cliCommand = { ok: true, text: cliCommandText(done) }))
+			.catch((e) => (cliCommand = { ok: false, text: String(e) }))
+			.finally(() => (cliBusy = false));
 	}
 
 	function onPathChange(id: BackendId) {
@@ -232,7 +247,7 @@
 						<span class="bpath" title={st.path}>{st.path}</span>
 						{#if id === 'lynshen' && appCli(st.path)}
 							<div class="clicmd">
-								<button class="linkbtn" onclick={addCliCommand}>{t('settings.backend.cliCommand')}</button>
+								<button class="linkbtn" onclick={addCliCommand} disabled={cliBusy}>{t('settings.backend.cliCommand')}</button>
 								{#if cliCommand}<span class="clires" class:bad={!cliCommand.ok}>{cliCommand.text}</span>{/if}
 							</div>
 						{/if}
@@ -484,8 +499,12 @@
 		font: inherit;
 		cursor: pointer;
 	}
-	.linkbtn:hover {
+	.linkbtn:hover:not(:disabled) {
 		text-decoration: underline;
+	}
+	.linkbtn:disabled {
+		cursor: default;
+		opacity: 0.6;
 	}
 	.clires {
 		color: var(--dim);

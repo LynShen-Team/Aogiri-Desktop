@@ -84,7 +84,7 @@ fn parse_entries<'a>(entries: impl Iterator<Item = &'a [u8]>) -> HashMap<String,
     vars
 }
 
-fn default_shell() -> String {
+pub(crate) fn default_shell() -> String {
     std::env::var("SHELL")
         .ok()
         .filter(|s| !s.trim().is_empty())

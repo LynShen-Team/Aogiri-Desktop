@@ -312,9 +312,20 @@ export function refreshShellEnv(): Promise<ShellEnvStatus> {
 	return invoke('refresh_shell_env');
 }
 
-/** Makes `lynshen` a terminal command running the app's bundled CLI; the
- *  command's location. */
-export function installCliCommand(): Promise<string> {
+/** What making `lynshen` a terminal command did (src-tauri/src/app_cli.rs). */
+export interface CliCommand {
+	/** Where the command is. */
+	path: string;
+	/** Shell startup files that put ~/.local/bin on PATH from now on (as
+	 *  `~/…`); empty when the login shell has it already. */
+	added_to: string[];
+	/** ~/.local/bin is not on PATH and the app could not add it (a shell it
+	 *  does not know, or a file it cannot write): the user adds it. */
+	add_path_yourself: boolean;
+}
+
+/** Makes `lynshen` a terminal command running the app's bundled CLI. */
+export function installCliCommand(): Promise<CliCommand> {
 	return invoke('install_cli_command');
 }
 
