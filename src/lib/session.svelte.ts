@@ -28,7 +28,7 @@ import { normalizeColor, parseTabIcon, type TabIcon } from './workbench/tabChrom
 import { CHATS_ENABLED, lastActive, type Project, type Session, type WorktreeMeta } from './types';
 import { modelEfforts } from '$lib/settings/providerFields';
 import { unanswered } from './errorInfo';
-import { eggProvider, eggRoutable } from './cyberEgg/route';
+import { EGG_PROVIDER, eggProvider, eggRoutable } from './cyberEgg/route';
 
 /** Optional per-tab chrome persisted alongside the session id + title. */
 export interface SavedTabChrome {
@@ -391,20 +391,22 @@ export class SessionStore {
 								};
 							})
 						: // LynShen's own engine takes no options, except a fork's and, for a
-							// conversation on the 赛博鸡蛋 tokens, the campaign's provider.
-							(s.egg && eggRoutable() ? eggProvider(s.egg.model) : Promise.resolve(null)).then((provider) =>
-								extraOpts?.fork_from || provider
+							// conversation on the 赛博鸡蛋 tokens, the campaign's provider. The daemon keeps a
+							// session's provider when it is reopened without one: leaving 赛博鸡蛋 sends null.
+							(s.egg && eggRoutable() ? eggProvider(s.egg.model) : Promise.resolve(null)).then((provider) => {
+								const drop = !provider && extraOpts?.provider === null && eggRoutable();
+								return extraOpts?.fork_from || provider || drop
 									? {
 											engine: 'lynshen',
 											options: {
 												...(extraOpts?.fork_from
 													? { fork_from: extraOpts.fork_from, fork_turns: extraOpts.fork_turns, ...(extraOpts.fork_cwd ? { fork_cwd: extraOpts.fork_cwd } : {}) }
 													: {}),
-												...(provider ? { provider } : {})
+												...(provider ? { provider } : drop ? { provider: null } : {})
 											}
 										}
-									: undefined
-							);
+									: undefined;
+							});
 		return engine
 			.then((spec) =>
 				hostSession(s.id, cwd ?? '', resume ?? (s.chat.sessionId || undefined), agent, chat, spec).then(() => {
@@ -1474,7 +1476,8 @@ export class SessionStore {
 		// A daemon that can't run one session on its own provider would run it on the account's: never put a
 		// conversation on the campaign's tokens there (it would spend the balance under the 赛博鸡蛋 label).
 		if (model && !eggRoutable()) throw new Error(t('egg.picker.needsUpdate'));
-		const was = s.egg?.model ?? null;
+		// A conversation reopened after a restart is on 赛博鸡蛋 by the provider its engine reports.
+		const was = s.egg?.model ?? (s.chat.provider === EGG_PROVIDER ? s.chat.model || EGG_PROVIDER : null);
 		s.egg = model ? { model } : undefined;
 		if (s.draft) {
 			if (model) s.chat.pickDraftModel(model, '', 0);
@@ -1492,7 +1495,12 @@ export class SessionStore {
 		try {
 			await closeSession(id);
 			if (this.#gone(s)) return;
-			await this.#spawn(s, this.projectPathOf(id), model ? () => dispatch(s.id, { op: 'command', input: `/model ${model}` }) : undefined);
+			await this.#spawn(
+				s,
+				this.projectPathOf(id),
+				model ? () => dispatch(s.id, { op: 'command', input: `/model ${model}` }) : undefined,
+				model ? undefined : { provider: null }
+			);
 			s.chat.switching = false;
 		} catch (e) {
 			s.chat.switching = false;
