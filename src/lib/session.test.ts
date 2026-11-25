@@ -1993,3 +1993,56 @@ describe('a new Claude Code conversation runs the model it shows', () => {
 		]);
 	});
 });
+
+describe('赛博鸡蛋: leaving it takes the conversation off the campaign key', () => {
+	afterEach(() => {
+		engine.features = [];
+	});
+	/** A running LynShen conversation, with hostSession's calls cleared. */
+	async function running(store: SessionStore) {
+		const p = proj();
+		store.projects.push(p);
+		const id = store.addSession(p);
+		begin(id);
+		await flush();
+		vi.mocked(hostSession).mockClear();
+		return p.sessions.find((x) => x.id === id)!;
+	}
+
+	it('the reopen sends provider null: without it the daemon keeps the session on the campaign key', async () => {
+		engine.features = ['session_provider'];
+		const store = new SessionStore();
+		const s = await running(store);
+		s.egg = { model: 'deepseek-v4' };
+		await store.setEgg(s.id, null);
+		await flush();
+		expect(s.egg).toBeUndefined();
+		expect(closeSession).toHaveBeenCalledWith(s.id);
+		expect(lastSpec()).toEqual({ engine: 'lynshen', options: { provider: null } });
+	});
+
+	it('a conversation reopened on 赛博鸡蛋 (only its engine says so) leaves it the same way', async () => {
+		engine.features = ['session_provider'];
+		const store = new SessionStore();
+		const s = await running(store);
+		s.chat.provider = 'cyber-egg';
+		s.chat.model = 'deepseek-v4';
+		await store.setEgg(s.id, null);
+		await flush();
+		expect(closeSession).toHaveBeenCalledWith(s.id);
+		expect(lastSpec()).toEqual({ engine: 'lynshen', options: { provider: null } });
+	});
+
+	it('a conversation on the account is not reopened, and other reopens send no provider', async () => {
+		engine.features = ['session_provider'];
+		const store = new SessionStore();
+		const s = await running(store);
+		await store.setEgg(s.id, null);
+		await flush();
+		expect(hostSession).not.toHaveBeenCalled();
+		await store.switchProvider(s.id, { id: 'x', base_url: 'u', format: 'openai', models: [{ name: 'm' }] }, 'm');
+		await flush();
+		expect(hostSession).toHaveBeenCalledTimes(1);
+		expect(lastSpec()).toBeUndefined();
+	});
+});
