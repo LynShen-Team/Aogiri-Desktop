@@ -1,7 +1,8 @@
 <script lang="ts">
 	// One setting inside a SettingsSection: title and an optional short gray
 	// line on the left, the control on the right. `stacked` puts wide content
-	// (a list, a form, a chart) under the text instead. `id` is the search
+	// (a list, a form, a chart) under the text instead. The description is one
+	// line (cut with an ellipsis, whole in its tooltip). `id` is the search
 	// anchor (element id `set-<id>`, see settings/nav.ts).
 	import type { Snippet } from 'svelte';
 
@@ -30,7 +31,7 @@
 	{#if title || description || detail}
 		<div class="txt">
 			{#if title}<div class="title">{title}{#if tag}<span class="tag">{tag}</span>{/if}</div>{/if}
-			{#if description}<div class="desc">{description}</div>{/if}
+			{#if description}<div class="desc" title={description}>{description}</div>{/if}
 			{#if detail}{@render detail()}{/if}
 		</div>
 	{/if}
@@ -79,11 +80,16 @@
 		vertical-align: 1px;
 		color: var(--dim);
 	}
+	/* One line at most (design.md, Full-panel page); the whole line is the
+	   tooltip when it does not fit. */
 	.desc {
-		max-width: 52ch;
+		max-width: 56ch;
+		overflow: hidden;
 		font-size: var(--fs-xs);
 		line-height: 16px;
 		color: var(--dim);
+		white-space: nowrap;
+		text-overflow: ellipsis;
 	}
 	.ctl {
 		flex-shrink: 0;
