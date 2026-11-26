@@ -67,23 +67,31 @@ function wheel(x: number, y: number, dx: number, dy: number) {
 }
 
 function step(now: number) {
-	const dt = Math.min(64, now - last);
-	last = now;
+	// A frame's time can be earlier than the notch's: Chromium stamps a frame
+	// with the vsync that began it, and a notch handled while that frame
+	// waited to run comes after it. Such a frame moves nothing (a step back
+	// at the top or the bottom was taken for the end, and the notch was lost).
+	const dt = Math.max(0, Math.min(64, now - last));
+	last = Math.max(last, now);
 	const k = 1 - Math.exp(-dt / TAU);
 	for (const g of [...glides]) {
 		const el = g.el;
-		const move = Math.abs(g.left) < 1 ? g.left : g.left * k;
+		const end = Math.abs(g.left) < 1;
+		const move = end ? g.left : g.left * k;
 		g.left -= move;
 		const from = g.vertical ? el.scrollTop : el.scrollLeft;
-		// Positions are whole pixels: the part a step cannot move yet is
-		// carried to the next one.
+		// Positions are whole pixels (WebKit drops the fraction, Chromium
+		// rounds it): the part a step cannot move yet is carried to the next
+		// one, and the last step lands on the nearest whole pixel. (Dropped,
+		// a last 119.999… stayed 119, and the glide went on every frame.)
 		const want = from + move + g.carry;
-		if (g.vertical) el.scrollTop = want;
-		else el.scrollLeft = want;
+		const to = end ? Math.round(want) : want;
+		if (g.vertical) el.scrollTop = to;
+		else el.scrollLeft = to;
 		const got = g.vertical ? el.scrollTop : el.scrollLeft;
 		g.carry = want - got;
-		// At an end: nothing left to glide.
-		if (Math.abs(g.carry) >= 1 || (Math.abs(g.left) < 0.5 && Math.abs(g.carry) < 0.5)) glides.splice(glides.indexOf(g), 1);
+		// Landed, or at an end: nothing left to glide.
+		if (end || Math.abs(g.carry) >= 1) glides.splice(glides.indexOf(g), 1);
 	}
 	frame = glides.length ? requestAnimationFrame(step) : 0;
 }
