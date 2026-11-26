@@ -102,11 +102,6 @@ export function playSound(kind: SoundKind, opts: { watching?: boolean } = {}) {
 	});
 }
 
-/** The settings' 试听: plays whatever the switches say (a click asked for it). */
-export function previewSound(kind: SoundKind) {
-	start(kind);
-}
-
 /** The webview starts audio suspended until a user gesture; the first one
  *  unlocks it, so a sound for a turn that ends later can play. */
 export function unlockSounds() {
