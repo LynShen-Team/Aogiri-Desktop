@@ -2,9 +2,11 @@
 // --time-scale), for elements that also need an exit animation. CSS-only
 // entrances use the keyframes in app.css. The family follows hark.com's web
 // app: enters decelerate (EASE_ENTER), exits are shorter and accelerate
-// (EASE_EXIT), size and colour share EASE_BASE. Pages only fade and move a
-// few pixels; menus and dialogs may also scale a little and unblur. Reduced
-// motion makes every one instant.
+// (EASE_EXIT), size and colour share EASE_BASE; panels and drawers take
+// EASE_SOFT. Pages only fade and move a few pixels; menus and dialogs may
+// also scale a little. Opacity and transform only (no blur, no layout),
+// except `collapse`, which closes a height once. Reduced motion makes every
+// one instant.
 import type { TransitionConfig } from 'svelte/transition';
 import type { AnimationConfig } from 'svelte/animate';
 
@@ -26,12 +28,14 @@ export function bezier(x1: number, y1: number, x2: number, y2: number): (t: numb
 	};
 }
 
-/** --ease-base: size, colour and opacity changes. */
-export const EASE_BASE = bezier(0.24, 0.42, 0.42, 0.92);
-/** --ease-enter: things coming in. */
-export const EASE_ENTER = bezier(0, 0, 0.2, 1);
-/** --ease-exit: things going away. */
-export const EASE_EXIT = bezier(0.4, 0, 1, 1);
+/** --ease-base: size, colour and opacity changes (a gentle ease-out). */
+export const EASE_BASE = bezier(0.25, 0.8, 0.25, 1);
+/** --ease-enter: things coming in (a long, soft deceleration). */
+export const EASE_ENTER = bezier(0.16, 1, 0.3, 1);
+/** --ease-exit: things going away (a soft ease-in). */
+export const EASE_EXIT = bezier(0.3, 0, 0.8, 0.15);
+/** --ease-soft: panels and drawers opening and closing (Apple's drawer curve). */
+export const EASE_SOFT = bezier(0.32, 0.72, 0, 1);
 /** --ease-in-out: a row moving to its new place (slow start, so the change
  *  of look is seen before the move). */
 export const EASE_IN_OUT = bezier(0.65, 0, 0.35, 1);
@@ -40,7 +44,7 @@ export const T_FAST = 120;
 export const T_MED = 220;
 export const T_BASE = 240;
 /** --t-enter. */
-export const T_ENTER = 400;
+export const T_ENTER = 320;
 
 const reduced = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 /** --time-scale on the root (1 unless a debug session slows everything down). */
@@ -65,23 +69,23 @@ export function scrim(_node: Element, _params = {}, { direction }: Direction = {
 	};
 }
 
-/** Dialogs: in 220 ms from a little lower and smaller; out 160 ms. Only
+/** Dialogs: in 260 ms from a little lower and smaller; out 160 ms. Only
  *  opacity and transform, which the GPU composites (a dialog can be large). */
-export function sheet(_node: Element, { y = 8 } = {}, { direction }: Direction = {}): TransitionConfig {
+export function sheet(_node: Element, { y = 6 } = {}, { direction }: Direction = {}): TransitionConfig {
 	const out = direction === 'out';
 	return {
-		duration: motionMs(out ? 160 : 220),
+		duration: motionMs(out ? 160 : 260),
 		easing: out ? EASE_EXIT : EASE_ENTER,
-		css: (t, u) => `opacity: ${t}; transform: translateY(${u * (out ? y / 2 : y)}px) scale(${0.96 + 0.04 * t})`
+		css: (t, u) => `opacity: ${t}; transform: translateY(${u * (out ? y / 2 : y)}px) scale(${0.97 + 0.03 * t})`
 	};
 }
 
-/** Menus, popovers and the account card closing: 100 ms, shrink a little and blur away. */
-export function popOut(_node: Element, { duration = 100 } = {}): TransitionConfig {
+/** Menus, popovers and the account card closing: 120 ms, fade and shrink a little. */
+export function popOut(_node: Element, { duration = 120 } = {}): TransitionConfig {
 	return {
 		duration: motionMs(duration),
 		easing: EASE_EXIT,
-		css: (t, u) => `opacity: ${t}; transform: scale(${0.95 + 0.05 * t}); filter: blur(${u * 8}px)`
+		css: (t) => `opacity: ${t}; transform: scale(${0.97 + 0.03 * t})`
 	};
 }
 

@@ -157,7 +157,8 @@
 		text-align: left;
 		padding: 7px 11px;
 		border: none;
-		border-radius: var(--r-sm);
+		/* A palette row, as a menu row (--r-md). */
+		border-radius: var(--r-md);
 		background: none;
 		color: var(--text);
 		cursor: pointer;

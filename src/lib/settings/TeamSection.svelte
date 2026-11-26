@@ -28,6 +28,7 @@
 	import { teamSwitch } from '$lib/agents/teamSwitch.svelte';
 	import SettingsSection from './SettingsSection.svelte';
 	import SettingsRow from './SettingsRow.svelte';
+	import SettingsMore from './SettingsMore.svelte';
 
 	/** The active project, whose `.lynshen/roles` is listed ('' for none). */
 	let { project = '' }: { project?: string } = $props();
@@ -205,85 +206,87 @@
 	</SettingsSection>
 {/if}
 
-<SettingsSection title={t('settings.team.limits')}>
-	<SettingsRow id="team-max-live" title={t('settings.team.maxLive')} description={t('settings.team.maxLiveHint')}>
-		<div class="w-num"><TextField bind:value={form.max_live} type="number" align="right" /></div>
-	</SettingsRow>
-	<SettingsRow id="team-max-depth" title={t('settings.team.maxDepth')} description={t('settings.team.maxDepthHint')}>
-		<div class="w-num"><TextField bind:value={form.max_depth} type="number" align="right" /></div>
-	</SettingsRow>
-	<SettingsRow id="team-budget" title={t('settings.team.budget')} description={t('settings.team.budgetHint')}>
-		<div class="w-wide"><TextField bind:value={form.turn_token_budget} type="number" align="right" mono /></div>
-		<span class="unit">{t('settings.team.tokensUnit')}</span>
-	</SettingsRow>
-	<SettingsRow id="team-keep-worktrees" title={t('settings.team.keepDays')} description={t('settings.team.keepDaysHint')}>
-		<div class="w-num"><TextField bind:value={form.keep_worktrees_days} type="number" align="right" /></div>
-		<span class="unit">{t('settings.team.days')}</span>
-	</SettingsRow>
-</SettingsSection>
+<SettingsMore>
+	<SettingsSection title={t('settings.team.limits')}>
+		<SettingsRow id="team-max-live" title={t('settings.team.maxLive')} description={t('settings.team.maxLiveHint')}>
+			<div class="w-num"><TextField bind:value={form.max_live} type="number" align="right" /></div>
+		</SettingsRow>
+		<SettingsRow id="team-max-depth" title={t('settings.team.maxDepth')} description={t('settings.team.maxDepthHint')}>
+			<div class="w-num"><TextField bind:value={form.max_depth} type="number" align="right" /></div>
+		</SettingsRow>
+		<SettingsRow id="team-budget" title={t('settings.team.budget')} description={t('settings.team.budgetHint')}>
+			<div class="w-wide"><TextField bind:value={form.turn_token_budget} type="number" align="right" mono /></div>
+			<span class="unit">{t('settings.team.tokensUnit')}</span>
+		</SettingsRow>
+		<SettingsRow id="team-keep-worktrees" title={t('settings.team.keepDays')} description={t('settings.team.keepDaysHint')}>
+			<div class="w-num"><TextField bind:value={form.keep_worktrees_days} type="number" align="right" /></div>
+			<span class="unit">{t('settings.team.days')}</span>
+		</SettingsRow>
+	</SettingsSection>
 
-<SettingsSection id="team-roles" title={t('settings.team.roles')}>
-	{#snippet action()}
-		<button class="iconbtn" title={t('settings.team.refreshRoles')} aria-label={t('settings.team.refreshRoles')} disabled={reading} onclick={() => loadRoles(project)}>
-			{#if reading}<CircleNotchIcon size={14} class="spin" />{:else}<ArrowsClockwiseIcon size={14} />{/if}
-		</button>
-	{/snippet}
-	{#each roles as r (`${r.source}:${r.path || r.name}`)}
-		<div class="role" class:shadowed={!!r.shadowedBy} title={r.path || undefined}>
-			<div class="rhead">
-				<span class="rname">{r.name}</span>
-				<span class="rsrc">{t(`settings.team.source.${r.source}`)}</span>
-				{#if r.model}<span class="rmeta">{r.model}</span>{/if}
-			</div>
-			<p class="rdesc">{describe(r)}</p>
-			{#if r.shadowedBy}<p class="rnote">{t(`settings.team.shadowed.${r.shadowedBy}`)}</p>{/if}
-		</div>
-	{/each}
-	<p class="hint">{t('settings.team.rolesHint')}</p>
-</SettingsSection>
-
-{#if teamSwitch.on}
-	<SettingsSection id="team-hooks" title={t('settings.team.hooks')}>
+	<SettingsSection id="team-roles" title={t('settings.team.roles')}>
 		{#snippet action()}
-			<button class="iconbtn" title={t('settings.team.refreshHooks')} aria-label={t('settings.team.refreshHooks')} disabled={hooksBusy} onclick={loadHooks}>
-				{#if hooksBusy}<CircleNotchIcon size={14} class="spin" />{:else}<ArrowsClockwiseIcon size={14} />{/if}
+			<button class="iconbtn" title={t('settings.team.refreshRoles')} aria-label={t('settings.team.refreshRoles')} disabled={reading} onclick={() => loadRoles(project)}>
+				{#if reading}<CircleNotchIcon size={14} class="spin" />{:else}<ArrowsClockwiseIcon size={14} />{/if}
 			</button>
 		{/snippet}
-		{#if hooksError}
-			<div class="notice"><Notice tone="error">{t('settings.team.hooksUnreadable', { msg: hooksError })}</Notice></div>
-		{/if}
-		{#each TEAM_HOOKS as key (key)}
-			<SettingsRow id={`team-hook-${key}`} title={t(`settings.team.hook.${key}`)} description={t(`settings.team.hookHint.${key}`)} stacked>
-				<ul class="cmds">
-					{#each listHooks(hooks, key) as h (h.index)}
-						<li class="cmd">
-							<code>{h.command}</code>
-							{#if h.tools}<span class="ctools">{t('settings.team.onlyTools', { tools: h.tools.join(', ') })}</span>{/if}
-							<span class="cact">
-								<IconButton size="sm" label={t('settings.team.removeCommand')} title={t('settings.team.removeCommand')} disabled={hooksBusy || !!hooksError} onclick={() => removeHook(key, h.index, h.command)}>
-									<XIcon size={13} />
-								</IconButton>
-							</span>
-						</li>
-					{:else}
-						<li class="none">{t('settings.team.noCommands')}</li>
-					{/each}
-				</ul>
-				<form
-					class="add"
-					onsubmit={(e) => {
-						e.preventDefault();
-						void addHook(key);
-					}}
-				>
-					<TextField bind:value={drafts[key]} placeholder={t('settings.team.commandPlaceholder')} mono disabled={!!hooksError} />
-					<Button size="sm" type="submit" disabled={hooksBusy || !!hooksError || !drafts[key].trim()}>{t('settings.team.addCommand')}</Button>
-				</form>
-			</SettingsRow>
+		{#each roles as r (`${r.source}:${r.path || r.name}`)}
+			<div class="role" class:shadowed={!!r.shadowedBy} title={r.path || undefined}>
+				<div class="rhead">
+					<span class="rname">{r.name}</span>
+					<span class="rsrc">{t(`settings.team.source.${r.source}`)}</span>
+					{#if r.model}<span class="rmeta">{r.model}</span>{/if}
+				</div>
+				<p class="rdesc">{describe(r)}</p>
+				{#if r.shadowedBy}<p class="rnote">{t(`settings.team.shadowed.${r.shadowedBy}`)}</p>{/if}
+			</div>
 		{/each}
-		<p class="hint">{t('settings.team.hooksHint')}</p>
+		<p class="hint">{t('settings.team.rolesHint')}</p>
 	</SettingsSection>
-{/if}
+
+	{#if teamSwitch.on}
+		<SettingsSection id="team-hooks" title={t('settings.team.hooks')}>
+			{#snippet action()}
+				<button class="iconbtn" title={t('settings.team.refreshHooks')} aria-label={t('settings.team.refreshHooks')} disabled={hooksBusy} onclick={loadHooks}>
+					{#if hooksBusy}<CircleNotchIcon size={14} class="spin" />{:else}<ArrowsClockwiseIcon size={14} />{/if}
+				</button>
+			{/snippet}
+			{#if hooksError}
+				<div class="notice"><Notice tone="error">{t('settings.team.hooksUnreadable', { msg: hooksError })}</Notice></div>
+			{/if}
+			{#each TEAM_HOOKS as key (key)}
+				<SettingsRow id={`team-hook-${key}`} title={t(`settings.team.hook.${key}`)} description={t(`settings.team.hookHint.${key}`)} stacked>
+					<ul class="cmds">
+						{#each listHooks(hooks, key) as h (h.index)}
+							<li class="cmd">
+								<code>{h.command}</code>
+								{#if h.tools}<span class="ctools">{t('settings.team.onlyTools', { tools: h.tools.join(', ') })}</span>{/if}
+								<span class="cact">
+									<IconButton size="sm" label={t('settings.team.removeCommand')} title={t('settings.team.removeCommand')} disabled={hooksBusy || !!hooksError} onclick={() => removeHook(key, h.index, h.command)}>
+										<XIcon size={13} />
+									</IconButton>
+								</span>
+							</li>
+						{:else}
+							<li class="none">{t('settings.team.noCommands')}</li>
+						{/each}
+					</ul>
+					<form
+						class="add"
+						onsubmit={(e) => {
+							e.preventDefault();
+							void addHook(key);
+						}}
+					>
+						<TextField bind:value={drafts[key]} placeholder={t('settings.team.commandPlaceholder')} mono disabled={!!hooksError} />
+						<Button size="sm" type="submit" disabled={hooksBusy || !!hooksError || !drafts[key].trim()}>{t('settings.team.addCommand')}</Button>
+					</form>
+				</SettingsRow>
+			{/each}
+			<p class="hint">{t('settings.team.hooksHint')}</p>
+		</SettingsSection>
+	{/if}
+</SettingsMore>
 
 <style>
 	.w-num {

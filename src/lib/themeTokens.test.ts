@@ -131,7 +131,12 @@ describe('type, radii and depth', () => {
 	it('the type scale and the radii are the design.md steps', () => {
 		const px = (names: string[]) => names.map((n) => dark[n]);
 		expect(px(['--fs-2xs', '--fs-xs', '--fs-sm', '--fs-md', '--fs-lg', '--fs-xl', '--fs-2xl'])).toEqual(['11px', '12px', '13px', '15px', '18px', '22px', '28px']);
-		expect(px(['--r-xs', '--r-sm', '--r-md', '--r-lg', '--r-xl', '--r-2xl', '--r-full'])).toEqual(['2px', '4px', '6px', '8px', '12px', '14px', '999px']);
+		expect(px(['--r-xs', '--r-sm', '--r-md', '--r-lg', '--r-xl', '--r-2xl', '--r-full'])).toEqual(['4px', '8px', '10px', '14px', '18px', '22px', '999px']);
+		expect(dark['--r-sq']).toBe('2');
+	});
+
+	it('a menu row is concentric with its menu: --r-lg less the 4px padding is --r-md', () => {
+		expect(parseFloat(dark['--r-lg']) - 4).toBe(parseFloat(dark['--r-md']));
 	});
 
 	it('the frame has no shadow, and the dark theme floats nothing on a blur', () => {
