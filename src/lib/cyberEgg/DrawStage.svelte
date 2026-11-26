@@ -24,7 +24,7 @@
 	type EggPicked = { me: EggMe; draw: EggDraw; secret: string | null };
 	import { left, wan } from './format';
 	import { egg } from './store.svelte';
-	import { eggBlock, yuan } from './eligibility';
+	import { eggBlock, extraChance, yuan } from './eligibility';
 
 	type Phase = 'sealed' | 'dealing' | 'fanned' | 'picking' | 'revealing' | 'done';
 	interface Spot {
@@ -75,6 +75,17 @@
 			return block.at ? t('egg.block.ageOn', { days: block.days, date: new Date(block.at).toLocaleDateString() }) : t('egg.block.age', { days: block.days });
 		return t(`egg.block.${block.kind}`);
 	});
+
+	// CE-H2: another pack is offered only when the gateway would open it; while the extra chances wait (today's pool
+	// drawn out, the round paused or over) the result says why instead.
+	const chance = $derived(extraChance(me));
+	const chanceWait = $derived(
+		chance.kind === 'dry'
+			? t(chance.lastDay ? 'egg.result.waitDryLast' : 'egg.result.waitDry')
+			: chance.kind === 'stopped'
+				? t(chance.state === 'paused' ? 'egg.result.waitPaused' : 'egg.result.waitEnded')
+				: ''
+	);
 
 	/** The width a card is drawn at; smaller places scale it down (keeps the art crisp). */
 	const BASE_W = 300;
@@ -430,11 +441,12 @@
 				<div class="actions">
 					{#if egg.usable}<Button variant="primary" onclick={onChat}><ChatCircleIcon size={16} />{t('egg.result.chat')}</Button>{/if}
 					<Button variant="secondary" onclick={onAlbum}>{t('egg.result.album')}</Button>
-					{#if phase === 'done' && onBonus && (me.chances?.available ?? 0) > 0}
+					{#if phase === 'done' && onBonus && chance.kind === 'open'}
 						<Button variant="secondary" onclick={onBonus}>{t('egg.result.again')}</Button>
-						<span class="chances">{t('egg.result.chancesLeft', { n: me.chances?.available ?? 0 })}</span>
+						<span class="chances">{t('egg.result.chancesLeft', { n: chance.n })}</span>
 					{/if}
 				</div>
+				{#if phase === 'done' && onBonus && chanceWait}<p class="wait">{chanceWait}</p>{/if}
 				<div class="others">
 					<p class="label">{t('egg.result.others')}</p>
 					<div class="row">
@@ -723,6 +735,11 @@
 	}
 	.chances {
 		align-self: center;
+		font-size: var(--fs-xs);
+		color: var(--dim);
+	}
+	.wait {
+		margin: 12px 0 0;
 		font-size: var(--fs-xs);
 		color: var(--dim);
 	}
