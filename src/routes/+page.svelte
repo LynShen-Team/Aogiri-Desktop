@@ -2178,7 +2178,7 @@
 				</DeskPage>
 			{/if}
 			{#if showEgg}
-				<CyberEggPage bind:section={eggSection} navWidth={sidebarWidth} onClose={() => (showEgg = false)} onChat={startEggChat} />
+				<CyberEggPage bind:section={eggSection} navWidth={sidebarWidth} onClose={() => (showEgg = false)} onChat={startEggChat} onTopUp={() => openSettings('purchase')} />
 			{/if}
 		</div>
 	</div>

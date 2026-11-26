@@ -28,13 +28,16 @@
 		section = $bindable('draw'),
 		navWidth,
 		onClose,
-		onChat
+		onChat,
+		onTopUp
 	}: {
 		section?: EggSection;
 		navWidth: number;
 		onClose: () => void;
 		/** Start a conversation on today's tokens. */
 		onChat: () => void;
+		/** The app's store (a balance below the round's minimum). */
+		onTopUp?: () => void;
 	} = $props();
 
 	let rules = $state(false);
@@ -138,6 +141,7 @@
 							if (answer.secret) egg.secret = answer.secret;
 						}}
 						{onChat}
+						{onTopUp}
 						onAlbum={() => (section = 'album')}
 					/>
 				{/key}

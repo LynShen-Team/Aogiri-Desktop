@@ -24,6 +24,7 @@
 	type EggPicked = { me: EggMe; draw: EggDraw; secret: string | null };
 	import { left, wan } from './format';
 	import { egg } from './store.svelte';
+	import { eggBlock, yuan } from './eligibility';
 
 	type Phase = 'sealed' | 'dealing' | 'fanned' | 'picking' | 'revealing' | 'done';
 	interface Spot {
@@ -45,7 +46,8 @@
 		onDrawn,
 		onChat,
 		onAlbum,
-		onBonus
+		onBonus,
+		onTopUp
 	}: {
 		me: EggMe;
 		now: number;
@@ -57,7 +59,22 @@
 		onAlbum: () => void;
 		/** Open another pack with an extra chance (offered under the result while some are left). */
 		onBonus?: () => void;
+		/** The fix for a balance below the round's minimum: the app's store. */
+		onTopUp?: () => void;
 	} = $props();
+
+	// CE-UI-2: why the pack can't be opened now (an extra pack is never blocked here: the server says).
+	const block = $derived(bonus ? null : eggBlock(me));
+	const blockText = $derived.by(() => {
+		if (!block) return '';
+		if (block.kind === 'funds')
+			return block.plan
+				? t('egg.block.fundsPlan', { min: yuan(block.min_fen), short: yuan(block.short_fen), plan: block.plan })
+				: t('egg.block.funds', { min: yuan(block.min_fen), short: yuan(block.short_fen) });
+		if (block.kind === 'age')
+			return block.at ? t('egg.block.ageOn', { days: block.days, date: new Date(block.at).toLocaleDateString() }) : t('egg.block.age', { days: block.days });
+		return t(`egg.block.${block.kind}`);
+	});
 
 	/** The width a card is drawn at; smaller places scale it down (keeps the art crisp). */
 	const BASE_W = 300;
@@ -438,23 +455,32 @@
 	{/if}
 
 	{#if phase === 'sealed' || phase === 'dealing'}
-		<div class="sealed">
+		<div class="sealed" class:blocked={!!block}>
 			<div bind:this={packBox} class="pack-box">
 				<Pack
 					period={me.pack.period}
 					packName={me.pack.name}
-					disabled={phase !== 'sealed'}
+					disabled={phase !== 'sealed' || !!block}
 					label={t('egg.draw.tearLabel')}
 					{onTorn}
 					onHint={(hint) => (tearHint = hint === null && tearHint === 'small' ? tearHint : hint)}
 				/>
 			</div>
+			{#if block}
+				<div class="lines">
+					<p class="hint">{blockText}</p>
+					{#if (block.kind === 'funds' || block.kind === 'low_balance') && onTopUp}
+						<Button size="sm" variant="primary" onclick={onTopUp}>{t('egg.block.topUp')}</Button>
+					{/if}
+				</div>
+			{:else}
 			<div class="lines" class:gone={phase !== 'sealed'}>
 				<p class="hint" aria-live="polite">
 					{t(tearHint === 'small' ? 'egg.draw.tearMore' : tearHint === 'edge' ? 'egg.draw.tearEdge' : tearHint === 'slack' ? 'egg.draw.tearSlack' : 'egg.draw.tearHint')}
 				</p>
 				<p class="sub">{[bonus ? t('egg.result.bonusOpening', { n: me.chances?.available ?? 0 }) : '', pityLine, range].filter(Boolean).join(' · ')}</p>
 			</div>
+			{/if}
 		</div>
 	{/if}
 
@@ -580,6 +606,11 @@
 		gap: 6px;
 		text-align: center;
 		transition: opacity var(--t-base) var(--ease-base);
+	}
+	/* Not yet: the pack rests, dimmed, beside the reason. */
+	.sealed.blocked .pack-box {
+		opacity: 0.5;
+		filter: saturate(0.6);
 	}
 	.lines.gone {
 		opacity: 0;

@@ -105,7 +105,7 @@
 	//                           `window.__daemon.decided` the answers,
 	//                           `window.__connectRequest(frame)` sends another,
 	//                           `window.__notified` the system notifications
-	//   &egg[=drawn|none]       赛博鸡蛋 (src/lib/cyberEgg, answers from its mock.ts):
+	//   &egg[=drawn|none|short] 赛博鸡蛋 (src/lib/cyberEgg, answers from its mock.ts):
 	//                           its page over the navigator and canvas, today's
 	//                           pack sealed (=drawn: today's card drawn; =none:
 	//                           no round running); &eggSection=album|market|usage
@@ -872,7 +872,7 @@
 			</div>
 			<ConnectRequestDialog />
 			{#if eggPage}
-				<CyberEggPage bind:section={eggSection} navWidth={NAV_W} onClose={() => (eggPage = false)} onChat={() => ((eggPage = false), opened.push('egg-chat'))} />
+				<CyberEggPage bind:section={eggSection} navWidth={NAV_W} onClose={() => (eggPage = false)} onChat={() => ((eggPage = false), opened.push('egg-chat'))} onTopUp={() => opened.push('egg-topup')} />
 			{/if}
 			{#if settings}
 				<!-- 导入's result: folders added and conversations opened go to `window.__opened`. -->
