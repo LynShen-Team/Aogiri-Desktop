@@ -307,6 +307,7 @@ export function dotGlyph(canvas: HTMLCanvasElement, size = 14) {
 			g.draw(reduced ? STILL_AT : clock());
 		},
 		destroy() {
+			if (!glyphs.has(g)) return;
 			shared?.seen?.unobserve(canvas);
 			glyphs.delete(g);
 			if (![...glyphs].some((x) => x.onScreen)) halt();
