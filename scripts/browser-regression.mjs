@@ -867,7 +867,7 @@ try {
     };
     tick();
   }));
-  assert.deepEqual(entering, ['fade', '0.18s', 'cubic-bezier(0, 0, 0.2, 1)', 'backwards', ['none']]);
+  assert.deepEqual(entering, ['fade', '0.18s', 'cubic-bezier(0.16, 1, 0.3, 1)', 'backwards', ['none']]);
   await settled('.approval');
   await page.getByRole('button',{name:'始终允许…'}).click();
   await expect(page.getByRole('menu')).toBeVisible();

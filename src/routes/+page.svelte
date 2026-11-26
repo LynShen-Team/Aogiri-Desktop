@@ -123,7 +123,7 @@
 	import CommandPalette from '$lib/CommandPalette.svelte';
 	import ShortcutsDialog from '$lib/ShortcutsDialog.svelte';
 	import { matches } from '$lib/shortcuts';
-	import { readSidebarCollapsed, writeSidebarCollapsed, SIDEBAR_DEFAULT_WIDTH, SIDEBAR_RAIL_WIDTH } from '$lib/shell/sidebarState';
+	import { readSidebarCollapsed, writeSidebarCollapsed, sidebarSnap, SIDEBAR_DEFAULT_WIDTH, SIDEBAR_RAIL_WIDTH } from '$lib/shell/sidebarState';
 	import TaskDialog from '$lib/TaskDialog.svelte';
 	import ProjectPickDialog from '$lib/ProjectPickDialog.svelte';
 	import { llmTarget as llmTargetOf } from '$lib/llmTarget';
@@ -638,11 +638,26 @@
 		const startX = e.clientX;
 		const startW = sidebarWidth;
 		sbResizing = true;
+		// Dragged well past its narrowest width, the navigator snaps to the
+		// rail (with the collapse's own motion), and back out the same way.
 		const move = (ev: PointerEvent) => {
-			sidebarWidth = Math.min(460, Math.max(240, startW + (ev.clientX - startX)));
+			const next = sidebarSnap(startW + (ev.clientX - startX));
+			if (next === 'rail') {
+				if (!sidebarCollapsed) {
+					sbResizing = false;
+					sidebarCollapsed = true;
+				}
+				return;
+			}
+			if (sidebarCollapsed) {
+				sbResizing = false;
+				sidebarCollapsed = false;
+			} else sbResizing = true;
+			sidebarWidth = next;
 		};
 		const up = () => {
 			sbResizing = false;
+			writeSidebarCollapsed(localStorage, sidebarCollapsed);
 			localStorage.setItem('lynshen-sidebar-width', String(sidebarWidth));
 			window.removeEventListener('pointermove', move);
 			window.removeEventListener('pointerup', up);
@@ -1935,7 +1950,7 @@
 					}
 				}}
 			/>
-			<div class="resizer side" class:hidden={sidebarCollapsed} role="separator" aria-label={t('shell.remote.resizeSidebar')} onpointerdown={startSidebarResize}></div>
+			<div class="resizer side" class:hidden={sidebarCollapsed} role="separator" aria-label={t('shell.remote.resizeSidebar')} onpointerdown={startSidebarResize} ondblclick={toggleSidebar}></div>
 
 			<!-- THE CANVAS: workspace tabs on top, one mosaic for chats, tool panels,
 			     TUI and audit tiles below. -->
@@ -2483,17 +2498,38 @@
 		font-size: var(--fs-sm);
 		color: var(--dim);
 	}
-	/* ---------- sidebar resizer ---------- */
+	/* ---------- sidebar resizer ----------
+	   A 5px grab area on the navigator's edge. On hover a 3px pill fades in
+	   on the divider, inset from the ends (no square band). Dragging it past
+	   the narrowest width snaps the navigator to the rail; a double click
+	   collapses it (sidebarSnap, design.md "Navigator"). */
 	.resizer {
+		position: relative;
 		width: 5px;
 		flex-shrink: 0;
 		cursor: col-resize;
 		background: transparent;
 		z-index: 5;
-		transition: background var(--t-med) var(--ease-out);
 	}
-	.resizer:hover {
-		background: var(--accent-soft);
+	.resizer::after {
+		content: '';
+		position: absolute;
+		top: 8px;
+		bottom: 8px;
+		left: 1px;
+		width: 3px;
+		border-radius: var(--r-full);
+		background: var(--border-strong);
+		opacity: 0;
+		transform: scaleY(0.96);
+		transition:
+			opacity var(--t-med) var(--ease-base),
+			transform var(--t-med) var(--ease-base);
+	}
+	.resizer:hover::after,
+	.resizer:active::after {
+		opacity: 1;
+		transform: none;
 	}
 	.resizer.side {
 		margin-left: -3px;

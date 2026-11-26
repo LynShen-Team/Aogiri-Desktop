@@ -227,8 +227,7 @@
 	@keyframes card-in-side {
 		from {
 			opacity: 0;
-			transform: translateX(-8px) scale(0.95);
-			filter: blur(4px);
+			transform: translateX(-4px) scale(0.97);
 		}
 	}
 	.head {

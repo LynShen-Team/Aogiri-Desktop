@@ -35,10 +35,10 @@
 		transition:
 			background var(--t-fast) var(--ease-out),
 			color var(--t-fast) var(--ease-out),
-			transform var(--t-fast) var(--ease-spring);
+			transform var(--t-fast) var(--ease-out);
 	}
 	.ib:active:not(:disabled) {
-		transform: scale(0.9);
+		transform: scale(0.94);
 	}
 	.md {
 		padding: 6px;
