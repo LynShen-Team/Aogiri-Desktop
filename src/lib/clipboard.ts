@@ -3,6 +3,7 @@
 // and, where the page is not a secure context (a phone on plain http), a
 // hidden textarea and the copy command.
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
+import { playSound } from './sounds/play';
 
 const inApp = () => typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
@@ -22,8 +23,15 @@ function copyBySelection(text: string): boolean {
 	}
 }
 
-/** Copies `text`; resolves false when nothing reached the clipboard. */
+/** Copies `text` (with the app's small 已复制 tick); resolves false when
+ *  nothing reached the clipboard. */
 export async function copyText(text: string): Promise<boolean> {
+	const ok = await put(text);
+	if (ok) playSound('copied');
+	return ok;
+}
+
+async function put(text: string): Promise<boolean> {
 	if (inApp()) {
 		try {
 			await writeText(text);

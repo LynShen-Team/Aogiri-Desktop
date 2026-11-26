@@ -10,8 +10,7 @@
 	import XIcon from 'phosphor-svelte/lib/XIcon';
 	import { fly } from 'svelte/transition';
 	import { flip } from 'svelte/animate';
-	import { cubicOut } from 'svelte/easing';
-	import { T_FAST, T_MED, motionMs } from './motion';
+	import { EASE_ENTER, EASE_EXIT, EASE_SOFT, T_BASE, T_FAST, motionMs } from './motion';
 	import { notices } from './notices.svelte';
 	import { browser } from '$lib/browser.svelte';
 	import { prefs } from '$lib/prefs.svelte';
@@ -70,9 +69,9 @@
 			role="status"
 			onpointerenter={() => notices.hold(n.id)}
 			onpointerleave={() => notices.resume(n.id)}
-			animate:flip={{ duration: motionMs(T_MED), easing: cubicOut }}
-			in:fly={{ y: 8, duration: motionMs(T_MED), easing: cubicOut }}
-			out:fly={{ x: 12, duration: motionMs(T_FAST), easing: cubicOut }}
+			animate:flip={{ duration: motionMs(T_BASE), easing: EASE_SOFT }}
+			in:fly={{ y: 8, duration: motionMs(T_BASE), easing: EASE_ENTER }}
+			out:fly={{ x: 12, duration: motionMs(T_FAST), easing: EASE_EXIT }}
 		>
 			<div class="body">
 				<div class="title">{n.title}</div>

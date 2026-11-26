@@ -8,6 +8,14 @@ import { chromium, webkit, expect } from '@playwright/test';
 const server = await createServer({ configFile: false, plugins: [svelte({compilerOptions:{runes:true}})], resolve: {alias:{$lib:resolve('src/lib')}}, server:{host:'127.0.0.1',port:1438,strictPort:true} });
 await server.listen();
 const browser = await chromium.launch({executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH});
+// Settings → <group> (the nav lists seven groups) → <tab> (a group's sections
+// are tabs at the head of its page; settings/nav.ts GROUPS).
+const settingsTab = async (p, group, tab) => {
+  await p.locator('.settings nav').getByRole('button', {name: group, exact: true}).click();
+  if (tab) await p.locator('.settings .tabs').getByRole('button', {name: tab, exact: true}).click();
+};
+// The open tab of a settings page (what its h1 said before the groups).
+const openTab = (p) => p.locator('.settings .tabs [aria-current=page]');
 try {
   const page = await browser.newPage();
   const errors = [];
@@ -260,7 +268,7 @@ try {
   await page.getByRole('button',{name:'退出登录',exact:true}).click();
   await expect(page.getByRole('heading',{name:'欢迎页'})).toBeVisible();
   await page.goto(base);
-  await page.getByRole('button',{name:'提供商',exact:true}).click();
+  await settingsTab(page, '模型', '提供商');
   await page.locator('#set-provider-add').click();
   await page.getByRole('button').filter({hasText:'Openai'}).first().click();
   await expect(page.getByPlaceholder('请输入 API Key')).toBeVisible();
@@ -271,7 +279,7 @@ try {
   // base URL, token counts and input kinds; each model keeps its window,
   // output cap, thinking, effort tiers and input kinds; 编辑 reopens them.
   await page.goto(base);
-  await page.getByRole('button',{name:'提供商',exact:true}).click();
+  await settingsTab(page, '模型', '提供商');
   await page.locator('#set-provider-add').click();
   await page.getByRole('button',{name:'手动配置'}).click();
   const providerForm = page.getByRole('dialog');
@@ -347,7 +355,7 @@ try {
   // built-in values is kept (by provider id); the default provider's copy in
   // config.json (what the engine runs) gets the merged values.
   await page.goto(base + '?anthropic=keyed');
-  await page.getByRole('button',{name:'提供商',exact:true}).click();
+  await settingsTab(page, '模型', '提供商');
   const anthropicCard = page.locator('#pcard-anthropic');
   await expect(anthropicCard.getByText('已自定义')).toHaveCount(0);
   await anthropicCard.locator('.pcard-main').click();
@@ -424,7 +432,7 @@ try {
   // Adding a built-in provider: the key step has the same settings behind
   // 自定义设置; 添加 Provider saves the key and them.
   await page.goto(base + '?anthropic');
-  await page.getByRole('button',{name:'提供商',exact:true}).click();
+  await settingsTab(page, '模型', '提供商');
   await page.locator('#set-provider-add').click();
   await page.getByRole('dialog').getByRole('button').filter({hasText:/^Anthropic/}).first().click();
   const keyStep = page.getByRole('dialog');
@@ -447,7 +455,7 @@ try {
   // window, output cap, tiers and input kinds (here the gateway's catalog,
   // signed in). 自动配置 puts the catalog values over listed models.
   await page.goto(base + '?models');
-  await page.getByRole('button',{name:'提供商',exact:true}).click();
+  await settingsTab(page, '模型', '提供商');
   await page.locator('#set-provider-add').click();
   await page.getByRole('button',{name:'手动配置'}).click();
   await field('Provider ID').fill('relay');
@@ -495,7 +503,7 @@ try {
   // default; 自动配置 never turns thinking off. The models reach config.json
   // with `reasoning` and their tiers.
   await page.goto(base + '?engine070');
-  await page.getByRole('button',{name:'提供商',exact:true}).click();
+  await settingsTab(page, '模型', '提供商');
   await page.locator('#set-provider-add').click();
   await page.getByRole('button',{name:'手动配置'}).click();
   await field('Provider ID').fill('thinker');
@@ -867,7 +875,7 @@ try {
     };
     tick();
   }));
-  assert.deepEqual(entering, ['fade', '0.18s', 'cubic-bezier(0, 0, 0.2, 1)', 'backwards', ['none']]);
+  assert.deepEqual(entering, ['fade', '0.18s', 'cubic-bezier(0.16, 1, 0.3, 1)', 'backwards', ['none']]);
   await settled('.approval');
   await page.getByRole('button',{name:'始终允许…'}).click();
   await expect(page.getByRole('menu')).toBeVisible();
@@ -1223,7 +1231,7 @@ try {
   // Settings → 通用 offers the conversation width, 自适应 by default; a
   // choice is stored; the search finds the row.
   await page.goto(base);
-  await page.getByRole('button',{name:'通用',exact:true}).click();
+  await settingsTab(page, '通用', '对话');
   const widthRow = page.locator('#set-chat-width');
   await expect(widthRow.getByRole('button')).toHaveText(['自适应', '标准', '铺满']);
   await expect(widthRow.locator('.opt.on')).toHaveText('自适应');
@@ -2849,7 +2857,7 @@ try {
   await expect(page.locator('.approval .place')).toHaveText('第 2/2 个');
   await expect(page.locator('.approval .approval-actions button')).toHaveText([/允许一次/, /本会话可写「Desktop」/, /加入可写目录「Desktop」/, /拒绝并告诉它怎么做/]);
   await page.goto(base);
-  await page.getByRole('button',{name:'权限与沙箱'}).first().click();
+  await settingsTab(page, '智能体', '权限与沙箱');
   await page.getByRole('switch',{name:'允许联网'}).click();
   const configPatches = () => page.evaluate(() => window.__calls.filter((c) => c.command === 'write_config').map((c) => JSON.stringify(c.args.patch)));
   await expect.poll(configPatches).toContain('{"sandbox_network":false}');
@@ -2870,7 +2878,7 @@ try {
   // The app sets data-os from the user agent (applyPlatformClass); the
   // fixture does not. The section reads it when it opens.
   await winPage.evaluate(() => { document.documentElement.dataset.os = 'windows'; });
-  await winPage.getByRole('button',{name:'权限与沙箱'}).first().click();
+  await settingsTab(winPage, '智能体', '权限与沙箱');
   const winSwitch = winPage.getByRole('switch',{name:'Windows 沙箱（预览）'});
   await expect(winSwitch).toHaveAttribute('aria-checked','false');
   await expect(winPage.getByText('要限制命令，打开下面的「Windows 沙箱（预览）」')).toBeVisible();
@@ -3166,7 +3174,7 @@ try {
     sp.on('pageerror', e => errors.push(e.message));
     const storeCalls = (cmd) => sp.evaluate((c) => window.__calls.filter((x) => x.command === c).map((x) => x.args), cmd);
     await sp.goto(base + '?purchase&balance&section=purchase');
-    await expect(sp.getByRole('heading',{name:'套餐与充值',level:1})).toBeVisible({timeout:30000});
+    await expect(openTab(sp)).toHaveText('套餐与充值', {timeout:30000});
     await expect(sp.locator('.sec h3')).toHaveText(['当前', '套餐', '充值余额']);
     await expect(sp.locator('#set-purchase-plan')).toContainText('没有套餐');
     const plansSec = sp.locator('#set-purchase-plans');
@@ -3383,7 +3391,7 @@ try {
   await expect(acctPage.locator('#set-account-currency')).toContainText('显示货币');
   // 购买套餐 and 充值 open Settings → 套餐与充值 in the app, not the website.
   await acctPage.locator('#set-account-balance').getByRole('button',{name:'充值'}).click();
-  await expect(acctPage.getByRole('heading',{name:'套餐与充值',level:1})).toBeVisible();
+  await expect(openTab(acctPage)).toHaveText('套餐与充值');
   await acctPage.getByRole('button',{name:'账户',exact:true}).click();
   await expect(acctPage.locator('#set-account-noplan').getByRole('button',{name:'购买套餐'})).toBeVisible();
   await expect(acctPage.locator('.acct-profile').getByRole('button',{name:'退出登录'})).toHaveCount(0);
@@ -3737,7 +3745,7 @@ try {
     const mp = await browser.newPage({viewport:{width:1040,height:680}});
     mp.on('pageerror', e => errors.push(e.message));
     await mp.goto(base + '?models&loggedIn');
-    await mp.getByRole('button', {name:'模型与推理', exact:true}).click({timeout:30000});
+    await mp.locator('.settings nav').getByRole('button', {name:'模型', exact:true}).click({timeout:30000});
     const trigger = mp.locator('#set-default-model .trigger');
     await expect(trigger).toContainText('DeepSeek V4.1 Flash');
     await expect(mp.locator('#set-compact-model .trigger')).toContainText('GLM-5.3 Flash');
@@ -3750,6 +3758,8 @@ try {
     await row(quick, 'Kimi K3').click();
     await expect(trigger).toContainText('Kimi K3');
     await expect.poll(() => mp.evaluate(() => window.__calls.filter((c) => c.command === 'write_config').map((c) => c.args.patch.model).filter(Boolean))).toContain('kimi-k3');
+    // The compaction, title and image models are under 更多设置.
+    await mp.getByRole('button', {name:'更多设置'}).click();
     await mp.locator('#set-image-model .trigger').click();
     await expect(mp.locator('.pop.mp .qs [role=option]')).toHaveText([/自动选择|自动/, /GPT Image 2/, /全部模型/]);
     await mp.keyboard.press('Escape');
@@ -3771,7 +3781,7 @@ try {
     cp.on('pageerror', e => errors.push(e.message));
     const ops = (name) => cp.evaluate((n) => window.__ops.filter((o) => o.op === n), name);
     await cp.goto(base + '?shell&settings=chat');
-    await expect(cp.getByRole('heading', {name:'聊天连接', level:1})).toBeVisible({timeout:30000});
+    await expect(openTab(cp)).toHaveText('聊天连接', {timeout:30000});
     const bot = cp.locator('#set-chat-tg-3f9a1c2b');
     await expect(bot.getByRole('heading', {name:'Telegram · @aogiri_home_bot'})).toBeVisible();
     await expect(bot.getByText('已连接', {exact:true})).toBeVisible();
@@ -3838,7 +3848,7 @@ try {
     await addForm.getByRole('button', {name:'连接', exact:true}).click();
     await expect.poll(async () => (await ops('connector_add')).map((o) => [o.platform, o.app_id, o.secret, o.token ?? null, o.proxy ?? null])).toEqual([['qq', '102030405', 'qqSecretABCDEF', null, null]]);
     await cp.goto(base + '?shell&settings=chat&lang=en&theme=light');
-    await expect(cp.getByRole('heading', {name:'Chat connectors', level:1})).toBeVisible({timeout:30000});
+    await expect(openTab(cp)).toHaveText('Chat connectors', {timeout:30000});
     await expect(cp.getByText('Connected', {exact:true})).toBeVisible();
     await cp.close();
   }
@@ -4031,7 +4041,7 @@ try {
     await expect(foot.locator('.stat').first()).toHaveText('6.5s');
     assert.equal(await sp.evaluate(() => window.__shellChat.messages.filter((m) => m.kind === 'assistant').at(-1).turn.genMs), 2000);
     // Settings: the figure's checkbox, and the preview.
-    await sp.goto(base + '?shell&settings=general');
+    await sp.goto(base + '?shell&settings=conversation');
     const row = sp.locator('#set-turn-stats');
     await expect(row.getByRole('checkbox', {name: '输出速度'})).toBeChecked({timeout:60000});
     await expect(sp.locator('.sp-stat', {hasText: 'tok/s'})).toHaveText('51.2 tok/s');
@@ -4041,7 +4051,7 @@ try {
     // Off by default.
     const dp = await browser.newPage({viewport:{width:1280,height:860}});
     dp.on('pageerror', e => errors.push(e.message));
-    await dp.goto(base + '?shell&settings=general');
+    await dp.goto(base + '?shell&settings=conversation');
     await expect(dp.locator('#set-turn-stats').getByRole('checkbox', {name: '输出速度'})).not.toBeChecked({timeout:60000});
     await dp.close();
   }
@@ -4051,7 +4061,7 @@ try {
   {
     const fp = await browser.newPage({viewport:{width:1280,height:860}});
     fp.on('pageerror', e => errors.push(e.message));
-    await fp.goto(base + '?shell&settings=general');
+    await fp.goto(base + '?shell&settings=appearance');
     const ui = fp.locator('#set-ui-font');
     await expect(ui).toBeVisible({timeout:60000});
     await expect(fp.locator('#set-chat-font .trigger')).toHaveText('跟随界面字体');
@@ -4080,7 +4090,7 @@ try {
     assert.match((await vars()).ui, /^-apple-system/);
     await fp.close();
   }
-  // Sounds (Settings → 通用 → 提示音): on by default; the two buttons play
+  // Sounds (Settings → 通用 → 基本 → 提示音): on by default; the two buttons play
   // the done and the alert sound; the switch turns them off and is kept.
   {
     const sp = await browser.newPage({viewport:{width:1280,height:860}});
@@ -4098,15 +4108,25 @@ try {
       };
     });
     await sp.goto(base + '?shell&settings=general');
+    // Settings → 提示音 (SoundSettings): the master switch, the volume, and
+    // each event's switch with its 试听.
     const row = sp.locator('#set-sounds');
-    await expect(row.getByRole('switch', {name: '提示音'})).toBeChecked({timeout:60000});
-    await row.getByRole('button', {name: '试听完成'}).click();
-    await row.getByRole('button', {name: '试听提醒'}).click();
+    const master = row.getByRole('switch', {name: '播放提示音'});
+    await expect(master).toBeChecked({timeout:60000});
+    await row.getByRole('button', {name: '试听 · 任务完成'}).click();
+    await row.getByRole('button', {name: '试听 · 需要你确认'}).click();
     await expect.poll(() => sp.evaluate(() => window.__played.length)).toBe(2);
     const [a, b] = await sp.evaluate(() => window.__played);
     assert.ok(a > 0.25 && a < 0.6 && b > 0.25 && b < 0.6, `${a} ${b}`);
-    await row.getByRole('switch', {name: '提示音'}).click();
-    await expect(row.getByRole('switch', {name: '提示音'})).not.toBeChecked();
+    // The message click starts off, the rest on; a switched event and the volume are kept.
+    await expect(row.getByRole('switch', {name: '发送消息'})).not.toBeChecked();
+    await expect(row.getByRole('switch', {name: '复制'})).toBeChecked();
+    await row.getByRole('switch', {name: '复制'}).click();
+    await row.getByRole('slider', {name: '音量'}).fill('40');
+    assert.deepEqual(await sp.evaluate(() => JSON.parse(localStorage.getItem('aogiri.sounds'))), {volume: 0.4, events: {copied: false}});
+    await master.click();
+    await expect(master).not.toBeChecked();
+    await expect(row.getByRole('switch', {name: '任务完成', exact: true})).toBeDisabled();
     assert.equal(await sp.evaluate(() => JSON.parse(localStorage.getItem('lynshen-prefs')).sounds), false);
     await sp.close();
   }
@@ -4318,7 +4338,7 @@ try {
 
     const sp = await browser.newPage({viewport: {width: 1280, height: 900}});
     sp.on('pageerror', (e) => errors.push(e.message));
-    await sp.goto(base + '?shell&settings=general');
+    await sp.goto(base + '?shell&settings=appearance');
     await expect(sp.locator('#set-scheme-dark')).toBeVisible({timeout: 60000});
     await sp.locator('#set-scheme-dark').getByRole('button', {name: '新建配色'}).click();
     const editor = sp.locator('.editor');
@@ -5129,11 +5149,10 @@ try {
     sp.on('pageerror', (e) => errors.push(e.message));
     const sops = () => sp.evaluate(() => window.__ops.map((o) => ({...o, id: undefined})));
     await sp.goto(base + '?shell&settings=remote&relay=v2&relayOn&loggedIn');
-    await expect(sp.locator('h1', {hasText: '远程访问'})).toBeVisible();
-    // Its own page in the nav, next to 授权设备.
-    const nav = sp.locator('nav button');
-    const labels = await nav.allTextContents();
-    assert.ok(labels.findIndex((l) => l.includes('远程访问')) === labels.findIndex((l) => l.includes('授权设备')) + 1, `远程访问 follows 授权设备 (${labels.join(' | ')})`);
+    await expect(openTab(sp)).toHaveText('远程访问');
+    // Its own page: the first tab of 连接, before 聊天连接.
+    await expect(sp.locator('.settings nav [aria-current=page]')).toHaveText('连接');
+    await expect(sp.locator('.settings .tabs button')).toHaveText(['远程访问', '聊天连接']);
     const remote = sp.locator('#set-remote');
     await expect(remote.getByText('账号绑定')).toBeVisible();
     await expect(remote.getByText('已连接中继 · 通过账号')).toBeVisible();
@@ -5165,7 +5184,7 @@ try {
     await expect(remote.getByRole('button', {name: '局域网 / Tailscale 地址（高级）'})).toBeVisible();
     // The old section key still opens it (links from older builds).
     await sp.goto(base + '?shell&settings=daemon');
-    await expect(sp.locator('h1', {hasText: '远程访问'})).toBeVisible();
+    await expect(openTab(sp)).toHaveText('远程访问');
     await sp.close();
   }
   // Settings → 邀请好友 (gateway DA-9, RF-B3): a typed code names its inviter
@@ -5208,5 +5227,5 @@ try {
     await ip.close();
   }
   assert.deepEqual(errors, []);
-  console.log('Browser regressions passed: reactive drafts, one new conversation per place until its first message (新对话, a project\'s +), account authorization, logout, API key label, provider OAuth, a custom provider (the form checks, per model the window, output cap, thinking, effort tiers and input kinds, editing it; a text-only model in the composer), mounted tabs, home model, title bar menu, skills, marketplace, plugins, sidebar fold and archive, welcome and approval menu click-away, menu click-away under glass, long reasoning and reply, steered reply, plan menu click-away, conversation width setting and column, the plan and subagents cards (beside the column at 1440 × 900, title lines and popovers at 1100 × 760, 1040 × 680 and beside a tool leaf, collapse, keyboard, opening and stopping a subagent, a failed or waiting step opening the plan, chips and a sheet on the phone page; in Chromium and WebKit the wheel over the cards, the navigator\'s sub-agents and 工作组 never scrolls the conversation, and an errored sub-agent shows as failed with its error (the whole error on its line) after its worktree was discarded, a discarded finished one grey), window frost default and migration, light theme surfaces, attached files as chips (sent, history, copy, quote, resend, queue, rewind, phone page), sandbox card and settings (Windows 沙箱（预览） on a Windows page), the shell setting (versions, choices written, PowerShell 7 install, an older daemon), reply styles (the default written, a built-in viewed and copied, a personal style edited and deleted, an older daemon, the composer + menu sending set_style, a deleted style), product name, sent files previewed in a tab beside the conversation, first-use trial claim (grant card once, final after a grant, a refusal asked again once per start, the card asking whether this device pays with the trial), the short account card, who pays this device (the plan or the balance, under a slow gateway, an ended plan; a plan new to the device shown once, paying by default with 改用余额), a turn the plan stopped (the window and its recovery, waiting, the balance until it recovers and 已恢复使用套餐, 改用余额继续, renewing, a model outside the plan; the pickers marking 套餐外 on the plan, nothing on the balance; who pays at the composer foot, a fourth device, the windows read again after requests), Settings → 账户 (read without a logged-out flash, its groups, the plan windows, 购买套餐 and 充值 in the app), Settings → 套餐与充值 (who pays, devices in use, a gateway before contract v1.2, a plan bought paying by default with 改用余额 and its end date, renewal from the current end, an upgrade at the quoted price, no downgrade, the scope line, plans with windows in words, packs, a custom amount, a WeChat QR code checked until paid, the replace notice, the Alipay page, continuing a payment, a refused payment and a network failure retried safely, a gateway without the store), the first run (sign-in first, trial claimed at once, the optional agent page, the skippable walkthrough, the one-time greeting after it: name, mark, opening, focus, once, keys, reduced motion), the five composer modes (order, wrapping in zh and en, narrow windows, Shift+Tab, number keys), the model pickers (quick switcher: rows, keys, pin; browser: typing, an input method, Chinese words, aliases, folding, an unavailable model, a long name; the fallback without a catalog; the settings pickers; dark and light at 1040 × 680), the chat connectors page (state, a binding code closed by its binding, the chat limits, adding a bot with its checks, unbinding, phones only on 远程访问, an older daemon; Discord and QQ: invite, QQ note, bind command, their add fields), Settings → 导入 (Codex prompts, opening what a run imported), mermaid diagrams in a reply (theme colours in both themes, the source copied, a bad block left as code), file links in a reply (a path that names no file as plain text, the file menu, the external editor there and in the title bar, a file the editor cannot show), output speed under a reply and in its setting (off by default), the interface, conversation and code fonts (installed ones only, applied, kept), the sounds setting (both sounds played, turned off and kept), interface zoom (kept, the title bar at its size and on the canvas edge), a mouse wheel handed over by the app (a wheel event, then a glide; a cancelled one kept; reduced motion steps), a canvas tab\'s 关闭其他 and 关闭全部, a finished turn folded into one line and opened again, the turn\'s changed files listed under its reply, background commands in the subagents card and a session with background work marked, not running, a subscription\'s usage limit (which limit, used, reset, one line as wide as the composer with its meter after the title, 重置后自动继续 and calling it off), a colour scheme shown live, refused without contrast, kept per theme and back to the default, no Changes, Turns or Diagnostics panel, the queue tray (into the turn after the running tool, stop and send, take back with its file, delete, reorder by key and drag, ⌘↵ and ⌘⇧↵, Claude Code\'s fixed rows, an old daemon\'s single 插入), files and videos sent as attachments (and listed in the text for an old daemon), a Read row opening its file at its line, an unfinished turn and 继续, files dragged over the window, a run of edits with rolling counts, a turn\'s deliverables, proposed task and started conversation, course dividers and the turn clock, a dev server\'s corner notice, Settings → 应用工具, a new conversation\'s project asked first (⌘N, ⌘1–9, the home page) and the centred empty composer, the title bar\'s project menu, forks (beside the original and in a worktree, an old daemon without, the navigator\'s mark, the fork\'s strip and 带回结论) and a draft\'s 新 worktree, a turn\'s changes in the editor (对比 · 本轮 / HEAD, the fallback to HEAD), Claude Code and Codex custom providers (key masked, 测试连接, default, delete, an old daemon), the built-in ACP agents (Settings, the start picker, Pi asking first, an old daemon), an ACP session\'s settings and unset effort, a TUI open on another client viewed and only detached, scheduled tasks (run records opening their sessions, 后台任务运行中, a task switched off after failures with 重新开启, the worktree switch and cost limit, an older daemon without them), connect requests (the dialog over the window: client, check code, countdown, Escape ignored, one after another, closed elsewhere), Settings → 远程访问 as its own page (account binding, v2 and signed out, devices by client, the pairing code as a fallback, LAN only signed in, a daemon before v2, the old section key) and Settings → 邀请好友 (a typed code named in a dialog with the inviter\'s avatar first, a wrong code refused, 暂不绑定 binding nothing, 确认绑定 binding).');
+  console.log('Browser regressions passed: reactive drafts, one new conversation per place until its first message (新对话, a project\'s +), account authorization, logout, API key label, provider OAuth, a custom provider (the form checks, per model the window, output cap, thinking, effort tiers and input kinds, editing it; a text-only model in the composer), mounted tabs, home model, title bar menu, skills, marketplace, plugins, sidebar fold and archive, welcome and approval menu click-away, menu click-away under glass, long reasoning and reply, steered reply, plan menu click-away, conversation width setting and column, the plan and subagents cards (beside the column at 1440 × 900, title lines and popovers at 1100 × 760, 1040 × 680 and beside a tool leaf, collapse, keyboard, opening and stopping a subagent, a failed or waiting step opening the plan, chips and a sheet on the phone page; in Chromium and WebKit the wheel over the cards, the navigator\'s sub-agents and 工作组 never scrolls the conversation, and an errored sub-agent shows as failed with its error (the whole error on its line) after its worktree was discarded, a discarded finished one grey), window frost default and migration, light theme surfaces, attached files as chips (sent, history, copy, quote, resend, queue, rewind, phone page), sandbox card and settings (Windows 沙箱（预览） on a Windows page), the shell setting (versions, choices written, PowerShell 7 install, an older daemon), reply styles (the default written, a built-in viewed and copied, a personal style edited and deleted, an older daemon, the composer + menu sending set_style, a deleted style), product name, sent files previewed in a tab beside the conversation, first-use trial claim (grant card once, final after a grant, a refusal asked again once per start, the card asking whether this device pays with the trial), the short account card, who pays this device (the plan or the balance, under a slow gateway, an ended plan; a plan new to the device shown once, paying by default with 改用余额), a turn the plan stopped (the window and its recovery, waiting, the balance until it recovers and 已恢复使用套餐, 改用余额继续, renewing, a model outside the plan; the pickers marking 套餐外 on the plan, nothing on the balance; who pays at the composer foot, a fourth device, the windows read again after requests), Settings → 账户 (read without a logged-out flash, its groups, the plan windows, 购买套餐 and 充值 in the app), Settings → 套餐与充值 (who pays, devices in use, a gateway before contract v1.2, a plan bought paying by default with 改用余额 and its end date, renewal from the current end, an upgrade at the quoted price, no downgrade, the scope line, plans with windows in words, packs, a custom amount, a WeChat QR code checked until paid, the replace notice, the Alipay page, continuing a payment, a refused payment and a network failure retried safely, a gateway without the store), the first run (sign-in first, trial claimed at once, the optional agent page, the skippable walkthrough, the one-time greeting after it: name, mark, opening, focus, once, keys, reduced motion), the five composer modes (order, wrapping in zh and en, narrow windows, Shift+Tab, number keys), the model pickers (quick switcher: rows, keys, pin; browser: typing, an input method, Chinese words, aliases, folding, an unavailable model, a long name; the fallback without a catalog; the settings pickers; dark and light at 1040 × 680), the chat connectors page (state, a binding code closed by its binding, the chat limits, adding a bot with its checks, unbinding, phones only on 远程访问, an older daemon; Discord and QQ: invite, QQ note, bind command, their add fields), Settings → 导入 (Codex prompts, opening what a run imported), mermaid diagrams in a reply (theme colours in both themes, the source copied, a bad block left as code), file links in a reply (a path that names no file as plain text, the file menu, the external editor there and in the title bar, a file the editor cannot show), output speed under a reply and in its setting (off by default), the interface, conversation and code fonts (installed ones only, applied, kept), the sounds setting (a sound per event played, the message click off at first, an event and the volume kept, all turned off and kept), interface zoom (kept, the title bar at its size and on the canvas edge), a mouse wheel handed over by the app (a wheel event, then a glide; a cancelled one kept; reduced motion steps), a canvas tab\'s 关闭其他 and 关闭全部, a finished turn folded into one line and opened again, the turn\'s changed files listed under its reply, background commands in the subagents card and a session with background work marked, not running, a subscription\'s usage limit (which limit, used, reset, one line as wide as the composer with its meter after the title, 重置后自动继续 and calling it off), a colour scheme shown live, refused without contrast, kept per theme and back to the default, no Changes, Turns or Diagnostics panel, the queue tray (into the turn after the running tool, stop and send, take back with its file, delete, reorder by key and drag, ⌘↵ and ⌘⇧↵, Claude Code\'s fixed rows, an old daemon\'s single 插入), files and videos sent as attachments (and listed in the text for an old daemon), a Read row opening its file at its line, an unfinished turn and 继续, files dragged over the window, a run of edits with rolling counts, a turn\'s deliverables, proposed task and started conversation, course dividers and the turn clock, a dev server\'s corner notice, Settings → 应用工具, a new conversation\'s project asked first (⌘N, ⌘1–9, the home page) and the centred empty composer, the title bar\'s project menu, forks (beside the original and in a worktree, an old daemon without, the navigator\'s mark, the fork\'s strip and 带回结论) and a draft\'s 新 worktree, a turn\'s changes in the editor (对比 · 本轮 / HEAD, the fallback to HEAD), Claude Code and Codex custom providers (key masked, 测试连接, default, delete, an old daemon), the built-in ACP agents (Settings, the start picker, Pi asking first, an old daemon), an ACP session\'s settings and unset effort, a TUI open on another client viewed and only detached, scheduled tasks (run records opening their sessions, 后台任务运行中, a task switched off after failures with 重新开启, the worktree switch and cost limit, an older daemon without them), connect requests (the dialog over the window: client, check code, countdown, Escape ignored, one after another, closed elsewhere), Settings → 远程访问 as its own page (account binding, v2 and signed out, devices by client, the pairing code as a fallback, LAN only signed in, a daemon before v2, the old section key) and Settings → 邀请好友 (a typed code named in a dialog with the inviter\'s avatar first, a wrong code refused, 暂不绑定 binding nothing, 确认绑定 binding).');
 } finally { await browser.close(); await server.close(); }

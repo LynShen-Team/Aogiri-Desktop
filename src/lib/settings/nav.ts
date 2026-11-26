@@ -1,12 +1,17 @@
-// Settings page structure: the nav's sections (in groups, shown as one flat
-// list with a gap between groups), and the static search index of the rows
-// each section renders (SettingsRow / SettingsSection `id`s). Keep ROWS in
-// sync with the rows in SettingsPage and the section components.
+// Settings page structure: the nav lists the groups (one item each); a group's
+// sections are the tabs at the head of its page. ROWS is the static search
+// index of the rows each section renders (SettingsRow / SettingsSection `id`s).
+// Keep ROWS in sync with the rows in SettingsPage and the section components.
 
 import { SHORTCUT_IDS } from '$lib/shortcuts';
 
 export type SectionKey =
+	/** 通用 → 基本: language, how things open, startup, 提示音 (SoundSettings), help. */
 	| 'general'
+	/** 通用 → 外观: theme, schemes, background, glass, fonts. */
+	| 'appearance'
+	/** 通用 → 对话: the conversation column and what a reply shows. */
+	| 'conversation'
 	| 'shortcuts'
 	| 'account'
 	/** 套餐与充值: buying a plan or balance in the app (purchase.ts). */
@@ -39,12 +44,24 @@ export type SectionKey =
 	| 'chat'
 	| 'updates';
 
-export const GROUPS: { key: string; sections: SectionKey[] }[] = [
-	{ key: 'app', sections: ['general', 'shortcuts', 'account', 'purchase', 'invite', 'devices', 'remote', 'usage', 'voice'] },
-	{ key: 'models', sections: ['providers', 'models', 'styles', 'network'] },
-	{ key: 'agents', sections: ['agents', 'sandbox', 'team', 'apptools', 'acp', 'skills', 'plugins', 'mcp', 'import'] },
-	{ key: 'system', sections: ['chat', 'updates'] }
+export type GroupKey = 'general' | 'account' | 'models' | 'agents' | 'extensions' | 'connect' | 'about';
+
+/** The nav's groups, in order; a group's first section opens with it. */
+export const GROUPS: { key: GroupKey; sections: SectionKey[] }[] = [
+	{ key: 'general', sections: ['general', 'appearance', 'conversation', 'shortcuts'] },
+	{ key: 'account', sections: ['account', 'purchase', 'usage', 'devices', 'invite'] },
+	{ key: 'models', sections: ['models', 'providers', 'styles', 'voice', 'network'] },
+	{ key: 'agents', sections: ['agents', 'acp', 'sandbox', 'team', 'apptools'] },
+	{ key: 'extensions', sections: ['skills', 'plugins', 'mcp', 'import'] },
+	{ key: 'connect', sections: ['remote', 'chat'] },
+	{ key: 'about', sections: ['updates'] }
 ];
+
+/** The group a section (or the skills page's marketplace tab) belongs to. */
+export function groupOf(section: SectionKey): (typeof GROUPS)[number] {
+	const key = section === 'market' ? 'skills' : section;
+	return GROUPS.find((g) => g.sections.includes(key)) ?? GROUPS[0];
+}
 
 const KEYS = new Set<string>(GROUPS.flatMap((g) => g.sections));
 
@@ -68,28 +85,29 @@ export interface SearchRow {
 
 export const ROWS: SearchRow[] = [
 	{ section: 'general', id: 'language', titleKey: 'settings.language' },
-	{ section: 'general', id: 'theme', titleKey: 'settings.theme' },
-	{ section: 'general', id: 'scheme-light', titleKey: 'settings.scheme.light', descKey: 'settings.scheme.slotHint' },
-	{ section: 'general', id: 'scheme-dark', titleKey: 'settings.scheme.dark', descKey: 'settings.scheme.slotHint' },
-	{ section: 'general', id: 'background', titleKey: 'settings.behavior.background' },
-	{ section: 'general', id: 'vibrancy', titleKey: 'settings.behavior.vibrancy', descKey: 'settings.behavior.vibrancyHint' },
-	{ section: 'general', id: 'glass', titleKey: 'settings.behavior.glass', descKey: 'settings.behavior.glassHint' },
+	{ section: 'appearance', id: 'theme', titleKey: 'settings.theme' },
+	{ section: 'appearance', id: 'scheme-light', titleKey: 'settings.scheme.light', descKey: 'settings.scheme.slotHint' },
+	{ section: 'appearance', id: 'scheme-dark', titleKey: 'settings.scheme.dark', descKey: 'settings.scheme.slotHint' },
+	{ section: 'appearance', id: 'background', titleKey: 'settings.behavior.background' },
+	{ section: 'appearance', id: 'vibrancy', titleKey: 'settings.behavior.vibrancy', descKey: 'settings.behavior.vibrancyHint' },
+	{ section: 'appearance', id: 'glass', titleKey: 'settings.behavior.glass', descKey: 'settings.behavior.glassHint' },
 	{ section: 'general', id: 'default-surface', titleKey: 'settings.behavior.defaultSurface', descKey: 'settings.behavior.defaultSurfaceHint' },
 	{ section: 'general', id: 'open-elsewhere', titleKey: 'settings.behavior.openElsewhere', descKey: 'settings.behavior.openElsewhereHint' },
-	{ section: 'general', id: 'ui-font', titleKey: 'settings.behavior.uiFont', descKey: 'settings.behavior.uiFontHint' },
-	{ section: 'general', id: 'chat-font', titleKey: 'settings.behavior.chatFont', descKey: 'settings.behavior.chatFontHint' },
-	{ section: 'general', id: 'code-font', titleKey: 'settings.behavior.codeFont', descKey: 'settings.behavior.codeFontHint' },
-	{ section: 'general', id: 'terminal-font', titleKey: 'settings.behavior.terminalFont' },
-	{ section: 'general', id: 'terminal-font-size', titleKey: 'settings.behavior.terminalFontSize' },
-	{ section: 'general', id: 'chat-width', titleKey: 'settings.behavior.chatWidth', descKey: 'settings.behavior.chatWidthHint' },
-	{ section: 'general', id: 'turn-stats', titleKey: 'settings.behavior.turnStats', descKey: 'settings.behavior.turnStatsHint' },
-	{ section: 'general', id: 'scroll-on-send', titleKey: 'settings.behavior.scrollOnSend', descKey: 'settings.behavior.scrollOnSendHint' },
-	{ section: 'general', id: 'fold-turns', titleKey: 'settings.behavior.foldTurns', descKey: 'settings.behavior.foldTurnsHint' },
-	{ section: 'general', id: 'foot-context', titleKey: 'settings.behavior.footContext', descKey: 'settings.behavior.footContextHint' },
-	{ section: 'general', id: 'foot-cost', titleKey: 'settings.behavior.footCost', descKey: 'settings.behavior.footCostHint' },
-	{ section: 'general', id: 'thinking-summaries', titleKey: 'settings.behavior.thinkingSummaries', descKey: 'settings.behavior.thinkingSummariesHint' },
-	{ section: 'general', id: 'cache-miss', titleKey: 'settings.behavior.cacheMissAlert', descKey: 'settings.behavior.cacheMissAlertHint' },
-	{ section: 'general', id: 'sounds', titleKey: 'settings.behavior.sounds', descKey: 'settings.behavior.soundsHint' },
+	{ section: 'appearance', id: 'ui-font', titleKey: 'settings.behavior.uiFont', descKey: 'settings.behavior.uiFontHint' },
+	{ section: 'appearance', id: 'chat-font', titleKey: 'settings.behavior.chatFont', descKey: 'settings.behavior.chatFontHint' },
+	{ section: 'appearance', id: 'code-font', titleKey: 'settings.behavior.codeFont', descKey: 'settings.behavior.codeFontHint' },
+	{ section: 'appearance', id: 'terminal-font', titleKey: 'settings.behavior.terminalFont' },
+	{ section: 'appearance', id: 'terminal-font-size', titleKey: 'settings.behavior.terminalFontSize' },
+	{ section: 'conversation', id: 'chat-width', titleKey: 'settings.behavior.chatWidth', descKey: 'settings.behavior.chatWidthHint' },
+	{ section: 'conversation', id: 'turn-stats', titleKey: 'settings.behavior.turnStats', descKey: 'settings.behavior.turnStatsHint' },
+	{ section: 'conversation', id: 'scroll-on-send', titleKey: 'settings.behavior.scrollOnSend', descKey: 'settings.behavior.scrollOnSendHint' },
+	{ section: 'conversation', id: 'fold-turns', titleKey: 'settings.behavior.foldTurns', descKey: 'settings.behavior.foldTurnsHint' },
+	{ section: 'conversation', id: 'foot-context', titleKey: 'settings.behavior.footContext', descKey: 'settings.behavior.footContextHint' },
+	{ section: 'conversation', id: 'foot-cost', titleKey: 'settings.behavior.footCost', descKey: 'settings.behavior.footCostHint' },
+	{ section: 'conversation', id: 'thinking-summaries', titleKey: 'settings.behavior.thinkingSummaries', descKey: 'settings.behavior.thinkingSummariesHint' },
+	{ section: 'conversation', id: 'cache-miss', titleKey: 'settings.behavior.cacheMissAlert', descKey: 'settings.behavior.cacheMissAlertHint' },
+	{ section: 'general', id: 'sounds', titleKey: 'sounds.title', descKey: 'sounds.masterHint' },
+	{ section: 'general', id: 'sounds-volume', titleKey: 'sounds.volume' },
 	{ section: 'general', id: 'html-open', titleKey: 'settings.behavior.htmlOpen' },
 	{ section: 'general', id: 'dev-server-open', titleKey: 'settings.behavior.devServerAutoOpen', descKey: 'settings.behavior.devServerAutoOpenHint' },
 	{ section: 'general', id: 'autostart', titleKey: 'settings.autostart.title', descKey: 'settings.autostart.hint' },

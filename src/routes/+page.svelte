@@ -69,7 +69,8 @@
 	import ConnectRequestDialog from '$lib/ConnectRequestDialog.svelte';
 	import { connectRequests } from '$lib/connectRequests.svelte';
 	import { prefs } from '$lib/prefs.svelte';
-	import { playChime, unlockChimes, type Chime } from '$lib/chime';
+	import { playSound, unlockSounds } from '$lib/sounds/play';
+	import { LinkSounds } from '$lib/sounds/link';
 	import { fmtTokens } from '$lib/usageStats';
 	import { cloudSync } from '$lib/cloudSync.svelte';
 	import { t } from '$lib/i18n';
@@ -123,7 +124,7 @@
 	import CommandPalette from '$lib/CommandPalette.svelte';
 	import ShortcutsDialog from '$lib/ShortcutsDialog.svelte';
 	import { matches } from '$lib/shortcuts';
-	import { readSidebarCollapsed, writeSidebarCollapsed, SIDEBAR_DEFAULT_WIDTH, SIDEBAR_RAIL_WIDTH } from '$lib/shell/sidebarState';
+	import { readSidebarCollapsed, writeSidebarCollapsed, sidebarSnap, SIDEBAR_DEFAULT_WIDTH, SIDEBAR_RAIL_WIDTH } from '$lib/shell/sidebarState';
 	import TaskDialog from '$lib/TaskDialog.svelte';
 	import ProjectPickDialog from '$lib/ProjectPickDialog.svelte';
 	import { llmTarget as llmTargetOf } from '$lib/llmTarget';
@@ -225,9 +226,13 @@
 			/* ignore */
 		}
 	}
-	const chime = (kind: Chime) => {
-		if (prefs.sounds) playChime(kind);
-	};
+	// The engine connection dropping for a while, and coming back.
+	const linkSounds = new LinkSounds((kind) => playSound(kind));
+	$effect(() => {
+		const status = agentDirectory.status;
+		untrack(() => linkSounds.update(status));
+	});
+	$effect(() => () => linkSounds.dispose());
 	const notifyDone = (title: string) =>
 		notify('Aogiri', t('shell.notifyDone', { title: shownTitle(title) }));
 	// How many conversations wait for the user: the Dock badge, the Windows
@@ -236,7 +241,8 @@
 	// An agent's question, pending action or report while the window is in
 	// the background.
 	agentDirectory.onArrival = (kind, agent, text, agentId) => {
-		if (kind === 'question' || kind === 'action') chime('attention');
+		if (kind === 'question' || kind === 'action') playSound('attention');
+		else if (kind === 'report') playSound('message');
 		const message = t(`shell.notify.${kind}`, { text });
 		if (!document.hasFocus()) void notify(agent, message);
 		// In front: a notice that leads to the agent on the workbench.
@@ -249,7 +255,7 @@
 	agentDirectory.onScheduleEvent = (event) => {
 		if (event.kind === 'skipped') return;
 		const title = t(`shell.schedule.event.${event.kind}`, { name: event.name });
-		if (event.kind === 'stopped') chime('attention');
+		playSound('error');
 		if (!document.hasFocus()) void notify(title, event.detail);
 		else
 			toast[event.kind === 'stopped' ? 'error' : 'info'](`${title} · ${event.detail}`, {
@@ -260,7 +266,7 @@
 	// dialog shows over everything, and a system notification while the
 	// window is in the background.
 	connectRequests.onRequest = (r) => {
-		chime('attention');
+		playSound('attention');
 		if (!document.hasFocus())
 			void notify(t('shell.connectRequest.notifyTitle'), t('shell.connectRequest.notifyBody', { name: r.name || t('shell.connectRequest.device'), code: r.check }));
 	};
@@ -638,11 +644,26 @@
 		const startX = e.clientX;
 		const startW = sidebarWidth;
 		sbResizing = true;
+		// Dragged well past its narrowest width, the navigator snaps to the
+		// rail (with the collapse's own motion), and back out the same way.
 		const move = (ev: PointerEvent) => {
-			sidebarWidth = Math.min(460, Math.max(240, startW + (ev.clientX - startX)));
+			const next = sidebarSnap(startW + (ev.clientX - startX));
+			if (next === 'rail') {
+				if (!sidebarCollapsed) {
+					sbResizing = false;
+					sidebarCollapsed = true;
+				}
+				return;
+			}
+			if (sidebarCollapsed) {
+				sbResizing = false;
+				sidebarCollapsed = false;
+			} else sbResizing = true;
+			sidebarWidth = next;
 		};
 		const up = () => {
 			sbResizing = false;
+			writeSidebarCollapsed(localStorage, sidebarCollapsed);
 			localStorage.setItem('lynshen-sidebar-width', String(sidebarWidth));
 			window.removeEventListener('pointermove', move);
 			window.removeEventListener('pointerup', up);
@@ -1541,7 +1562,7 @@
 
 	onMount(() => {
 		// The webview's audio starts locked; the first click or key unlocks it.
-		unlockChimes();
+		unlockSounds();
 		cloudSync.start();
 		// Anonymous usage counts; told once, off in Settings → General.
 		if (telemetry.start(sendTelemetry))
@@ -1572,6 +1593,7 @@
 				if (!s) return;
 				const wasBusy = s.chat.busy;
 				const hadApproval = s.chat.pendingApproval?.callId ?? null;
+				const hadLast = s.chat.messages.at(-1);
 				// A frame of text streaming changes no plan: the plans are not
 				// looked for (each look reads the whole conversation, on every
 				// delta of a reply).
@@ -1632,13 +1654,18 @@
 					s.chat.unseen = true;
 					notifyDone(s.chat.title);
 				}
-				// A sound unless the user is looking at this session: its turn
-				// ended, or an action, a question or a plan waits on them.
-				if (prefs.sounds && (!document.hasFocus() || s.id !== curActive)) {
+				// A sound unless the user is looking at this session: an action,
+				// a question or a plan waits on them, or its turn ended (failed:
+				// unless a retry of it is coming).
+				if (prefs.sounds) {
+					const watching = s.id === curActive;
 					const asking = s.chat.pendingApproval;
 					const planning = planless ? undefined : s.chat.messages.findLast((m) => m.kind === 'plan' && m.status === 'pending');
-					if ((asking && asking.callId !== hadApproval) || (planning && planning !== hadPlan)) chime('attention');
-					else if (wasBusy && !s.chat.busy) chime('done');
+					const last = s.chat.messages.at(-1);
+					if ((asking && asking.callId !== hadApproval) || (planning && planning !== hadPlan)) playSound('attention', { watching });
+					else if (wasBusy && !s.chat.busy && last !== hadLast && last?.kind === 'error') {
+						if (!s.chat.autoRetry) playSound('error', { watching });
+					} else if (wasBusy && !s.chat.busy) playSound('done', { watching });
 				}
 				// Something waits on the user while the window is in the
 				// background: an action to allow, or a plan to approve.
@@ -1746,6 +1773,10 @@
 			limitResume.store = store;
 			ChatState.onTurnFailed = (c, message, started) => autoRetry.failed(c, message, started);
 			cleanups.push(() => (ChatState.onTurnFailed = null));
+			// A background shell, agent or workflow of a session finished.
+			ChatState.onTaskDone = (c, status) =>
+				playSound(status === 'failed' ? 'error' : 'background', { watching: store.allSessions.find((x) => x.id === store.activeId)?.chat === c });
+			cleanups.push(() => (ChatState.onTaskDone = null));
 			if (disposed) {
 				cleanups.forEach((f) => f());
 				return;
@@ -1935,7 +1966,7 @@
 					}
 				}}
 			/>
-			<div class="resizer side" class:hidden={sidebarCollapsed} role="separator" aria-label={t('shell.remote.resizeSidebar')} onpointerdown={startSidebarResize}></div>
+			<div class="resizer side" class:hidden={sidebarCollapsed} role="separator" aria-label={t('shell.remote.resizeSidebar')} onpointerdown={startSidebarResize} ondblclick={toggleSidebar}></div>
 
 			<!-- THE CANVAS: workspace tabs on top, one mosaic for chats, tool panels,
 			     TUI and audit tiles below. -->
@@ -2483,17 +2514,38 @@
 		font-size: var(--fs-sm);
 		color: var(--dim);
 	}
-	/* ---------- sidebar resizer ---------- */
+	/* ---------- sidebar resizer ----------
+	   A 5px grab area on the navigator's edge. On hover a 3px pill fades in
+	   on the divider, inset from the ends (no square band). Dragging it past
+	   the narrowest width snaps the navigator to the rail; a double click
+	   collapses it (sidebarSnap, design.md "Navigator"). */
 	.resizer {
+		position: relative;
 		width: 5px;
 		flex-shrink: 0;
 		cursor: col-resize;
 		background: transparent;
 		z-index: 5;
-		transition: background var(--t-med) var(--ease-out);
 	}
-	.resizer:hover {
-		background: var(--accent-soft);
+	.resizer::after {
+		content: '';
+		position: absolute;
+		top: 8px;
+		bottom: 8px;
+		left: 1px;
+		width: 3px;
+		border-radius: var(--r-full);
+		background: var(--border-strong);
+		opacity: 0;
+		transform: scaleY(0.96);
+		transition:
+			opacity var(--t-med) var(--ease-base),
+			transform var(--t-med) var(--ease-base);
+	}
+	.resizer:hover::after,
+	.resizer:active::after {
+		opacity: 1;
+		transform: none;
 	}
 	.resizer.side {
 		margin-left: -3px;

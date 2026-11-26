@@ -61,9 +61,10 @@
 		gap: 6px;
 		min-width: 0;
 		max-width: 100%;
-		padding: 6px 11px 6px 10px;
+		padding: 6px 13px 6px 11px;
 		border: none;
-		border-radius: var(--r-md);
+		/* A chip is a pill (design.md, "Corners"). */
+		border-radius: var(--r-full);
 		background: var(--surface2);
 		color: var(--text);
 		font: inherit;
