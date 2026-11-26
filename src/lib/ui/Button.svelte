@@ -37,7 +37,7 @@
 			border-color var(--t-fast) var(--ease-out),
 			color var(--t-fast) var(--ease-out),
 			opacity var(--t-fast) var(--ease-out),
-			transform var(--t-fast) var(--ease-spring),
+			transform var(--t-fast) var(--ease-out),
 			box-shadow var(--t-med) var(--ease-out);
 	}
 	.b:active:not(:disabled) {

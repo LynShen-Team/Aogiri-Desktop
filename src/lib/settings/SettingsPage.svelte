@@ -99,7 +99,7 @@
 	import { RETRY_ATTEMPTS_MAX, retryAttemptsSetting } from '$lib/retryView';
 	import Select from '$lib/ui/Select.svelte';
 	import { offeredFonts, type FontChoice, type FontSlot } from '$lib/fonts';
-	import { playChime } from '$lib/chime';
+	import SoundSettings from '$lib/settings/SoundSettings.svelte';
 	import ModelPicker from '$lib/models/ModelPicker.svelte';
 	import { itemsFromOptions } from '$lib/models/items';
 	import { gatewayCatalog } from '$lib/models/catalogStore.svelte';
@@ -1084,15 +1084,9 @@
 								onChange={(v) => prefs.setOpenElsewhere(v === 'tab' ? 'tab' : 'side')}
 							/>
 						</SettingsRow>
-						<SettingsRow id="sounds" title={t('settings.behavior.sounds')} description={t('settings.behavior.soundsHint')}>
-							<div class="sound-acts">
-								<Button size="sm" variant="ghost" onclick={() => playChime('done')}>{t('settings.behavior.soundsDone')}</Button>
-								<Button size="sm" variant="ghost" onclick={() => playChime('attention')}>{t('settings.behavior.soundsAttention')}</Button>
-								<Switch checked={prefs.sounds} label={t('settings.behavior.sounds')} onChange={(on) => prefs.setFlag('sounds', on)} />
-							</div>
-						</SettingsRow>
 						{#if inApp}<AutostartRows />{/if}
 					</SettingsSection>
+					<SoundSettings />
 					<SettingsSection title={t('settings.page.help')}>
 						<SettingsRow id="feedback" title={t('settings.help.feedback')}>
 							<Button size="sm" disabled={!onFeedback} onclick={() => onFeedback?.()}>{t('settings.help.feedbackOpen')}</Button>
@@ -1676,11 +1670,6 @@
 {/if}
 
 <style>
-	.sound-acts {
-		display: flex;
-		align-items: center;
-		gap: 4px;
-	}
 	.stat-preview {
 		position: relative;
 		padding: 16px 18px 14px;

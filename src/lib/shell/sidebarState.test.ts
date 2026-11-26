@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readSidebarCollapsed, writeSidebarCollapsed } from './sidebarState';
+import { readSidebarCollapsed, sidebarSnap, writeSidebarCollapsed } from './sidebarState';
 
 function memory(init: Record<string, string> = {}) {
 	const data = new Map(Object.entries(init));
@@ -40,5 +40,15 @@ describe('sidebar collapsed state', () => {
 	it('prefers the new key over the old one', () => {
 		const s = memory({ 'lynshen-sidebar-collapsed': '0', 'lynshen-sidebar-visible': '0' });
 		expect(readSidebarCollapsed(s)).toBe(false);
+	});
+});
+
+describe('dragging the navigator edge', () => {
+	it('keeps the width within 240–460px', () => {
+		expect([sidebarSnap(300.4), sidebarSnap(200), sidebarSnap(900)]).toEqual([300, 240, 460]);
+	});
+
+	it('snaps to the rail below 160px', () => {
+		expect([sidebarSnap(159), sidebarSnap(160), sidebarSnap(-20)]).toEqual(['rail', 240, 'rail']);
 	});
 });

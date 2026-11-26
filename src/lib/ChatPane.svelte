@@ -115,6 +115,7 @@
 	import type { Proposal } from '$lib/turnSummary';
 	import type { ScheduleDraft } from '$lib/schedules';
 	import { copyText } from '$lib/clipboard';
+	import { playSound } from '$lib/sounds/play';
 	import PopMenu, { type PopMenuItem } from '$lib/ui/PopMenu.svelte';
 	import { imageViewer } from '$lib/ui/imageViewer.svelte';
 	import { isMac } from '$lib/shortcuts';
@@ -1239,6 +1240,7 @@
 				chat.optimisticUser(content, sent, false, attached);
 			}
 			send({ op: 'user_message', content, images: imagePaths.length ? imagePaths : undefined, ...(attached.length ? { files: attached } : {}) });
+			playSound('sent');
 			// ⌘↵ / ⌘⇧↵: the engine queues it last, and that one goes now.
 			if (now && chat.busy && !chat.restarting) queueAction({ kind: now === 'steer' ? 'steer' : 'interrupt', index: -1 }, [...chat.pendingMessages, content]);
 		}

@@ -32,6 +32,7 @@ mod plugins;
 mod preview;
 mod provider_auth;
 mod provider_models;
+mod quiet;
 #[cfg(desktop)]
 mod renamed;
 mod secrets;
@@ -4108,6 +4109,7 @@ pub fn run() {
             quit_app,
             main_window::set_window_frost,
             main_window::set_window_theme,
+            quiet::system_quiet,
             daemon_endpoint,
             check_backend,
             check_agent_update,

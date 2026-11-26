@@ -990,7 +990,7 @@
 		min-width: 0;
 		overflow: hidden;
 		contain: layout paint;
-		transition: width var(--t-base) var(--ease-base);
+		transition: width var(--t-slow) var(--ease-soft);
 	}
 	.sb-inner {
 		display: flex;
@@ -1214,7 +1214,7 @@
 		margin: 0 8px 4px;
 		padding: 0 2px 0 8px;
 		border: 1px solid var(--border);
-		border-radius: var(--r-sm);
+		border-radius: var(--r-md);
 		background: var(--bg);
 		color: var(--dim2);
 		animation: rise var(--t-fast) var(--ease-out);
@@ -1274,7 +1274,7 @@
 		position: absolute;
 		inset: 0;
 		z-index: -1;
-		border-radius: var(--r-sm);
+		border-radius: var(--r-md);
 		transition: background var(--t-fast) var(--ease-base);
 	}
 	.primary .row:hover,
@@ -1290,8 +1290,8 @@
 		width: 16px;
 		height: 16px;
 		transition:
-			width var(--t-base) var(--ease-base),
-			height var(--t-base) var(--ease-base),
+			width var(--t-slow) var(--ease-soft),
+			height var(--t-slow) var(--ease-soft),
 			color var(--t-fast) var(--ease-base);
 	}
 	.primary .row:hover :global(svg),
@@ -1303,8 +1303,8 @@
 	   edge and a --text icon, the others are --dim. */
 	.primary .row {
 		transition:
-			min-height var(--t-base) var(--ease-base),
-			padding var(--t-base) var(--ease-base),
+			min-height var(--t-slow) var(--ease-soft),
+			padding var(--t-slow) var(--ease-soft),
 			color var(--t-fast) var(--ease-base);
 	}
 	.collapsed .primary .row {
@@ -1358,7 +1358,8 @@
 		opacity: 1;
 	}
 	/* Rows (design.md, "Navigator"): 28px, 8px side padding, a 16px icon,
-	   --r-sm; the selected row has a --surface2 fill and --text. */
+	   --r-md; the selected row has a --surface2 fill and --text, inset 8px
+	   from the panel's edges (the list's padding). */
 	.row,
 	.sess,
 	.sub,
@@ -1371,7 +1372,7 @@
 		min-height: 28px;
 		padding: 0 8px;
 		border: none;
-		border-radius: var(--r-sm);
+		border-radius: var(--r-md);
 		background: none;
 		color: var(--text);
 		font: inherit;
@@ -1832,7 +1833,7 @@
 	   (--list-fill, as the panel paints it). */
 	.item {
 		position: relative;
-		border-radius: var(--r-sm);
+		border-radius: var(--r-md);
 	}
 	.list {
 		--list-fill: var(--sidebar);
@@ -1903,7 +1904,7 @@
 		align-items: center;
 		gap: 2px;
 		padding-right: 4px;
-		border-radius: var(--r-sm);
+		border-radius: var(--r-md);
 	}
 	.folder:hover {
 		background: var(--surface2);

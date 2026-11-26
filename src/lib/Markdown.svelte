@@ -6,6 +6,7 @@
 	import { renderMermaid } from '$lib/mermaid';
 	import { themeState } from '$lib/theme.svelte';
 	import { t } from '$lib/i18n';
+	import { playSound } from '$lib/sounds/play';
 	import { useFileCheck } from '$lib/fileCheck';
 
 	let {
@@ -84,7 +85,7 @@
 			e.preventDefault();
 			const pre = copy.closest('.codeblock')?.querySelector('pre');
 			const code = pre?.textContent ?? '';
-			navigator.clipboard?.writeText(code).catch(() => {});
+			navigator.clipboard?.writeText(code).then(() => playSound('copied'), () => {});
 			const btn = copy as HTMLButtonElement;
 			btn.textContent = t('common.copied');
 			setTimeout(() => (btn.textContent = t('common.copy')), 1400);

@@ -6,7 +6,7 @@
 import { SHORTCUT_IDS } from '$lib/shortcuts';
 
 export type SectionKey =
-	/** 通用 → 基本: language, how things open, sounds, startup, help. */
+	/** 通用 → 基本: language, how things open, startup, 提示音 (SoundSettings), help. */
 	| 'general'
 	/** 通用 → 外观: theme, schemes, background, glass, fonts. */
 	| 'appearance'
@@ -106,7 +106,8 @@ export const ROWS: SearchRow[] = [
 	{ section: 'conversation', id: 'foot-cost', titleKey: 'settings.behavior.footCost', descKey: 'settings.behavior.footCostHint' },
 	{ section: 'conversation', id: 'thinking-summaries', titleKey: 'settings.behavior.thinkingSummaries', descKey: 'settings.behavior.thinkingSummariesHint' },
 	{ section: 'conversation', id: 'cache-miss', titleKey: 'settings.behavior.cacheMissAlert', descKey: 'settings.behavior.cacheMissAlertHint' },
-	{ section: 'general', id: 'sounds', titleKey: 'settings.behavior.sounds', descKey: 'settings.behavior.soundsHint' },
+	{ section: 'general', id: 'sounds', titleKey: 'sounds.title', descKey: 'sounds.masterHint' },
+	{ section: 'general', id: 'sounds-volume', titleKey: 'sounds.volume' },
 	{ section: 'general', id: 'html-open', titleKey: 'settings.behavior.htmlOpen' },
 	{ section: 'general', id: 'dev-server-open', titleKey: 'settings.behavior.devServerAutoOpen', descKey: 'settings.behavior.devServerAutoOpenHint' },
 	{ section: 'general', id: 'autostart', titleKey: 'settings.autostart.title', descKey: 'settings.autostart.hint' },

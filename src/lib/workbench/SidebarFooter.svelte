@@ -235,7 +235,8 @@
 		min-height: 40px;
 		padding: 0 8px 0 0;
 		border: none;
-		border-radius: var(--r-sm);
+		/* About concentric with the 28px avatar 6px inside it (14 + 6). */
+		border-radius: var(--r-lg);
 		background: none;
 		color: var(--text);
 		font: inherit;
@@ -247,10 +248,10 @@
 		position: absolute;
 		inset: 0;
 		z-index: -1;
-		border-radius: var(--r-sm);
+		border-radius: var(--r-lg);
 		transition:
 			background var(--t-fast) var(--ease-out),
-			right var(--t-base) var(--ease-base);
+			right var(--t-slow) var(--ease-soft);
 	}
 	.account:hover::before,
 	.account.on::before {

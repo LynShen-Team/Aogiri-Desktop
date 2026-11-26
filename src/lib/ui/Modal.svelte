@@ -170,7 +170,7 @@
 		overflow: clip;
 		position: relative;
 		isolation: isolate;
-		border-radius: var(--r-lg);
+		border-radius: var(--r-xl);
 		box-shadow: var(--shadow-modal);
 		outline: none;
 	}
