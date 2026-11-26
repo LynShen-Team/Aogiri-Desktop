@@ -2368,14 +2368,14 @@ try {
     const glyph = el.querySelector('.working canvas.glyph');
     // The glyph has drawn: some of its pixels are not clear.
     const drawn = glyph ? glyph.getContext('2d').getImageData(0, 0, glyph.width, glyph.height).data.some((v, i) => i % 4 === 3 && v > 0) : false;
-    return {label: words('.working .label'), elapsed: words('.working .elapsed'), text: words('.step'), glyphs: el.querySelectorAll('canvas.glyph').length, drawn, sweeps: el.querySelectorAll('.working .veil').length, more: !!el.querySelector('.more')};
+    return {label: words('.working .label'), elapsed: words('.working .elapsed'), text: [...el.querySelectorAll('.step .verb, .step .obj')].map((n) => n.textContent.trim()).join(' '), sep: words('.step .sep'), glyphs: el.querySelectorAll('canvas.glyph').length, drawn, sweeps: el.querySelectorAll('.working .veil').length, more: !!el.querySelector('.more')};
   });
   await work.goto(base + '?shell&work=group');
   await expect(work.locator('.ind')).toBeVisible({timeout:30000});
   const workLine = await statusLine();
   assert.deepEqual([workLine.label, workLine.glyphs, workLine.drawn, workLine.sweeps, workLine.more], ['工作中', 1, true, 1, true]);
   assert.match(workLine.elapsed, /^\d+ 秒$/);
-  assert.equal(workLine.text, '正在运行 pnpm vitest run src/lib/cache.test.ts');
+  assert.deepEqual([workLine.sep, workLine.text], ['·', '正在运行 pnpm vitest run src/lib/cache.test.ts']);
   // A turn of a minute and more counts minutes, then hours.
   await work.evaluate(() => { window.__shellChat.turnRunningSince = Date.now() - 65_000; });
   await expect(work.locator('.ind .elapsed')).toHaveText(/^1 分 0[56] 秒$/);
