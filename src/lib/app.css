@@ -95,15 +95,31 @@
 	--fs-xl: 22px; /* canvas-page and overview titles */
 	--fs-2xl: 28px; /* the display moments */
 
-	/* The frame, menus, cards and dialogs stay at --r-lg or less; the user
-	   bubble (--r-xl) and the composer (--r-2xl) are rounder. */
-	--r-xs: 2px;
-	--r-sm: 4px;
-	--r-md: 6px;
-	--r-lg: 8px;
-	--r-xl: 12px;
-	--r-2xl: 14px;
+	/* Radius (design.md, "Corners"): soft, Apple-like corners on one scale.
+	   A nested corner is concentric: inner radius = outer radius − the gap
+	   between them (a --r-lg menu with 4px padding holds --r-md rows; a pill
+	   track with 2px padding holds pill segments). --r-full is the pill and
+	   the circle: segmented controls, chips, counts, switches, round buttons.
+	     --r-xs   key glyphs, small marks, checkboxes, the focus ring
+	     --r-sm   buttons, inputs, list and navigator rows, title bar buttons
+	     --r-md   menu rows, tooltips, code blocks, tables, tool output, tabs
+	     --r-lg   menus, popovers, cards, toasts
+	     --r-xl   dialogs, the user bubble
+	     --r-2xl  the composer */
+	--r-xs: 4px;
+	--r-sm: 8px;
+	--r-md: 10px;
+	--r-lg: 14px;
+	--r-xl: 18px;
+	--r-2xl: 22px;
 	--r-full: 999px;
+	/* Where the webview draws `corner-shape: squircle` (the continuous
+	   corner), the tall surfaces take it with their radius times --r-sq: a
+	   squircle reads about as soft as a circular arc of half its radius, so
+	   the scale (and the concentric sums) keep their meaning. Short
+	   surfaces, pills and circles never take it. See the @supports block
+	   after .pop. */
+	--r-sq: 2;
 
 	/* Motion, after hark.com's web app: one base curve for size, colour and
 	   opacity (--ease-base, --t-base); things coming in decelerate
@@ -495,7 +511,8 @@ body {
 
 /* Popover surface shared by every menu and floating picker (ui/PopMenu.svelte
    and the pickers built on it), design.md "Menus and popovers": --panel,
-   --r-lg, --shadow-pop (its --divider ring), 4px padding; 28px rows. */
+   --r-lg, --shadow-pop (its --divider ring), 4px padding; 28px --r-md rows,
+   concentric with the surface (14 − 4 = 10px). */
 .pop {
 	display: flex;
 	flex-direction: column;
@@ -583,6 +600,45 @@ body {
 .pop-row.warn .pop-label,
 .pop-row.warn .pop-check {
 	color: var(--warn);
+}
+
+/* The continuous corner (design.md, "Corners"), where the webview has it
+   (WebView2 on Windows, WKWebView on recent macOS; elsewhere the circular
+   arc). Only the tall surfaces take it (menus, dialogs, the approval card,
+   code blocks and tables), at --r-sq times their radius. Anything under
+   about 48px high (rows, buttons, chips, toasts, the user bubble, the
+   one-line composer) keeps the circular arc: there the doubled radius is
+   capped at half the height, and a squircle capped that way reads squarer
+   than the arc it replaces. Every squircle rule lives here, so components
+   keep plain CSS; each selector carries one step more than the component's
+   own scoped rule (a scoped `.sheet` is one class and the svelte hash). */
+@supports (corner-shape: squircle) {
+	.pop,
+	.modal-root > .scrim > .sheet,
+	html:root .approval,
+	html:root .md .codeblock,
+	html:root .md .table-wrap {
+		corner-shape: squircle;
+	}
+	.pop {
+		border-radius: calc(var(--r-lg) * var(--r-sq));
+	}
+	.modal-root > .scrim > .sheet {
+		border-radius: calc(var(--r-xl) * var(--r-sq));
+	}
+	html:root .approval {
+		border-radius: calc(var(--r-lg) * var(--r-sq));
+	}
+	html:root .md .codeblock,
+	html:root .md .table-wrap {
+		border-radius: calc(var(--r-md) * var(--r-sq));
+	}
+	/* Layers that inherit the radius (the dialog's and the approval card's
+	   glass) take the shape too. */
+	.modal-root > .scrim > .sheet::before,
+	html:root .approval::before {
+		corner-shape: squircle;
+	}
 }
 
 /* Anchored popovers (menus, effort/approval pops): grow up from their anchor. */

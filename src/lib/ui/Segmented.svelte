@@ -18,24 +18,26 @@
 </div>
 
 <style>
+	/* A pill track holding pill segments: concentric, as the 2px gap keeps
+	   each segment's ends parallel to the track's (design.md, "Corners"). */
 	.seg {
 		display: inline-flex;
 		padding: 2px;
 		gap: 2px;
 		background: var(--surface2);
 		border: 1px solid var(--hairline);
-		border-radius: var(--r-md);
+		border-radius: var(--r-full);
 	}
 	.opt {
 		flex: 1;
-		padding: 3px 12px;
+		padding: 3px 14px;
 		border: none;
 		background: none;
 		color: var(--dim);
 		font-size: var(--fs-sm);
 		line-height: 18px;
 		font-family: var(--font-sans);
-		border-radius: var(--r-sm);
+		border-radius: var(--r-full);
 		cursor: pointer;
 		white-space: nowrap;
 		transition:

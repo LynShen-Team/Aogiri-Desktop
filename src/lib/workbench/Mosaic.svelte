@@ -537,8 +537,9 @@
 		box-shadow: inset 0 0 0 2px color-mix(in oklab, var(--accent) 65%, transparent);
 	}
 	/* The tab bar (design.md, "Window frame"): 32px of the frame tone with
-	   the --divider under it. Tabs are square, divided by 1px lines; the open
-	   one takes the canvas fill and covers the line, so it joins its content. */
+	   the --divider under it. Tabs are 28px, set 4px into the bar from the
+	   top, 2px apart, their top corners rounded (--r-md); the open one takes
+	   the canvas fill and covers the line, so it joins its content. */
 	.lbar {
 		position: relative;
 		display: flex;
@@ -556,7 +557,9 @@
 	}
 	.ltabs {
 		display: flex;
-		align-items: stretch;
+		align-items: flex-end;
+		gap: 2px;
+		padding-left: 4px;
 		flex: 1;
 		min-width: 0;
 		overflow-x: auto;
@@ -568,10 +571,10 @@
 		display: flex;
 		align-items: center;
 		gap: 6px;
-		height: 32px;
+		height: 28px;
 		max-width: 240px;
 		padding: 0 6px 0 12px;
-		border-right: 1px solid var(--divider);
+		border-radius: var(--r-md) var(--r-md) 0 0;
 		font-size: var(--fs-sm);
 		line-height: 18px;
 		color: var(--dim);
@@ -586,6 +589,9 @@
 	.ltab:hover {
 		color: var(--text);
 	}
+	.ltab:not(.on):hover {
+		background: var(--surface2);
+	}
 	.ltab.on {
 		background: var(--bg);
 		color: var(--text);
@@ -593,7 +599,6 @@
 	/* Keyboard focus is drawn inside the tab, not over its neighbours. */
 	.ltab:focus-visible {
 		outline-offset: -2px;
-		border-radius: 0;
 	}
 	.lactions {
 		align-self: center;
