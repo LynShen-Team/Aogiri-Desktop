@@ -70,7 +70,7 @@
 	.ind {
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: 8px;
 		min-width: 0;
 		height: 24px;
 		padding: 0 2px;
@@ -106,7 +106,7 @@
 		flex-shrink: 0;
 		width: 20px;
 		height: 20px;
-		margin-left: -6px;
+		margin-left: -4px;
 		padding: 0;
 		border: none;
 		border-radius: var(--r-sm);
