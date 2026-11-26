@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Msg } from '$lib/chat.svelte';
 import { ChatState } from '$lib/chat.svelte';
-import { workElapsed, workStep } from './workStatus';
+import { workStep } from './workStatus';
 
 const tool = (name: string, extra: Partial<Extract<Msg, { kind: 'tool' }>> = {}): Msg => ({
 	kind: 'tool',
@@ -84,16 +84,6 @@ describe('the chat records what a running call acts on', () => {
 		} as never);
 		const m = chat.messages.at(-1) as Extract<Msg, { kind: 'tool' }>;
 		expect(m.target).toBe("cat > notes.md <<'EOF'");
-	});
-});
-
-describe('workElapsed', () => {
-	it('shows whole seconds, then minutes', () => {
-		expect(workElapsed(0)).toBe('0s');
-		expect(workElapsed(24_900)).toBe('24s');
-		expect(workElapsed(59_999)).toBe('59s');
-		expect(workElapsed(65_000)).toBe('1m05s');
-		expect(workElapsed(-5)).toBe('0s');
 	});
 });
 

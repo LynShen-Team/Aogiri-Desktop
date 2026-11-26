@@ -3,18 +3,19 @@
 	// rows and canvas tabs (design.md, "Status, attention and emphasis"). A
 	// status colour shows only as one 6px dot: --warn while the session waits
 	// for the reader, --err after a failure, --text for a reply not seen yet.
-	// A session at work shows the spinner, in --dim, on home rows and tabs;
-	// the navigator shows no mark for it and sweeps a light across the title
-	// instead (ui/shimmer.ts). A session whose turn ended while background
-	// tasks it started still run (subagents, Workflows, commands) is not at
-	// work: it shows a still mark of three circles in --dim, everywhere. The words
+	// A session at work shows the working glyph (ui/DotGlyph.svelte), in
+	// --dim, on home rows and tabs; the navigator shows no mark for it and
+	// sweeps a light across the title instead (ui/shimmer.ts). A session
+	// whose turn ended while background tasks it started still run
+	// (subagents, Workflows, commands) is not at work: it shows a still mark
+	// of three circles in --dim, everywhere. The words
 	// go in the title (and, in the sidebar, on the line under the session's
 	// title).
-	import CircleNotchIcon from 'phosphor-svelte/lib/CircleNotchIcon';
 	import CirclesThreeIcon from 'phosphor-svelte/lib/CirclesThreeIcon';
 	import { t } from '$lib/i18n';
 	import type { SessionStatus } from '$lib/sessionStatus';
 	import { describeError, stripEngineHint } from '$lib/errorInfo';
+	import DotGlyph from '$lib/ui/DotGlyph.svelte';
 
 	let { status, compact = false }: { status: SessionStatus; compact?: boolean } = $props();
 </script>
@@ -27,8 +28,8 @@
 	{@const tip = known ? t(`chat.err.${known.kind}.title`, { subject: known.subject ?? t('chat.err.thisTool') }) : stripEngineHint(status.message)}
 	<span class="dot failed" class:compact title={tip || t('shell.status.failed')} role="img" aria-label={t('shell.status.failed')}></span>
 {:else if status?.kind === 'running'}
-	<span class="mark running" title={t('shell.status.running')} aria-label={t('shell.status.running')}>
-		<CircleNotchIcon size={compact ? 12 : 14} class="spin" />
+	<span class="mark running" title={t('shell.status.running')} role="img" aria-label={t('shell.status.running')}>
+		<DotGlyph size={compact ? 12 : 14} />
 	</span>
 {:else if status?.kind === 'background'}
 	{@const label = t('shell.status.background', { n: status.n })}

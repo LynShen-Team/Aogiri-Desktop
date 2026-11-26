@@ -1,7 +1,7 @@
-// What the work status line under the transcript says (Indicator.svelte):
-// the step the turn is on as a verb and its object ("正在运行 pnpm vitest
-// run"), when the step began, and the tool call it is, for its details. The
-// words carry the stage; the line has one sign for all of them.
+// What the work status line under the transcript says (Indicator.svelte)
+// after the working indicator: the step the turn is on as a verb and its
+// object ("正在运行 pnpm vitest run"), when the step began, and the tool call
+// it is, for its details. The words carry the stage.
 import type { CallTiming, Msg } from '$lib/chat.svelte';
 import { parseToolOutput, toolTarget } from '$lib/toolSummary';
 
@@ -92,10 +92,4 @@ export function workStep(phase: WorkPhase | (string & {}) | null, call: CallTimi
 		default:
 			return null;
 	}
-}
-
-/** Whole seconds, then minutes: `24s`, `3m05s`. */
-export function workElapsed(ms: number): string {
-	const s = Math.max(0, Math.floor(ms / 1000));
-	return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m${String(s % 60).padStart(2, '0')}s`;
 }

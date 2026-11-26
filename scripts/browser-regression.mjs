@@ -2352,27 +2352,35 @@ try {
   const fill = (sel) => light.evaluate((sel) => getComputedStyle(document.querySelector(sel)).backgroundColor, sel);
   assert.deepEqual([await fill('body'), await fill('.sidebar'), await fill('.composer')], ['rgb(246, 245, 242)', 'rgb(240, 239, 235)', 'rgb(251, 250, 248)']);
   await light.close();
-  // The work status line: one sign, the step in words (a verb and what it
-  // acts on), how long it has taken, › to the running call, and the whole
-  // turn's time at its end (B07 D07). A command keeps its name after
-  // lynshen's updates replace "started: <command>"; a run of calls opens,
-  // and a card the reader folded opens again. A running call is folded,
-  // the running light over its words (D02).
+  // The work status line: the working indicator (the dot glyph, 工作中 under
+  // the running light, the whole turn's time: 「41 秒」), then the step in
+  // words (a verb and what it acts on) and › to the running call (B07 D07;
+  // owner 2026-11-26, on a reference recording). A command keeps its name
+  // after lynshen's updates replace "started: <command>"; a run of calls
+  // opens, and a card the reader folded opens again. A running call is
+  // folded, the running light over its words (D02).
   const work = await browser.newPage();
   work.on('pageerror', e => errors.push(e.message));
   const statusLine = () => work.evaluate(() => {
     const el = document.querySelector('.ind');
     if (!el) return null;
-    const turn = el.querySelector('.turn');
-    const step = [...el.childNodes].filter((n) => n !== turn).map((n) => n.textContent).join(' ');
-    return {text: step.replace(/\s+/g, ' ').trim(), turn: turn?.textContent.trim() ?? null, signs: el.querySelectorAll('.sign').length, spin: getComputedStyle(el.querySelector('.sign')).animationName, more: !!el.querySelector('.more')};
+    const words = (sel) => el.querySelector(sel)?.textContent.replace(/\s+/g, ' ').trim() ?? null;
+    const glyph = el.querySelector('.working canvas.glyph');
+    // The glyph has drawn: some of its pixels are not clear.
+    const drawn = glyph ? glyph.getContext('2d').getImageData(0, 0, glyph.width, glyph.height).data.some((v, i) => i % 4 === 3 && v > 0) : false;
+    return {label: words('.working .label'), elapsed: words('.working .elapsed'), text: words('.step'), glyphs: el.querySelectorAll('canvas.glyph').length, drawn, sweeps: el.querySelectorAll('.working .veil').length, more: !!el.querySelector('.more')};
   });
   await work.goto(base + '?shell&work=group');
   await expect(work.locator('.ind')).toBeVisible({timeout:30000});
   const workLine = await statusLine();
-  assert.match(workLine.text, /^正在运行 pnpm vitest run src\/lib\/cache\.test\.ts · \d+s$/);
-  assert.match(workLine.turn, /^\d+s$/);
-  assert.deepEqual([workLine.signs, workLine.spin, workLine.more], [1, 'spin', true]);
+  assert.deepEqual([workLine.label, workLine.glyphs, workLine.drawn, workLine.sweeps, workLine.more], ['工作中', 1, true, 1, true]);
+  assert.match(workLine.elapsed, /^\d+ 秒$/);
+  assert.equal(workLine.text, '正在运行 pnpm vitest run src/lib/cache.test.ts');
+  // A turn of a minute and more counts minutes, then hours.
+  await work.evaluate(() => { window.__shellChat.turnRunningSince = Date.now() - 65_000; });
+  await expect(work.locator('.ind .elapsed')).toHaveText(/^1 分 0[56] 秒$/);
+  await work.evaluate(() => { window.__shellChat.turnRunningSince = Date.now() - 3_720_000; });
+  await expect(work.locator('.ind .elapsed')).toHaveText('1 时 02 分');
   await expect(work.locator('.tgroup.open')).toHaveCount(0);
   // The run's line: its count, latest call, a light while a call runs.
   await expect(work.locator('.tgroup .veil')).toHaveCount(1);
@@ -2386,10 +2394,10 @@ try {
   await expect(runningCard.locator('.collapse')).toHaveCount(0);
   await work.locator('.ind .more').click();
   await expect(runningCard.locator('.collapse.open')).toHaveCount(1);
-  for (const [step, text] of [['read', /^正在读取 cache\.ts · \d+s$/], ['think', /^正在思考 · \d+s$/], ['write', /^正在写回复 · \d+s$/], ['mcp', /^正在调用 create_issue · \d+s$/]]) {
+  for (const [step, text] of [['read', '正在读取 cache.ts'], ['think', '正在思考'], ['write', '正在写回复'], ['mcp', '正在调用 create_issue']]) {
     await work.goto(base + '?shell&work=' + step);
     await expect(work.locator('.ind')).toBeVisible({timeout:30000});
-    assert.match((await statusLine()).text, text, step);
+    assert.equal((await statusLine()).text, text, step);
     assert.equal((await statusLine()).more, step === 'read' || step === 'mcp', step);
   }
   await work.close();
@@ -4631,7 +4639,7 @@ try {
     await expect(page.locator('.proposal')).toContainText('未采用');
 
     await page.goto(base + '?shell&work=group');
-    await expect(page.locator('.ind .turn')).toBeVisible({timeout: 60000});
+    await expect(page.locator('.ind .elapsed')).toBeVisible({timeout: 60000});
     await page.evaluate(() => {
       const c = window.__shellChat;
       c.stopAsked = true;

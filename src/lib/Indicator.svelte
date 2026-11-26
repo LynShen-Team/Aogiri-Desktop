@@ -1,15 +1,15 @@
 <script lang="ts">
-	import { visibleInterval } from '$lib/visibleInterval';
-	// The work status line under the transcript: one sign, what the turn is
-	// doing in words ("正在运行 pnpm vitest run"), how long this step has
-	// taken, and "›" to the running tool call's details (workStatus.ts). The
-	// words change at once when the step does; only the sign moves.
-	import AsteriskSimpleIcon from 'phosphor-svelte/lib/AsteriskSimpleIcon';
+	// The work status line under the transcript: the working indicator (the
+	// dot glyph, 工作中 under a light, the whole turn's time so far;
+	// ui/WorkingIndicator.svelte), then what the turn is doing in words
+	// ("正在运行 pnpm vitest run") and "›" to the running tool call's details
+	// (workStatus.ts). The words change at once when the step does.
 	import CaretRightIcon from 'phosphor-svelte/lib/CaretRightIcon';
 	import { untrack } from 'svelte';
 	import { t } from '$lib/i18n';
 	import type { CallTiming, Msg } from '$lib/chat.svelte';
-	import { workElapsed, workStep, type WorkPhase } from '$lib/workStatus';
+	import WorkingIndicator from '$lib/ui/WorkingIndicator.svelte';
+	import { workStep, type WorkPhase } from '$lib/workStatus';
 
 	let {
 		phase,
@@ -26,8 +26,7 @@
 		/** The model request in flight. */
 		call?: CallTiming | null;
 		messages?: readonly Msg[];
-		/** When the running turn began (0: not known): its clock at the
-		 *  line's end. */
+		/** When the running turn began (0: not known): the clock counts from it. */
 		turnSince?: number;
 		/** Show a tool call's details (its card in the transcript). */
 		onDetails?: (call: Extract<Msg, { kind: 'tool' }>) => void;
@@ -37,40 +36,33 @@
 	const fmt = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`);
 	const object = $derived(step?.verb === 'compacting' && tokens > 0 ? t('chat.tokens', { n: fmt(tokens) }) : (step?.object ?? ''));
 
-	// When this step began: a tool call's own start; otherwise the request
-	// stage's start for the first step this line shows, and the moment the
-	// words changed for the next ones (a stage can hold two steps: thinking,
-	// then writing).
-	let anchor = $state<{ key: string; since: number } | null>(null);
+	// A turn whose start is not known (a session shown afresh, an engine that
+	// does not say) counts from its first step this line saw.
+	let seen = $state(0);
 	$effect.pre(() => {
 		const s = step;
 		untrack(() => {
-			if (!s) anchor = null;
-			else if (anchor?.key !== s.key) anchor = { key: s.key, since: s.exact || !anchor ? (s.since ?? Date.now()) : Date.now() };
+			if (!s) seen = 0;
+			else if (!seen) seen = s.since ?? Date.now();
 		});
 	});
-	let now = $state(Date.now());
-	$effect(() => {
-		if (!anchor) return;
-		now = Date.now();
-		return visibleInterval(() => (now = Date.now()), 500);
-	});
+	const since = $derived(turnSince > 0 ? turnSince : seen);
 </script>
 
 {#if step}
 	<div class="ind">
-		<span class="sign" aria-hidden="true"><AsteriskSimpleIcon size={12} weight="bold" /></span>
-		<span class="verb">{t(`chat.work.${step.verb}`)}</span>
-		{#if object}<span class="obj" title={object}>{object}</span>{/if}
-		{#if anchor}<span class="time">· {workElapsed(now - anchor.since)}</span>{/if}
+		<WorkingIndicator startedAt={since} elapsedTitle={t('chat.turnClock')} />
+		<span class="step">
+			<span class="sep" aria-hidden="true">·</span>
+			<span class="verb">{t(`chat.work.${step.verb}`)}</span>
+			{#if object}<span class="obj" title={object}>{object}</span>{/if}
+		</span>
 		{#if step.call && onDetails}
 			{@const running = step.call}
 			<button class="more" onclick={() => onDetails(running)} aria-label={t('chat.work.details')} title={t('chat.work.details')}>
 				<CaretRightIcon size={12} />
 			</button>
 		{/if}
-		<!-- The whole turn so far, at the line's end, where it never moves. -->
-		{#if turnSince > 0}<span class="turn" title={t('chat.turnClock')} aria-label={t('chat.turnClock')}>{workElapsed(now - turnSince)}</span>{/if}
 	</div>
 {/if}
 
@@ -78,7 +70,7 @@
 	.ind {
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: 10px;
 		min-width: 0;
 		height: 24px;
 		padding: 0 2px;
@@ -86,14 +78,15 @@
 		font-size: var(--fs-xs);
 		line-height: 16px;
 	}
-	/* The one sign: it turns slowly while the turn works (still under
-	   reduced motion, app.css). */
-	.sign {
+	/* The step, quieter than the indicator before it. */
+	.step {
 		display: inline-flex;
-		flex-shrink: 0;
-		color: var(--dim);
-		animation: spin calc(2.4s * var(--time-scale)) linear infinite;
+		align-items: baseline;
+		gap: 6px;
+		min-width: 0;
+		color: var(--dim2);
 	}
+	.sep,
 	.verb {
 		flex-shrink: 0;
 		white-space: nowrap;
@@ -106,24 +99,6 @@
 		font-family: var(--font-mono);
 		font-size: var(--fs-2xs);
 	}
-	.time {
-		flex-shrink: 0;
-		color: var(--dim2);
-		font-family: var(--font-mono);
-		font-size: var(--fs-2xs);
-		font-variant-numeric: tabular-nums;
-		white-space: nowrap;
-	}
-	.turn {
-		margin-left: auto;
-		padding-left: 12px;
-		flex-shrink: 0;
-		color: var(--dim2);
-		font-family: var(--font-mono);
-		font-size: var(--fs-2xs);
-		font-variant-numeric: tabular-nums;
-		white-space: nowrap;
-	}
 	.more {
 		display: inline-flex;
 		align-items: center;
@@ -131,6 +106,7 @@
 		flex-shrink: 0;
 		width: 20px;
 		height: 20px;
+		margin-left: -6px;
 		padding: 0;
 		border: none;
 		border-radius: var(--r-sm);
