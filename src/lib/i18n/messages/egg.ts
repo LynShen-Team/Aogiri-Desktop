@@ -143,6 +143,21 @@ const egg = {
 			listConfirm: '上架',
 			listed: '已上架'
 		},
+		block: {
+			funds: '预存满 ¥{min} 即可参加，还差 ¥{short}。',
+			fundsPlan: '预存满 ¥{min} 或开通 {plan} 套餐即可参加，还差 ¥{short}。',
+			topUp: '去充值',
+			age: '账号注册满 {days} 天后可参加。',
+			ageOn: '账号注册满 {days} 天后可参加，{date} 起。',
+			linked: '这台设备或网络已有其他账号参加过这一期。',
+			review: '正在复核，1 个工作日内处理。',
+			refused: '审核没有通过，这一期不能参加。',
+			low_balance: '余额低于参加门槛，充值后自动恢复。',
+			banned: '账号因退款已停用赛博鸡蛋。',
+			paused: '本期抽卡暂停，等待审核。',
+			ended: '这一期没有在进行。',
+			pool: '今日奖池已抽完，明天 0:00 再来。'
+		},
 		picker: {
 			group: '赛博鸡蛋',
 			left: '今天剩 {n} 万',
@@ -331,6 +346,21 @@ const egg = {
 			listWant: 'What you want for it:',
 			listConfirm: 'Put up',
 			listed: 'Put up'
+		},
+		block: {
+			funds: 'Prepay ¥{min} to take part; ¥{short} to go.',
+			fundsPlan: 'Prepay ¥{min} or get the {plan} plan to take part; ¥{short} to go.',
+			topUp: 'Top up',
+			age: 'Accounts can take part {days} days after signing up.',
+			ageOn: 'Accounts can take part {days} days after signing up: from {date}.',
+			linked: 'Another account has taken part in this round from this device or network.',
+			review: 'Under review; it takes one working day.',
+			refused: "The review didn't pass; you can't take part in this round.",
+			low_balance: 'Your balance is below the minimum; it resumes once you top up.',
+			banned: 'Cyber Egg is stopped for this account after a refund.',
+			paused: 'Draws are paused in this round pending review.',
+			ended: 'This round is not running.',
+			pool: "Today's pool is empty. Come back after 0:00."
 		},
 		picker: {
 			group: 'Cyber Egg',

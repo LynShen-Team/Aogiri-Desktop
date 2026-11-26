@@ -23,6 +23,9 @@ export interface EggCampaign {
 	day: { index: number; count: number; resets_at: number };
 	/** For a player: today's grant, the tokens of today's draws (daily and extra). */
 	per_user_cap_tokens: number;
+	/** CE-P1: the daily pool and what today's draws took of it. */
+	pool_tokens?: number;
+	pool_used_tokens?: number;
 	starts_at: number;
 	ends_at: number;
 	state: 'scheduled' | 'running' | 'paused' | 'ended';
@@ -34,6 +37,9 @@ export interface EggCheck {
 	ok: boolean;
 	balance_fen?: number;
 	min_balance_fen?: number;
+	/** A plan that counts instead of the balance (null: none does), and the user's own. */
+	min_plan?: string | null;
+	plan?: string | null;
 	account_days?: number;
 	min_account_days?: number;
 	eligible_at?: number;

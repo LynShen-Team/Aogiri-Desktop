@@ -105,11 +105,12 @@ function me(): EggMe {
 						state: 'running'
 					},
 		checks: [
-			{ key: 'funds', ok: true },
+			// ?egg=short: a new account below the round's minimum, as the live gateway answers.
+			mode === 'short' ? { key: 'funds', ok: false, balance_fen: 0, min_balance_fen: 2000, min_plan: 'Sprout', plan: null } : { key: 'funds', ok: true },
 			{ key: 'account_age', ok: true },
 			{ key: 'one_per_person', ok: true }
 		],
-		membership: 'joined',
+		membership: mode === 'short' ? 'none' : 'joined',
 		blocked: null,
 		my_used_tokens: draw ? state.used : 0,
 		key,
