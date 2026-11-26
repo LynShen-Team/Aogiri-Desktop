@@ -1,9 +1,10 @@
-// What the work status line under the transcript says (Indicator.svelte):
-// the step the turn is on as a verb and its object ("正在运行 pnpm vitest
-// run"), when the step began, and the tool call it is, for its details. The
-// words carry the stage; the line has one sign for all of them.
+// What the work status line under the transcript says (Indicator.svelte)
+// after the working indicator: the step the turn is on as a verb and its
+// object ("正在运行 pnpm vitest run"), when the step began, and the tool call
+// it is, for its details. The words carry the stage.
 import type { CallTiming, Msg } from '$lib/chat.svelte';
 import { parseToolOutput, toolTarget } from '$lib/toolSummary';
+import type { GlyphMode } from '$lib/ui/dotGlyph';
 
 export type WorkPhase = 'connecting' | 'waiting' | 'generating' | 'tool' | 'compacting';
 type ToolMsg = Extract<Msg, { kind: 'tool' }>;
@@ -94,8 +95,35 @@ export function workStep(phase: WorkPhase | (string & {}) | null, call: CallTimi
 	}
 }
 
-/** Whole seconds, then minutes: `24s`, `3m05s`. */
-export function workElapsed(ms: number): string {
-	const s = Math.max(0, Math.floor(ms / 1000));
-	return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m${String(s % 60).padStart(2, '0')}s`;
+/** The working glyph's motion for each step (ui/dotGlyph.ts): reading and
+ *  searching scan, editing types, a command or any other tool runs round. */
+const STEP_MODES: Record<string, GlyphMode> = {
+	connecting: 'connect',
+	thinking: 'think',
+	writing: 'write',
+	compacting: 'compact',
+	reading: 'read',
+	searching: 'read',
+	listing: 'read',
+	outlining: 'read',
+	searchingWeb: 'read',
+	fetching: 'read',
+	writingFile: 'edit',
+	editing: 'edit',
+	running: 'run',
+	tool: 'run',
+	browser: 'run',
+	image: 'run',
+	agents: 'run',
+	planning: 'run',
+	sessions: 'run',
+	waitingAgents: 'wait'
+};
+
+/** How the glyph moves for the step `verb` (WorkStep.verb); `waiting`: the
+ *  turn waits for the reader (an approval or a question). A step it does
+ *  not know thinks. */
+export function workMode(verb: string | null | undefined, waiting = false): GlyphMode {
+	if (waiting) return 'wait';
+	return (verb && STEP_MODES[verb]) || 'think';
 }

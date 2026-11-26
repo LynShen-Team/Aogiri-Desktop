@@ -5,9 +5,9 @@
 	// the attempt has been waiting, and why the last one failed, in words
 	// (errorInfo) with the provider's text folded under it. Replaces the
 	// turn's phase indicator until output flows again.
-	import ArrowClockwiseIcon from 'phosphor-svelte/lib/ArrowClockwiseIcon';
 	import CaretRightIcon from 'phosphor-svelte/lib/CaretRightIcon';
 	import CallTimer from '$lib/CallTimer.svelte';
+	import DotGlyph from '$lib/ui/DotGlyph.svelte';
 	import { describeError, stripEngineHint } from '$lib/errorInfo';
 	import type { RetryState } from '$lib/chat.svelte';
 	import { retryCount, retrySegments } from '$lib/retryView';
@@ -43,7 +43,9 @@
 
 <div class="retry" role="status">
 	<div class="head">
-		<span class="ico" class:spin={left === 0}><ArrowClockwiseIcon size={15} /></span>
+		<!-- The working glyph: its dots light round the circle while the attempt
+		     goes out (连接中), and breathe through the countdown before it. -->
+		<span class="ico"><DotGlyph size={15} mode={left === 0 ? 'connect' : 'wait'} /></span>
 		<span class="title">{t(onCancel ? 'chat.autoRetry.title' : 'chat.retry.title')}</span>
 		<span class="count">{count.max === null ? t('chat.retry.attemptN', { n: count.n }) : t('chat.retry.attempt', { n: count.n, max: count.max })}</span>
 		<!-- Once due, the attempt can wait for minutes on a dead connection: its time shows. -->
@@ -94,14 +96,6 @@
 	.ico {
 		display: inline-flex;
 		color: var(--warn);
-	}
-	.ico.spin {
-		animation: spin 1s linear infinite;
-	}
-	@keyframes spin {
-		to {
-			transform: rotate(360deg);
-		}
 	}
 	.title {
 		min-width: 0;
@@ -225,7 +219,6 @@
 		overflow-wrap: anywhere;
 	}
 	@media (prefers-reduced-motion: reduce) {
-		.ico.spin,
 		.bar span.now {
 			animation: none;
 		}
