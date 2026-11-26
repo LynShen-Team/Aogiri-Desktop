@@ -52,7 +52,12 @@ const egg = {
 			others: '另外四张',
 			again: '再开一包',
 			chancesLeft: '还有 {n} 次额外机会',
-			bonusOpening: '额外机会 · 还剩 {n} 次'
+			bonusOpening: '额外机会 · 还剩 {n} 次',
+			// CE-H2: extra chances held while no pack can be opened (eligibility.ts extraChance).
+			waitDry: '今日奖池已抽完，额外机会留着，明日 0:00 后可用',
+			waitDryLast: '今日奖池已抽完，本期今天结束',
+			waitPaused: '活动暂停中，额外机会留着，恢复后可用',
+			waitEnded: '本期已结束'
 		},
 		rules: {
 			open: '规则与概率',
@@ -256,7 +261,11 @@ const egg = {
 			others: 'The other four',
 			again: 'Open another pack',
 			chancesLeft: '{n} extra draws left',
-			bonusOpening: 'Extra draw · {n} left'
+			bonusOpening: 'Extra draw · {n} left',
+			waitDry: "Today's pool is drawn out · your extra draws wait until 00:00",
+			waitDryLast: "Today's pool is drawn out and this round ends today",
+			waitPaused: 'The event is paused · your extra draws wait until it resumes',
+			waitEnded: 'This round has ended'
 		},
 		rules: {
 			open: 'Rules and odds',

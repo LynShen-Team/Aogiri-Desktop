@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { EggMe } from './api';
-import { eggBlock, yuan } from './eligibility';
+import { eggBlock, extraChance, yuan } from './eligibility';
 
 const base = (over: Partial<EggMe> = {}): EggMe =>
 	({
@@ -49,5 +49,32 @@ describe('why a pack cannot be opened', () => {
 	it('writes yuan', () => {
 		expect(yuan(2000)).toBe('20');
 		expect(yuan(1250)).toBe('12.50');
+	});
+});
+
+describe('whether an extra chance can open a pack now', () => {
+	const drawn = { card: {} as never, others: [], expires_at: 0 };
+	const withChances = (n: number, campaign: Partial<NonNullable<EggMe['campaign']>> = {}) => {
+		const me = base({ membership: 'joined', today: drawn, chances: { enabled: true, available: n } });
+		Object.assign(me.campaign!, campaign);
+		return me;
+	};
+	it('has nothing to say without a chance', () => {
+		expect(extraChance(withChances(0))).toEqual({ kind: 'none' });
+		expect(extraChance(base({ chances: null }))).toEqual({ kind: 'none' });
+		expect(extraChance(withChances(0, { pool_used_tokens: 100, state: 'paused' }))).toEqual({ kind: 'none' });
+	});
+	it('opens one while the round runs and the pool can still pay', () => {
+		expect(extraChance(withChances(2))).toEqual({ kind: 'open', n: 2 });
+	});
+	it('waits while today’s pool is drawn out, and says when the round ends today', () => {
+		expect(extraChance(withChances(1, { pool_used_tokens: 100 }))).toEqual({ kind: 'dry', n: 1, lastDay: false });
+		expect(extraChance(withChances(1, { pool_used_tokens: 120 }))).toMatchObject({ kind: 'dry' });
+		expect(extraChance(withChances(1, { pool_used_tokens: 100, day: { index: 2, count: 2, resets_at: 0 } }))).toEqual({ kind: 'dry', n: 1, lastDay: true });
+	});
+	it('waits while the round is paused, and stops once it has ended', () => {
+		expect(extraChance(withChances(1, { state: 'paused' }))).toEqual({ kind: 'stopped', n: 1, state: 'paused' });
+		expect(extraChance(withChances(1, { state: 'paused', pool_used_tokens: 100 }))).toEqual({ kind: 'stopped', n: 1, state: 'paused' });
+		expect(extraChance(withChances(1, { state: 'ended' }))).toEqual({ kind: 'stopped', n: 1, state: 'ended' });
 	});
 });

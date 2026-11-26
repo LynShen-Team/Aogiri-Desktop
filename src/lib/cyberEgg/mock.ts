@@ -1,6 +1,7 @@
 // Sample answers of the 赛博鸡蛋 client API (CE-API-8), for the browser fixtures (`tests/browser`, `?egg`) and
 // for a look at the pages before the gateway serves them (`localStorage['lynshen-cyber-egg-mock']`).
-// `?egg=drawn` (and `?eggChat`) starts with today's card drawn, `?egg=none` with no round running.
+// `?egg=drawn` (and `?eggChat`) starts with today's card drawn, `?egg=none` with no round running; `&eggDry` with
+// today's pool drawn out (CE-D5; `=last` on the round's last day), `&eggRound=paused|ended` with the round stopped.
 import type { EggDraw, EggKey, EggListing, EggMe, EggOwnedCard, EggTierRule, EggTrade, EggTrades, Tier } from './api';
 
 const DAY = 86_400_000;
@@ -19,6 +20,8 @@ const params = (() => {
 	}
 })();
 const mode = params.has('eggChat') || params.has('eggSeed') ? 'drawn' : (params.get('egg') ?? '');
+const dry = params.get('eggDry');
+const POOL = 1_000_000_000;
 const CAMPAIGN = 'r1';
 
 const TIERS: EggTierRule[] = [
@@ -98,11 +101,13 @@ function me(): EggMe {
 						id: CAMPAIGN,
 						name: '机器之心',
 						models: ['deepseek-v4.1-flash', 'glm-5.3-flash', 'qwen-3.6-plus'],
-						day: { index: 4, count: 14, resets_at: nextReset() },
+						day: { index: dry === 'last' ? 14 : 4, count: 14, resets_at: nextReset() },
 						per_user_cap_tokens: draw ? draw.card.tokens : 0,
+						pool_tokens: POOL,
+						pool_used_tokens: dry === null ? 412_000_000 : POOL,
 						starts_at: now() - 3 * DAY,
 						ends_at: now() + 10 * DAY,
-						state: 'running'
+						state: (params.get('eggRound') as 'paused' | 'ended' | null) ?? 'running'
 					},
 		checks: [
 			// ?egg=short: a new account below the round's minimum, as the live gateway answers.

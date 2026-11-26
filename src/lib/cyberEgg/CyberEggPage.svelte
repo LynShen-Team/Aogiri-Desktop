@@ -23,6 +23,7 @@
 	import UsageView from './UsageView.svelte';
 	import RulesModal from './RulesModal.svelte';
 	import { packCards } from './art';
+	import { extraChance } from './eligibility';
 
 	let {
 		section = $bindable('draw'),
@@ -60,7 +61,7 @@
 				? ''
 				: egg.canDraw
 					? t('egg.nav.canDraw')
-					: me.today && (me.chances?.available ?? 0) > 0
+					: me.today && extraChance(me).kind === 'open'
 						? t('egg.result.chancesLeft', { n: me.chances?.available ?? 0 })
 						: me.today
 							? t('egg.nav.drawn')

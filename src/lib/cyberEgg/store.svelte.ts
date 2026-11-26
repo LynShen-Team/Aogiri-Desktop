@@ -5,6 +5,7 @@ import { GatewayError } from '$lib/protocol';
 import { eggApi, type EggMe, type EggOwnedCard, type EggTrades } from './api';
 import { usedShare } from './format';
 import { eggRoutable } from './route';
+import { poolDry } from './eligibility';
 
 const PICKER_KEY = 'lynshen-cyber-egg-picker';
 /** Read again at most this often on focus. */
@@ -50,6 +51,8 @@ export class EggStore {
 	get canDraw(): boolean {
 		const me = this.me;
 		if (!this.live || !me || me.today || me.blocked || me.banned || me.paused) return false;
+		// CE-D5: today's pool is drawn out; no pack opens until 00:00.
+		if (me.campaign && poolDry(me.campaign)) return false;
 		if (me.membership === 'review' || me.membership === 'refused') return false;
 		// Not joined yet: a first draw joins, once every requirement is met (CE-E1..E3).
 		return me.membership === 'joined' || me.checks.every((c) => c.ok);
