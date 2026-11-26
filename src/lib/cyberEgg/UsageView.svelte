@@ -1,264 +1,317 @@
 <script lang="ts">
-	// 赛博鸡蛋 · 调用: today's tokens (what is left, from which card, until when), how Aogiri uses them (the
-	// 「赛博鸡蛋」 group in the model menu), the campaign key for other tools, and today's calls.
-	import CopyIcon from 'phosphor-svelte/lib/CopyIcon';
-	import ArrowClockwiseIcon from 'phosphor-svelte/lib/ArrowClockwiseIcon';
+	// 赛博鸡蛋 · 调用 (CE-UI-5), as the website's page (gateway `pages/cyber-egg/usage.tsx`): why calls are stopped, if
+	// they are; today's tokens beside the campaign key; then, where the web points to its 日志 and 用量 pages, what the
+	// desktop does with the tokens itself: a conversation on them, and the 「赛博鸡蛋」 group in the model menu; then
+	// today's calls. The page header is CyberEggPage's; this fills the box it gives and scrolls inside it.
+	import CaretRightIcon from 'phosphor-svelte/lib/CaretRightIcon';
+	import ChatCircleIcon from 'phosphor-svelte/lib/ChatCircleIcon';
+	import SquaresFourIcon from 'phosphor-svelte/lib/SquaresFourIcon';
 	import { t } from '$lib/i18n';
 	import Button from '$lib/ui/Button.svelte';
 	import Switch from '$lib/ui/Switch.svelte';
-	import { toast } from '$lib/ui/toast.svelte';
-	import { confirm } from '$lib/ui/confirm.svelte';
-	import { copyText } from '$lib/clipboard';
-	import { cardById } from './art';
+	import type { EggKey, EggMe } from './api';
 	import { egg } from './store.svelte';
-	import { eggApi, eggErrorText, type EggMe } from './api';
-	import { clock, left, shortTokens, wan } from './format';
+	import { yuan } from './eligibility';
+	import TodayCard from './info/TodayCard.svelte';
+	import KeyCard from './info/KeyCard.svelte';
+	import RotateDialog from './info/RotateDialog.svelte';
+	import { todayDraws, todayTokens } from './info/today';
+	import { clockText, tokens } from './info/text';
 
-	let { me, onChat }: { me: EggMe; onChat: () => void } = $props();
+	let {
+		me,
+		onChat,
+		onDraw,
+		onTopUp
+	}: {
+		me: EggMe;
+		/** Start a conversation on today's tokens. */
+		onChat: () => void;
+		/** To the draw page (today not drawn yet). */
+		onDraw?: () => void;
+		/** The app's store (calls stopped: the balance is below the round's minimum). */
+		onTopUp?: () => void;
+	} = $props();
 
-	let busy = $state(false);
-	let picker = $state(egg.inPicker);
-	const lapse = $derived(left(egg.resetsAt, egg.now));
-	const source = $derived(me.today ? cardById(me.today.card.card_id) : undefined);
+	const DAY = 86_400_000;
 	const key = $derived(me.key);
+	const funds = $derived(me.checks.find((check) => check.key === 'funds'));
+	const short = $derived(Math.max(0, (funds?.min_balance_fen ?? 0) - (funds?.balance_fen ?? 0)));
+	const left = $derived(todayTokens(me).left);
+	const first = $derived(todayDraws(me)[0]);
+	/** Today's calls (CE-API-1 `usage`, newest first): those since today's tokens began. */
+	const calls = $derived(first ? me.usage.filter((row) => row.at >= first.expires_at - DAY) : []);
+	const chatBody = $derived(
+		egg.usable ? t('eggInfo.app.chatBody') : !first ? t('eggInfo.app.chatNotDrawn') : left <= 0 ? t('eggInfo.app.chatUsedUp') : t('eggInfo.app.chatBody')
+	);
 
-	/** Today's calls (CE-API-1 `usage`, newest first). */
-	const calls = $derived(me.today ? me.usage.filter((row) => row.at >= me.today!.expires_at - 86_400_000) : []);
+	let picker = $state(egg.inPicker);
+	let rotating = $state(false);
+	/** The key shows in full (asked for, or just made). */
+	let revealed = $state(false);
 
-	async function copyKey() {
-		try {
-			const secret = await egg.keySecret();
-			if (secret && (await copyText(secret))) toast.success(t('egg.key.copied'));
-			else toast.warn(t('egg.key.noSecret'));
-		} catch (error) {
-			toast.error(eggErrorText(error));
-		}
-	}
-
-	async function rotate() {
-		const ok = await confirm({ title: t('egg.key.rotateTitle'), message: t('egg.key.rotateBody'), confirmLabel: t('egg.key.rotate') });
-		if (!ok) return;
-		const campaign = me.campaign;
-		if (!campaign) return;
-		busy = true;
-		try {
-			const key = await eggApi.rotateKey(campaign.id);
-			if (key.secret) egg.secret = key.secret;
-			if (egg.me) egg.me = { ...egg.me, key: { ...key, secret: undefined } };
-			toast.success(t('egg.key.rotated'));
-		} catch (error) {
-			toast.error(eggErrorText(error));
-		} finally {
-			busy = false;
-		}
+	function rotated(next: EggKey) {
+		if (next.secret) egg.secret = next.secret;
+		if (egg.me) egg.me = { ...egg.me, key: { ...next, secret: undefined } };
+		revealed = !!next.secret;
 	}
 </script>
 
 <div class="usage">
-	<h1>{t('egg.nav.usage')}</h1>
+	<!-- CE-E4, CE-K4: why calls are stopped right now, and the one fix. -->
+	{#if me.blocked}
+		<div class="stopped" role="status">
+			<p>{t('eggInfo.usage.blocked', { balance: yuan(funds?.balance_fen ?? 0), min: yuan(funds?.min_balance_fen ?? 0) })}</p>
+			{#if onTopUp}<Button size="sm" variant="primary" onclick={onTopUp}>{t('eggInfo.usage.topUp', { amount: yuan(short) })}</Button>{/if}
+		</div>
+	{:else if key?.suspended === 'leak'}
+		<div class="stopped" role="status">
+			<p>{t('eggInfo.usage.leakedBody')}</p>
+			<Button size="sm" variant="primary" disabled={(key.rotations_left ?? 0) <= 0} onclick={() => (rotating = true)}>{t('eggInfo.key.rotate')}</Button>
+		</div>
+	{/if}
 
-	<section class="panel total">
-		<div class="row-top">
-			<span>{t('egg.usage.left')}</span>
-			{#if source && me.today}<span>{t('egg.usage.from', { tier: t(`egg.tier.${me.today.card.tier}`), name: source.name })}</span>{/if}
-		</div>
-		<p class="figure"><span class="n">{wan(egg.remaining)}</span><span class="u">{t('egg.wan')} tokens</span></p>
-		<div class="meter" aria-hidden="true"><i style:width="{egg.share * 100}%"></i></div>
-		<div class="row-foot">
-			<span class="mono">{t('egg.usage.used', { used: wan(egg.used), total: wan(egg.granted) })}</span>
-			<span>{lapse ? t('egg.usage.resetLeft', { h: lapse.h, m: lapse.m }) : t('egg.today.resets')}</span>
-		</div>
-		{#if !me.today}
-			<div class="nodraw">
-				<span>{t('egg.usage.noDraw')}</span>
-			</div>
-		{/if}
-	</section>
+	<div class="cols">
+		<TodayCard {me} {onDraw} />
+		{#if key}<KeyCard {me} keyInfo={key} bind:revealed onRotate={() => (rotating = true)} />{/if}
+	</div>
 
-	<h3>{t('egg.usage.inApp')}</h3>
-	<section class="panel">
-		<div class="row">
-			<div class="txt">
-				<p class="title">{t('egg.usage.pickerTitle')}</p>
-				<p class="desc">{t('egg.usage.pickerDesc')}</p>
-			</div>
-			<Switch bind:checked={picker} label={t('egg.usage.pickerTitle')} onChange={(on) => egg.setInPicker(on)} />
+	<!-- The desktop's own: what the web's links to 日志 and 用量 stand for here. -->
+	<div class="cols app">
+		<button type="button" class="tile" disabled={!egg.usable} onclick={onChat}>
+			<ChatCircleIcon size={16} />
+			<span class="txt">
+				<span class="title">{t('eggInfo.app.chatTitle')}</span>
+				<span class="body">{chatBody}</span>
+			</span>
+			<span class="go"><CaretRightIcon size={16} /></span>
+		</button>
+		<div class="tile">
+			<SquaresFourIcon size={16} />
+			<span class="txt">
+				<span class="title">{t('eggInfo.app.pickerTitle')}</span>
+				<span class="body">{t('eggInfo.app.pickerBody')}</span>
+			</span>
+			<Switch bind:checked={picker} label={t('eggInfo.app.pickerTitle')} onChange={(on) => egg.setInPicker(on)} />
 		</div>
-		<div class="row">
-			<div class="txt">
-				<p class="title">{t('egg.usage.models')}</p>
-				<p class="desc">{t('egg.usage.modelsDesc')}</p>
-			</div>
-			<span class="value mono">{egg.models.join(' · ')}</span>
-		</div>
-		{#if egg.usable}
-			<div class="row">
-				<div class="txt"><p class="title">{t('egg.usage.startTitle')}</p></div>
-				<Button size="sm" onclick={onChat}>{t('egg.result.chat')}</Button>
-			</div>
-		{/if}
-	</section>
+	</div>
 
-	<h3>{t('egg.key.title')}</h3>
-	<section class="panel">
-		<div class="row">
-			<div class="txt">
-				<p class="title mono">{key ? `${key.prefix}…${key.last4}` : '—'}</p>
-				<p class="desc">{key?.suspended === 'leak' ? t('egg.key.suspended') : t('egg.key.desc')}</p>
+	{#if key}
+		<section class="calls">
+			<div class="calls-head">
+				<h2>{t('eggInfo.usage.callsTitle')}</h2>
+				<span>{t('eggInfo.usage.callsNote')}</span>
 			</div>
-			<div class="btns">
-				<Button size="sm" onclick={copyKey} disabled={!key}><CopyIcon size={14} />{t('egg.key.copy')}</Button>
-				<Button size="sm" variant="ghost" onclick={rotate} disabled={busy || (key?.rotations_left ?? 1) <= 0}><ArrowClockwiseIcon size={14} />{t('egg.key.rotate')}</Button>
-			</div>
-		</div>
-		<div class="row">
-			<div class="txt"><p class="title">{t('egg.key.base')}</p></div>
-			<span class="value mono">{me.api_base_url}</span>
-		</div>
-	</section>
-
-	<h3>{t('egg.usage.calls')}</h3>
-	<section class="panel">
-		{#if calls.length}
-			{#each calls as row (row.id)}
-				<div class="row call">
-					<div class="txt">
-						<p class="title">{row.model}</p>
-						<p class="desc">{clock(row.at)} · {t('egg.usage.split', { input: shortTokens(row.input_tokens), cached: shortTokens(row.cached_input_tokens), output: shortTokens(row.output_tokens) })}</p>
-					</div>
-					<span class="value mono">{shortTokens(row.counted_tokens)}</span>
+			{#if calls.length}
+				<ul>
+					{#each calls as row (row.id)}
+						<li>
+							<span class="time">{clockText(row.at)}</span>
+							<span class="model">{row.model}</span>
+							<span class="detail">{t('eggInfo.usage.callDetail', { input: tokens(row.input_tokens), cached: tokens(row.cached_input_tokens), output: tokens(row.output_tokens) })}</span>
+							<span class="counted">{tokens(row.counted_tokens)}</span>
+						</li>
+					{/each}
+				</ul>
+			{:else}
+				<div class="none">
+					<p class="none-title">{t('eggInfo.usage.callsEmpty')}</p>
+					<p>{t('eggInfo.usage.callsEmptyHint')}</p>
 				</div>
-			{/each}
-		{:else}
-			<p class="none">{t('egg.usage.noCalls')}</p>
-		{/if}
-	</section>
+			{/if}
+		</section>
+	{/if}
 </div>
+
+{#if rotating && key && me.campaign}
+	<RotateDialog campaignId={me.campaign.id} keyInfo={key} onRotated={rotated} onClose={() => (rotating = false)} />
+{/if}
 
 <style>
 	.usage {
-		flex: 1;
+		display: flex;
+		flex: 1 1 auto;
+		flex-direction: column;
+		gap: 16px;
 		min-height: 0;
 		overflow-y: auto;
-		padding: 24px 48px 48px;
+		container-type: inline-size;
 	}
 	.usage > :global(*) {
-		max-width: 760px;
+		flex: none;
 	}
-	h1 {
-		margin: 0 0 18px;
-		font-size: var(--fs-xl);
-		font-weight: 600;
-		color: var(--text);
-	}
-	h3 {
-		margin: 28px 0 10px;
-		font-size: var(--fs-sm);
-		font-weight: 600;
-		color: var(--text);
-	}
-	.panel {
-		border: 1px solid var(--border);
-		border-radius: var(--r-lg);
-		background: var(--panel);
-	}
-	.total {
-		padding: 18px 20px;
-	}
-	.row-top,
-	.row-foot {
+	.stopped {
 		display: flex;
-		justify-content: space-between;
-		gap: 12px;
-		font-size: var(--fs-xs);
-		color: var(--dim);
-	}
-	.figure {
-		display: flex;
-		align-items: baseline;
-		gap: 8px;
-		margin: 10px 0 16px;
-		color: var(--text);
-	}
-	.figure .n {
-		font-family: var(--font-mono);
-		font-variant-numeric: tabular-nums;
-		font-size: calc(var(--fs-2xl) * 1.25);
-		font-weight: 600;
-		line-height: 1;
-	}
-	.figure .u {
-		font-size: var(--fs-md);
-		font-weight: 500;
-	}
-	.meter {
-		height: 4px;
-		margin-bottom: 10px;
-		border-radius: var(--r-full);
-		background: var(--surface2);
-		overflow: hidden;
-	}
-	.meter i {
-		display: block;
-		height: 100%;
-		border-radius: inherit;
-		background: var(--text);
-	}
-	.nodraw {
-		margin-top: 12px;
-		padding-top: 12px;
-		border-top: 1px solid var(--hairline);
-		font-size: var(--fs-xs);
-		color: var(--dim);
-	}
-	.row {
-		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		justify-content: space-between;
-		gap: 16px;
-		min-height: 48px;
-		padding: 12px 20px;
+		gap: 12px;
+		padding: 16px 20px;
+		border: 1px solid color-mix(in oklab, var(--warn) 40%, transparent);
+		border-radius: var(--r-xl);
+		background: color-mix(in oklab, var(--warn) 9%, transparent);
 	}
-	.row + .row {
-		border-top: 1px solid var(--hairline);
-	}
-	.txt {
+	.stopped p {
+		flex: 1;
 		min-width: 0;
-	}
-	.txt p {
 		margin: 0;
-	}
-	.title {
 		font-size: var(--fs-sm);
+		line-height: 20px;
 		color: var(--text);
 	}
-	.desc {
-		margin-top: 3px !important;
+	.cols {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		gap: 16px;
+		min-width: 0;
+	}
+	@container (max-width: 760px) {
+		.cols {
+			grid-template-columns: minmax(0, 1fr);
+		}
+	}
+
+	/* The two tiles: the web's link cards (an icon, a title over one line, the end mark). */
+	.tile {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		min-width: 0;
+		padding: 16px 20px;
+		border: 1px solid var(--border);
+		border-radius: var(--r-xl);
+		background: var(--panel);
+		color: var(--dim);
+		font: inherit;
+		text-align: left;
+	}
+	button.tile {
+		cursor: pointer;
+		transition: background var(--t-fast) var(--ease-out);
+	}
+	button.tile:hover:not(:disabled) {
+		background: color-mix(in oklab, var(--surface2) 60%, var(--panel));
+	}
+	button.tile:disabled {
+		cursor: default;
+	}
+	button.tile:disabled .title,
+	button.tile:disabled .go {
+		opacity: 0.5;
+	}
+	.tile > :global(svg) {
+		flex: none;
+	}
+	.txt {
+		flex: 1;
+		min-width: 0;
+	}
+	.title {
+		display: block;
+		font-size: var(--fs-sm);
+		font-weight: 500;
+		color: var(--text);
+	}
+	.body {
+		display: block;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		margin-top: 2px;
 		font-size: var(--fs-xs);
 		color: var(--dim);
 	}
-	.value {
+	.go {
+		display: inline-flex;
 		flex: none;
-		max-width: 60%;
+		transition: transform var(--t-fast) var(--ease-out);
+	}
+	button.tile:hover:not(:disabled) .go {
+		transform: translateX(2px);
+	}
+
+	/* Today's calls. */
+	.calls {
+		overflow: hidden;
+		border: 1px solid var(--border);
+		border-radius: var(--r-xl);
+		background: var(--panel);
+	}
+	.calls-head {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 12px;
+		padding: 20px 24px 8px;
+		font-size: var(--fs-xs);
+		color: var(--dim);
+	}
+	.calls h2 {
+		margin: 0;
+		font-size: var(--fs-md);
+		font-weight: 600;
+		color: var(--text);
+	}
+	.calls ul {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		border-top: 1px solid var(--hairline);
+	}
+	.calls li {
+		display: flex;
+		align-items: center;
+		gap: 16px;
+		padding: 10px 24px;
+		font-size: var(--fs-sm);
+	}
+	.calls li + li {
+		border-top: 1px solid var(--hairline);
+	}
+	.time {
+		flex: none;
+		width: 44px;
+		color: var(--dim);
+		font-variant-numeric: tabular-nums;
+	}
+	.model {
+		flex: none;
+		max-width: 40%;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		font-family: var(--font-mono);
+		font-size: var(--fs-xs);
+		color: var(--text);
+	}
+	.detail {
+		flex: 1;
+		min-width: 0;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 		font-size: var(--fs-xs);
 		color: var(--dim);
 	}
-	.mono {
-		font-family: var(--font-mono);
+	.counted {
+		flex: none;
+		font-weight: 500;
+		color: var(--text);
 		font-variant-numeric: tabular-nums;
 	}
-	.btns {
-		display: flex;
-		flex: none;
-		gap: 6px;
-	}
 	.none {
-		margin: 0;
-		padding: 16px 20px;
-		font-size: var(--fs-sm);
+		padding: 20px 24px 24px;
+		border-top: 1px solid var(--hairline);
+		text-align: center;
+		font-size: var(--fs-xs);
 		color: var(--dim);
+	}
+	.none p {
+		margin: 0;
+	}
+	.none-title {
+		margin-bottom: 4px !important;
+		font-size: var(--fs-sm);
+		color: var(--text);
 	}
 </style>

@@ -14,6 +14,7 @@
 	import { toast } from '$lib/ui/toast.svelte';
 	import { t } from '$lib/i18n';
 	import Card3D from './Card3D.svelte';
+	import CardViewer, { type ViewerItem } from './CardViewer.svelte';
 	import Pack from './Pack.svelte';
 	import Motes from './Motes.svelte';
 	import { TIER_LOOK, cardById, type Tier as CardTier } from './art';
@@ -22,7 +23,9 @@
 	import { eggApi, eggErrorText, type EggDraw, type EggMe } from './api';
 
 	type EggPicked = { me: EggMe; draw: EggDraw; secret: string | null };
-	import { left, wan } from './format';
+	import { left, tokenParts, wan } from './format';
+	import { getLocale } from '$lib/i18n';
+	import { openWebEgg } from './web';
 	import { egg } from './store.svelte';
 	import { eggBlock, extraChance, yuan } from './eligibility';
 
@@ -45,7 +48,6 @@
 		bonus = false,
 		onDrawn,
 		onChat,
-		onAlbum,
 		onBonus,
 		onTopUp
 	}: {
@@ -56,7 +58,6 @@
 		onDrawn: (result: EggPicked) => void;
 		/** Start a conversation on today's tokens. */
 		onChat: () => void;
-		onAlbum: () => void;
 		/** Open another pack with an extra chance (offered under the result while some are left). */
 		onBonus?: () => void;
 		/** The fix for a balance below the round's minimum: the app's store. */
@@ -79,12 +80,20 @@
 	// CE-H2: another pack is offered only when the gateway would open it; while the extra chances wait (today's pool
 	// drawn out, the round paused or over) the result says why instead.
 	const chance = $derived(extraChance(me));
-	const chanceWait = $derived(
+	/** 「21 小时 13 分」 until `at`. */
+	const leftText = (at: number) => {
+		const l = left(at, now);
+		return !l ? t('egg.result.leftM', { m: 0 }) : l.h > 0 ? t('egg.result.leftHm', { h: l.h, m: l.m }) : t('egg.result.leftM', { m: l.m });
+	};
+	// The line beside 「再抽一次」, as the website's againLine: when the next pack opens, or why the extra chances wait.
+	const againLine = $derived(
 		chance.kind === 'dry'
-			? t(chance.lastDay ? 'egg.result.waitDryLast' : 'egg.result.waitDry')
+			? chance.lastDay
+				? t('egg.result.waitDryLast')
+				: t('egg.result.heldDry', { left: leftText(me.next_draw_at) })
 			: chance.kind === 'stopped'
 				? t(chance.state === 'paused' ? 'egg.result.waitPaused' : 'egg.result.waitEnded')
-				: ''
+				: t('egg.result.againWhen', { left: leftText(me.next_draw_at) })
 	);
 
 	/** The width a card is drawn at; smaller places scale it down (keeps the art crisp). */
@@ -355,6 +364,20 @@
 	const showResult = $derived(!!draw && (phase === 'picking' || phase === 'revealing' || phase === 'done'));
 	const chosenDef = $derived(draw ? cardById(draw.card.card_id) : undefined);
 	const lapse = $derived(draw ? left(draw.expires_at, now) : null);
+	/** CE-C8: which of the five is open in the viewer (0 the drawn one, 1–4 the others). */
+	let inspect = $state<number | null>(null);
+	const viewerItems = $derived.by<ViewerItem[]>(() => {
+		if (!draw) return [];
+		const copiesOf = (id: string) => me.collection.filter((copy) => copy.card_id === id);
+		const chosen = cardById(draw.card.card_id);
+		return [
+			...(chosen ? [{ def: chosen, copies: copiesOf(chosen.id), drawn: { serial: draw.card.serial, tokens: draw.card.tokens } }] : []),
+			...draw.others.flatMap((other) => {
+				const def = cardById(other.card_id);
+				return def ? [{ def, copies: copiesOf(def.id), drawn: null }] : [];
+			})
+		];
+	});
 
 	function cardFor(k: number) {
 		if (!draw || picked === null) return null;
@@ -391,13 +414,34 @@
 		raf = requestAnimationFrame(step);
 		return () => cancelAnimationFrame(raf);
 	});
-	const pityLine = $derived(me.pity_left?.sr ? t('egg.draw.pity', { n: me.pity_left.sr }) : '');
-	const range = $derived.by(() => {
-		const low = Math.min(...me.tiers.map((r) => r.min_tokens));
-		const high = Math.max(...me.tiers.map((r) => r.max_tokens));
-		return t('egg.draw.range', { low: wan(low), high: high >= 100_000_000 ? t('egg.draw.yi', { n: high / 100_000_000 }) : `${wan(high)} 万` });
+	const figure = $derived(tokenParts(counted, getLocale()));
+	// CE-D6, the website's PityLine: the soonest of 白银/鎏金, then 流光, then that the server's guarantee exists.
+	const pityLine = $derived.by(() => {
+		const l = me.pity_left;
+		const parts: string[] = [];
+		if (l?.ur === 1) parts.push(t('egg.draw.urNext'));
+		else if (l) {
+			const soon: ['sr' | 'ssr', number] | null = l.ssr != null && (l.sr == null || l.ssr <= l.sr) ? ['ssr', l.ssr] : l.sr != null ? ['sr', l.sr] : null;
+			if (soon) {
+				const tier = t(`egg.tier.${soon[0]}`);
+				parts.push(soon[1] <= 1 ? t('egg.draw.next', { tier }) : t('egg.draw.within', { count: soon[1], tier }));
+			}
+			if (l.ur != null) parts.push(t('egg.draw.ur', { count: l.ur }));
+		}
+		if (me.pity?.shared_sr_every) parts.push(t('egg.draw.sharedEvery', { count: me.pity.shared_sr_every }));
+		return parts.join(' · ');
 	});
 </script>
+
+<!-- CE-H1, the website's ChancesLine: 「额外机会 ×N」 and the way to more (invites, top-ups: on the website). -->
+{#snippet chancesLine()}
+	{#if me.chances?.enabled}
+		<p class="chance-line">
+			{#if me.chances.available > 0}<span class="chance-badge">{t('egg.result.chanceBadge', { count: me.chances.available })}</span>{/if}
+			<button class="chance-how" onclick={() => openWebEgg()}>{t('egg.result.chanceHow')}</button>
+		</p>
+	{/if}
+{/snippet}
 
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 <div bind:this={stage} class="stage" class:busy={phase !== 'done'} data-phase={phase} onclick={() => phase === 'revealing' && skip()}>
@@ -425,28 +469,36 @@
 		<div class="result">
 			<div bind:this={chosenSlot} class="chosen">
 				{#if staticResult && chosenDef}
-					<Card3D card={chosenDef} period={me.pack.period} packName={me.pack.name} serial={draw.card.serial} sway />
+					<Card3D card={chosenDef} period={me.pack.period} packName={me.pack.name} serial={draw.card.serial} sway label={t('egg.view.open', { name: chosenDef.name })} onclick={() => (inspect = 0)} />
 				{:else}
 					<div class="ratio"></div>
 				{/if}
 			</div>
 			<div class="info" class:shown>
-				<p class="tier">{t(`egg.tier.${draw.card.tier}`)} · {TIER_LOOK[draw.card.tier].code}</p>
-				<h2 class="name">{chosenDef?.name}</h2>
-				<p class="got">{t('egg.result.got')}</p>
-				<p class="figure"><span class="n">{wan(counted)}</span><span class="u">{t('egg.wan')}</span><span class="tk">tokens</span></p>
-				<p class="valid">
-					{lapse ? t('egg.result.validLeft', { h: lapse.h, m: lapse.m }) : t('egg.result.validEnded')}
+				<p class="tier">
+					<span class="ce-tier-dot" data-tier={draw.card.tier} aria-hidden="true"></span>
+					{t(`egg.tier.${draw.card.tier}`)} · {TIER_LOOK[draw.card.tier].code}{draw.pity
+						? ` · ${t(draw.pity_by === 'shared' ? 'egg.result.badgeShared' : draw.pity_by === 'both' ? 'egg.result.badgeBoth' : 'egg.result.badgePersonal', { n: me.pity?.shared_sr_every ?? 0 })}`
+						: ''}
 				</p>
+				<h2 class="name ce-result-name">{chosenDef?.name}</h2>
+				<p class="got">{t('egg.result.got')}</p>
+				<p class="figure"><span class="n">{figure.number}</span>{#if figure.unit}<span class="u">{figure.unit}</span>{/if}<span class="tk">tokens</span></p>
+				<p class="valid">
+					{lapse ? t('egg.result.valid', { left: leftText(draw.expires_at) }) : t('egg.result.validEnded')}
+				</p>
+				<!-- The website's row: another pack (or 再抽一次, waiting, with when), and, on the desktop, a conversation on
+				     today's tokens first. -->
 				<div class="actions">
 					{#if egg.usable}<Button variant="primary" onclick={onChat}><ChatCircleIcon size={16} />{t('egg.result.chat')}</Button>{/if}
-					<Button variant="secondary" onclick={onAlbum}>{t('egg.result.album')}</Button>
 					{#if phase === 'done' && onBonus && chance.kind === 'open'}
-						<Button variant="secondary" onclick={onBonus}>{t('egg.result.again')}</Button>
-						<span class="chances">{t('egg.result.chancesLeft', { n: chance.n })}</span>
+						<Button variant={egg.usable ? 'secondary' : 'primary'} onclick={onBonus}>{t('egg.result.openAnother', { count: chance.n })}</Button>
+					{:else}
+						<Button variant="secondary" disabled>{t('egg.result.again')}</Button>
+						<span class="wait">{againLine}</span>
 					{/if}
+					{@render chancesLine()}
 				</div>
-				{#if phase === 'done' && onBonus && chanceWait}<p class="wait">{chanceWait}</p>{/if}
 				<div class="others">
 					<p class="label">{t('egg.result.others')}</p>
 					<div class="row">
@@ -454,7 +506,16 @@
 							{@const def = cardById(other.card_id)}
 							<div class="other" bind:this={otherSlots[index]}>
 								{#if (staticResult || phase === 'done') && def}
-									<Card3D card={def} period={me.pack.period} packName={me.pack.name} interactive={false} live={false} class="ce-card-dim" />
+									<Card3D
+										card={def}
+										period={me.pack.period}
+										packName={me.pack.name}
+										interactive={false}
+										live={false}
+										class="ce-card-dim ce-card-open"
+										label={t('egg.view.open', { name: def.name })}
+										onclick={() => (inspect = index + 1)}
+									/>
 								{:else}
 									<div class="ratio"></div>
 								{/if}
@@ -490,7 +551,8 @@
 				<p class="hint" aria-live="polite">
 					{t(tearHint === 'small' ? 'egg.draw.tearMore' : tearHint === 'edge' ? 'egg.draw.tearEdge' : tearHint === 'slack' ? 'egg.draw.tearSlack' : 'egg.draw.tearHint')}
 				</p>
-				<p class="sub">{[bonus ? t('egg.result.bonusOpening', { n: me.chances?.available ?? 0 }) : '', pityLine, range].filter(Boolean).join(' · ')}</p>
+				<p class="sub">{[bonus ? t('egg.result.bonusOpening', { n: me.chances?.available ?? 0 }) : '', pityLine].filter(Boolean).join(' · ')}</p>
+				{@render chancesLine()}
 			</div>
 			{/if}
 		</div>
@@ -534,6 +596,10 @@
 		<button type="button" class="skip" onclick={skip}>{t('egg.draw.skip')}</button>
 	{/if}
 </div>
+
+{#if inspect !== null && viewerItems.length}
+	<CardViewer items={viewerItems} start={Math.min(inspect, viewerItems.length - 1)} inDraw from={(k) => (k === 0 ? chosenSlot : otherSlots[k - 1])} onClose={() => (inspect = null)} />
+{/if}
 
 {#snippet cardOf(k: number, face: { def: ReturnType<typeof cardById>; serial: number | null } | null)}
 	{@const isPicked = k === picked}
@@ -682,14 +748,17 @@
 		transform: none;
 	}
 	.tier {
+		display: flex;
+		align-items: center;
+		gap: 8px;
 		margin: 0;
 		font-size: var(--fs-sm);
 		color: var(--dim);
 	}
+	/* The name in the website's serif (card.web.css .ce-result-name). */
 	.name {
-		margin: 6px 0 0;
-		font-size: var(--fs-2xl);
-		font-weight: 600;
+		margin: 8px 0 0;
+		font-weight: 400;
 		color: var(--text);
 	}
 	.got {
@@ -705,21 +774,27 @@
 		color: var(--text);
 		white-space: nowrap;
 	}
+	/* The website's TokenFigure: 60px figure, 28px unit, tokens. */
+	.figure {
+		gap: 0;
+	}
 	.figure .n {
-		font-family: var(--font-mono);
 		font-variant-numeric: tabular-nums;
-		font-size: calc(var(--fs-2xl) * 1.45);
+		font-size: 60px;
 		font-weight: 600;
 		line-height: 1;
-		letter-spacing: -0.02em;
+		letter-spacing: -0.025em;
 	}
 	.figure .u {
-		font-size: var(--fs-xl);
+		margin-left: 6px;
+		font-size: 28px;
 		font-weight: 600;
+		line-height: 1;
 	}
 	.figure .tk {
-		margin-left: 4px;
+		margin-left: 8px;
 		font-size: var(--fs-md);
+		line-height: 1;
 		color: var(--dim);
 	}
 	.valid {
@@ -727,21 +802,55 @@
 		font-size: var(--fs-sm);
 		color: var(--dim);
 	}
+	/* The website's result buttons: tall pills. */
 	.actions {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 10px;
+		align-items: center;
+		gap: 10px 14px;
 		margin-top: 22px;
 	}
-	.chances {
-		align-self: center;
-		font-size: var(--fs-xs);
-		color: var(--dim);
+	.actions :global(.b) {
+		height: 40px;
+		padding: 0 20px;
+		border-radius: var(--r-full);
+		font-size: var(--fs-sm);
 	}
 	.wait {
-		margin: 12px 0 0;
-		font-size: var(--fs-xs);
+		font-size: var(--fs-sm);
 		color: var(--dim);
+	}
+	.chance-line {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		margin: 0;
+		font-size: 13px;
+	}
+	.lines .chance-line {
+		margin-top: 10px;
+	}
+	.chance-badge {
+		padding: 2px 8px;
+		border-radius: var(--r-full);
+		background: var(--text);
+		color: var(--bg);
+		font-size: var(--fs-xs);
+		font-weight: 500;
+	}
+	.chance-how {
+		padding: 0;
+		border: none;
+		background: none;
+		color: var(--text);
+		font: inherit;
+		font-weight: 500;
+		cursor: pointer;
+	}
+	.chance-how:hover {
+		text-decoration: underline;
+		text-underline-offset: 2px;
 	}
 	.others {
 		margin-top: 22px;

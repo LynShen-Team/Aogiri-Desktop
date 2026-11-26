@@ -11,12 +11,14 @@
 	import CardsIcon from 'phosphor-svelte/lib/CardsIcon';
 	import ArrowsLeftRightIcon from 'phosphor-svelte/lib/ArrowsLeftRightIcon';
 	import KeyIcon from 'phosphor-svelte/lib/KeyIcon';
+	import CaretRightIcon from 'phosphor-svelte/lib/CaretRightIcon';
 	import { untrack } from 'svelte';
 	import { paneOut } from '$lib/ui/motion';
-	import { t } from '$lib/i18n';
+	import { getLocale, t } from '$lib/i18n';
+	import './card.web.css';
 	import './card.css';
 	import { egg } from './store.svelte';
-	import { left, wan } from './format';
+	import { left, tokensText } from './format';
 	import DrawStage from './DrawStage.svelte';
 	import AlbumView from './AlbumView.svelte';
 	import MarketView from './MarketView.svelte';
@@ -42,6 +44,8 @@
 	} = $props();
 
 	let rules = $state(false);
+	/** What the market opens on when the album sends the user there (挂出 a copy, or a pack's missing cards). */
+	let marketIntent = $state<{ list?: string; missing?: number } | null>(null);
 	/** Extra packs opened this visit (CE-H2): each one is a fresh stage. */
 	let bonusRound = $state(0);
 	const me = $derived(egg.me);
@@ -69,7 +73,7 @@
 		},
 		{ id: 'album' as const, icon: CardsIcon, label: t('egg.nav.album'), meta: album },
 		{ id: 'market' as const, icon: ArrowsLeftRightIcon, label: t('egg.nav.market'), meta: egg.waiting ? t('egg.nav.requests', { n: egg.waiting }) : '' },
-		{ id: 'usage' as const, icon: KeyIcon, label: t('egg.nav.usage'), meta: me?.today ? `${wan(egg.remaining)}${t('egg.wan')}` : '' }
+		{ id: 'usage' as const, icon: KeyIcon, label: t('egg.nav.usage'), meta: me?.today ? tokensText(egg.remaining, getLocale()) : '' }
 	]);
 
 	// Once, on opening: the store's methods read its own state, which must not re-run this (AGENTS.md).
@@ -109,7 +113,7 @@
 		{#if me?.campaign}
 			<div class="today">
 				<p class="head">{t('egg.today.title')}</p>
-				<p class="line"><span>{t('egg.today.left')}</span><span class="num">{wan(egg.remaining)} {t('egg.wan')}</span></p>
+				<p class="line"><span>{t('egg.today.left')}</span><span class="num">{tokensText(egg.remaining, getLocale())}</span></p>
 				<div class="meter" aria-hidden="true"><i style:width="{egg.granted > 0 ? (egg.remaining / egg.granted) * 100 : 0}%"></i></div>
 				<p class="foot">
 					<span>{t('egg.today.resets')}</span>
@@ -124,35 +128,49 @@
 			<p class="empty">{egg.status === 'error' ? (egg.error ?? t('egg.error.generic')) : t('egg.loading')}</p>
 		{:else if !me.campaign}
 			<p class="empty">{t('egg.noRound')}</p>
-		{:else if section === 'draw'}
-			<div class="draw">
-				<header class="head">
-					<h1>{t('egg.nav.draw')}</h1>
-					<span class="ctx">{t('egg.draw.context', { n: me.pack.period, name: me.pack.name })}</span>
-					<button class="link" onclick={() => (rules = true)}>{t('egg.rules.open')}</button>
-				</header>
-				{#key `${me.campaign.id}:${bonusRound}`}
-					<DrawStage
-						{me}
-						now={egg.now}
-						bonus={bonusRound > 0}
-						onBonus={() => (bonusRound += 1)}
-						onDrawn={(answer) => {
-							egg.me = answer.me;
-							if (answer.secret) egg.secret = answer.secret;
-						}}
-						{onChat}
-						{onTopUp}
-						onAlbum={() => (section = 'album')}
-					/>
-				{/key}
-			</div>
-		{:else if section === 'album'}
-			<AlbumView {me} />
-		{:else if section === 'market'}
-			<MarketView />
 		{:else}
-			<UsageView {me} {onChat} />
+			<!-- Every section under one header, as the website's PageHeader: the title, and 「规则与概率」 at the right. -->
+			<div class="section" data-section={section}>
+				<header class="head">
+					<h1>{items.find((item) => item.id === section)?.label}</h1>
+					{#if section === 'draw'}<span class="ctx">{t('egg.draw.context', { n: me.pack.period, name: me.pack.name })}</span>{/if}
+					<button class="link" onclick={() => (rules = true)}>{t('egg.rules.open')}<CaretRightIcon size={12} /></button>
+				</header>
+				<div class="content">
+					{#if section === 'draw'}
+						{#key `${me.campaign.id}:${bonusRound}`}
+							<DrawStage
+								{me}
+								now={egg.now}
+								bonus={bonusRound > 0}
+								onBonus={() => (bonusRound += 1)}
+								onDrawn={(answer) => {
+									egg.me = answer.me;
+									if (answer.secret) egg.secret = answer.secret;
+								}}
+								{onChat}
+								{onTopUp}
+							/>
+						{/key}
+					{:else if section === 'album'}
+						<AlbumView
+							{me}
+							onTrade={(copy) => {
+								marketIntent = { list: copy.id };
+								section = 'market';
+							}}
+							onFindMissing={(period) => {
+								marketIntent = { missing: period };
+								section = 'market';
+							}}
+						/>
+					{:else if section === 'market'}
+						<MarketView intent={marketIntent} onAlbum={() => (section = 'album')} onIntentDone={() => (marketIntent = null)} />
+					{:else}
+						<UsageView {me} {onChat} {onTopUp} onDraw={() => (section = 'draw')} />
+					{/if}
+				</div>
+			</div>
 		{/if}
 	</div>
 </div>
@@ -322,27 +340,31 @@
 		font-size: var(--fs-sm);
 		color: var(--dim);
 	}
-	.draw {
+	/* A section: its header, then its content filling the rest (only what the section chooses scrolls). */
+	.section {
 		flex: 1;
 		min-height: 0;
 		display: flex;
 		flex-direction: column;
-		padding: 24px 48px 32px;
+		padding: 22px 40px 24px;
 	}
-	.draw .head {
+	.section[data-section='draw'] {
+		padding-bottom: 32px;
+	}
+	.section .head {
 		display: flex;
+		flex: none;
 		align-items: baseline;
 		gap: 12px;
-		margin-bottom: 8px;
+		margin-bottom: 14px;
 	}
-	.draw h1 {
+	.section h1 {
 		margin: 0;
 		font-size: var(--fs-xl);
 		font-weight: 600;
 		color: var(--text);
 	}
 	.ctx {
-		flex: 1;
 		min-width: 0;
 		font-size: var(--fs-xs);
 		color: var(--dim);
@@ -350,8 +372,18 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
+	.content {
+		flex: 1;
+		min-height: 0;
+		display: flex;
+		flex-direction: column;
+	}
 	.link {
+		display: inline-flex;
+		align-items: center;
+		gap: 2px;
 		flex: none;
+		margin-left: auto;
 		height: 28px;
 		padding: 0 8px;
 		border: none;

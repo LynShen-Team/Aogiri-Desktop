@@ -68,6 +68,9 @@ export interface EggDraw {
 	kind?: 'daily' | 'bonus';
 	others: Array<{ card_id: string; tier: Tier }>;
 	expires_at: number;
+	/** CE-D6: the guarantee that lifted this draw (if any), and whose: the player's own, the server's, or both. */
+	pity?: 'sr' | 'ssr' | 'ur' | null;
+	pity_by?: 'personal' | 'shared' | 'both' | null;
 }
 
 /** CE-K: the campaign key; the secret only where the device may see it (CE-K7). */
@@ -94,6 +97,15 @@ export interface EggUsageRow {
 	counted_tokens: number;
 }
 
+/** CE-D6: the round's guarantees: draws to a 白银 / 鎏金 / 流光 (0 = off), the duplicate guard, the server's lift. */
+export interface EggPity {
+	sr_at: number;
+	ssr_at: number;
+	ur_at: number;
+	dupe_guard: boolean;
+	shared_sr_every?: number;
+}
+
 export interface EggTierRule {
 	tier: Tier;
 	min_tokens: number;
@@ -117,6 +129,8 @@ export interface EggMe {
 	/** Recent calls with the campaign's tokens. */
 	usage: EggUsageRow[];
 	tiers: EggTierRule[];
+	/** CE-D6: the guarantees (0 = off). Every `shared_sr_every`-th draw on the whole server is lifted to 白银+. */
+	pity?: EggPity;
 	/** CE-D6: draws left to each guarantee (the guaranteed one counted); null when off. */
 	pity_left: { sr: number | null; ssr: number | null; ur: number | null };
 	pack: { period: number; name: string };
@@ -131,6 +145,9 @@ export interface EggMe {
 	today_bonus?: EggDraw[];
 	/** CE-S1: the 集齐 reward of each open pack (a 典藏 card, cash and gift balance), once per player. */
 	sets?: EggSet[];
+	/** CE-X5: the user's paid balance (what a top-up can come from) and the market's money rules. */
+	balance_fen?: number;
+	market_rules?: EggMarketRules;
 	banned?: { reason: 'refund'; at: number } | null;
 	paused?: { reason: 'invite_refund'; at: number } | null;
 }
@@ -141,10 +158,26 @@ export interface EggSet {
 	bonus_cash_fen: number;
 	bonus_gift_fen: number;
 	completed: number;
-	claimed: { at: number; rank: number; serial: number; cash_fen: number; gift_fen: number } | null;
+	claimed: { at: number; rank: number; serial: number; cash_fen: number; gift_fen: number; cash?: { state: 'held' | 'pending' | 'paid' | 'refused' | 'balance'; at: number | null } } | null;
 	/** First come, first served: how many in all, how many left. */
 	cap: number;
 	left: number;
+}
+
+/** CE-X5: money added to a swap to even it out (paid balance, fen), and who pays it: in a listing the one who put the
+ *  card up (`owner`) or the one who takes it (`taker`); in a direct swap the one who sent it (`from`) or the one it
+ *  was sent to (`to`). */
+export interface EggTopup {
+	fen: number;
+	by: 'owner' | 'taker' | 'from' | 'to';
+}
+
+/** CE-X5: the market's money rules, as the round sets them. */
+export interface EggMarketRules {
+	topup_enabled: boolean;
+	topup_max_fen: number;
+	/** Kept by the platform from what the receiving side gets, in thousandths. */
+	topup_fee_permille: number;
 }
 
 /** CE-X2: a swap between two users. */
@@ -154,8 +187,22 @@ export interface EggTrade {
 	to: string;
 	give: EggOwnedCard[];
 	want: EggOwnedCard[];
+	topup?: EggTopup | null;
 	state: 'open' | 'accepted' | 'declined' | 'cancelled' | 'expired';
 	at: number;
+}
+
+/** CE-X4: a swap done in the market (最近成交). */
+export interface EggTradeEvent {
+	id: string;
+	at: number;
+	who: string;
+	gave: string;
+	got: string;
+	/** Positive when `who` paid it, negative when `who` received it (fen). */
+	topup_fen?: number;
+	gave_count?: number;
+	got_count?: number;
 }
 
 /** CE-X4: a card put up in the hall, and what is wanted for it. */
@@ -167,6 +214,7 @@ export interface EggListing {
 	want_card_id: string | null;
 	/** With no `want_card_id`: any card of this tier (null: any card). */
 	want_tier: Tier | null;
+	topup?: EggTopup | null;
 	at: number;
 }
 
@@ -231,10 +279,14 @@ export const eggApi = {
 	rotateKey: (campaignId: string) => call<EggKey>('POST', `${id(campaignId)}/key/rotate`),
 	trades: () => call<EggTrades>('GET', 'trades'),
 	answer: (tradeId: string, action: 'accept' | 'decline' | 'cancel') => call<EggTrade>('POST', `trades/${id(tradeId)}/${action}`),
-	market: () => call<{ listings: EggListing[] }>('GET', 'market'),
+	market: () => call<{ listings: EggListing[]; recent?: EggTradeEvent[]; stats?: { listings: number; today_trades: number } }>('GET', 'market'),
+	/** A user's cards that can be swapped (定向交换). */
+	tradableOf: (username: string) => call<{ username: string; cards: EggOwnedCard[] }>('GET', `trades/user/${id(username)}`),
+	/** A direct swap sent to `to`: copies given and wanted, money on top (`by`: from | to). */
+	offerTrade: (to: string, give: string[], want: string[], topup: EggTopup | null = null) => call<EggTrade>('POST', 'trades', { to, give, want, topup }),
 	/** Puts a card up in the hall. */
-	list: (give: string, want: { card_id?: string | null; tier?: Tier | null }) =>
-		call<EggListing>('POST', 'market', { give, want_card_id: want.card_id ?? null, want_tier: want.tier ?? null, topup: null }),
+	list: (give: string, want: { card_id?: string | null; tier?: Tier | null }, topup: EggTopup | null = null) =>
+		call<EggListing>('POST', 'market', { give, want_card_id: want.card_id ?? null, want_tier: want.tier ?? null, topup }),
 	/** Takes a listing, giving one of this user's cards for it. */
 	take: (listingId: string, give: string) => call<{ received: EggOwnedCard }>('POST', `market/${id(listingId)}/take`, { give }),
 	unlist: (listingId: string) => call<{ ok: true }>('POST', `market/${id(listingId)}/cancel`)

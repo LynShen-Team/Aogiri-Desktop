@@ -3,10 +3,10 @@
  "version": 1,
  "source": {
   "repo": "https://github.com/LynShen-Team/monoizeovo.git",
-  "commit": "abdf72ebf508e9b547fee47c585490f3d570897e",
+  "commit": "3590cd4d841c6f10bc258c711c631dde60f88c5d",
   "dirty": false,
   "path": "frontend/src/pages/cyber-egg/card",
-  "exportedAt": "2026-11-25T11:16:06.665Z",
+  "exportedAt": "2026-11-26T18:53:41.126Z",
   "exporter": "aogiri scripts/cyber-egg/export-art.ts"
  },
  "geometry": {

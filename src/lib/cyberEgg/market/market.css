@@ -1,0 +1,16 @@
+/* 赛博鸡蛋 · 交易市场: the buttons the website's market styles itself (card.web.css: the tile, the page arrows, the
+   page dots) start bare, as Tailwind's preflight leaves a web button. Zero specificity, so every rule of the web's
+   own CSS still wins. */
+:where(.ce-market-tile, .ce-book-arrow, .ce-dot) {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: inherit;
+	font: inherit;
+	text-align: inherit;
+	cursor: pointer;
+}
+:where(.ce-book-arrow:disabled) {
+	cursor: default;
+}
