@@ -96,14 +96,15 @@ describe('dotGlyph', () => {
 	let nextFrame: number;
 	let seen: { cb: (e: { target: unknown; isIntersecting: boolean }[]) => void; nodes: Set<unknown>; disconnected: boolean }[];
 
-	type Ctx = { arcs: number; clears: number; alphas: number[] };
+	// What the last frame drew: each dot's opacity, in order.
+	type Ctx = { clears: number; alpha: number; alphas: number[] };
 	const canvas = () => {
 		const ctx: Ctx & Record<string, unknown> = {
-			arcs: 0,
 			clears: 0,
+			alpha: 1,
 			alphas: [],
 			set globalAlpha(a: number) {
-				ctx.alphas.push(a);
+				ctx.alpha = a;
 			},
 			setTransform() {},
 			clearRect() {
@@ -112,7 +113,7 @@ describe('dotGlyph', () => {
 			},
 			beginPath() {},
 			arc() {
-				ctx.arcs++;
+				ctx.alphas.push(ctx.alpha);
 			},
 			fill() {}
 		};
@@ -183,13 +184,25 @@ describe('dotGlyph', () => {
 			}
 		);
 	});
-	afterEach(() => vi.unstubAllGlobals());
+	// Every glyph a test made goes, even when the test fails (the loop and
+	// its listeners are shared by the module).
+	let made: { destroy(): void }[] = [];
+	const glyph = (node: HTMLCanvasElement, size: number) => {
+		const g = dotGlyph(node, size);
+		made.push(g);
+		return g;
+	};
+	afterEach(() => {
+		made.forEach((g) => g.destroy());
+		made = [];
+		vi.unstubAllGlobals();
+	});
 
 	it('turns while it shows: one loop for all glyphs, sized for the screen', () => {
 		const a = canvas();
 		const b = canvas();
-		const ga = dotGlyph(a.node, 14);
-		const gb = dotGlyph(b.node, 12);
+		const ga = glyph(a.node, 14);
+		const gb = glyph(b.node, 12);
 		expect([a.node.width, b.node.width]).toEqual([28, 24]);
 		expect(a.node.style.width).toBe('14px');
 		// One frame asked for, not one per glyph.
@@ -211,7 +224,7 @@ describe('dotGlyph', () => {
 	it('under reduced motion shows the still sphere and asks for no frame', () => {
 		reduced = true;
 		const c = canvas();
-		const g = dotGlyph(c.node, 14);
+		const g = glyph(c.node, 14);
 		expect(frames.size).toBe(0);
 		// One frame drawn: the sphere at STILL_AT, every dot of it.
 		expect(c.ctx.clears).toBe(1);
@@ -230,7 +243,7 @@ describe('dotGlyph', () => {
 	it('stops while the page is hidden and goes on when it shows', () => {
 		hidden = true;
 		const c = canvas();
-		const g = dotGlyph(c.node, 14);
+		const g = glyph(c.node, 14);
 		expect(frames.size).toBe(0);
 		hidden = false;
 		visibilityListeners.forEach((f) => f());
@@ -247,7 +260,7 @@ describe('dotGlyph', () => {
 
 	it('draws nothing while off screen (scrolled away, a hidden tab)', () => {
 		const c = canvas();
-		const g = dotGlyph(c.node, 14);
+		const g = glyph(c.node, 14);
 		const [observer] = seen;
 		expect(observer.nodes.has(c.node)).toBe(true);
 		observer.cb([{ target: c.node, isIntersecting: false }]);
