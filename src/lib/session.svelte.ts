@@ -28,7 +28,8 @@ import { normalizeColor, parseTabIcon, type TabIcon } from './workbench/tabChrom
 import { CHATS_ENABLED, lastActive, type Project, type Session, type WorktreeMeta } from './types';
 import { modelEfforts } from '$lib/settings/providerFields';
 import { unanswered } from './errorInfo';
-import { EGG_PROVIDER, eggProvider, eggRoutable } from './cyberEgg/route';
+import { eggProvider, eggRoutable } from './cyberEgg/route';
+import { EGG_PROVIDER, eggModelOf } from './cyberEgg/provider';
 
 /** Optional per-tab chrome persisted alongside the session id + title. */
 export interface SavedTabChrome {
@@ -1477,10 +1478,13 @@ export class SessionStore {
 		// conversation on the campaign's tokens there (it would spend the balance under the 赛博鸡蛋 label).
 		if (model && !eggRoutable()) throw new Error(t('egg.picker.needsUpdate'));
 		// A conversation reopened after a restart is on 赛博鸡蛋 by the provider its engine reports.
-		const was = s.egg?.model ?? (s.chat.provider === EGG_PROVIDER ? s.chat.model || EGG_PROVIDER : null);
+		const was = eggModelOf(s);
 		s.egg = model ? { model } : undefined;
 		if (s.draft) {
 			if (model) s.chat.pickDraftModel(model, '', 0);
+			// A draft seeded from a report on 赛博鸡蛋 (before 0.11.16 the backend's profile kept it) shows the
+			// account's model again.
+			else if (s.chat.provider === EGG_PROVIDER) s.chat.provider = '';
 			s.draftPick = model ? { model } : undefined;
 			return;
 		}

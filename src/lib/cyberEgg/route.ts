@@ -5,9 +5,10 @@
 import { engineHas } from '$lib/engineVersion.svelte';
 import { t } from '$lib/i18n';
 import { egg } from './store.svelte';
+import { EGG_PROVIDER } from './provider';
 
-/** The provider id the engine reports for such a session. */
-export const EGG_PROVIDER = 'cyber-egg';
+/** The provider id the engine reports for such a session (provider.ts). */
+export { EGG_PROVIDER };
 
 /** The daemon can run one session on its own provider. */
 export const eggRoutable = () => engineHas('session_provider');

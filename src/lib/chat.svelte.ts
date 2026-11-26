@@ -1,5 +1,6 @@
 import type { AgentEvent, SessionOption, SessionToolProvider } from './protocol';
 import { loadProfile, profileKey, rememberProfile, type BackendProfile } from '$lib/backendProfile';
+import { EGG_PROVIDER } from '$lib/cyberEgg/provider';
 import { toolModeKey } from '$lib/draftModel';
 import { isBackendId, type BackendCaps, type BackendId } from './backends/types';
 import { caps } from './backends';
@@ -1853,12 +1854,15 @@ export class ChatState {
 		return toolModeKey(this.onGateway, this.toolProvider?.id);
 	}
 
-	/** A draft (no engine yet) shows what its backend reported last time. */
+	/** A draft (no engine yet) shows what its backend reported last time. A report from a conversation on the
+	 *  赛博鸡蛋 tokens (kept before 0.11.16) is not what a new one runs: the draft shows no model then, and its
+	 *  engine reports the one it runs. */
 	seedFromProfile() {
 		const p = loadProfile(profileKey(this.backendId, this.acpAgentId));
-		this.provider = p.provider ?? '';
-		this.model = p.model ?? '';
-		this.modelLabel = p.modelLabel ?? '';
+		const egged = p.provider === EGG_PROVIDER;
+		this.provider = egged ? '' : (p.provider ?? '');
+		this.model = egged ? '' : (p.model ?? '');
+		this.modelLabel = egged ? '' : (p.modelLabel ?? '');
 		this.effort = p.effort ?? '';
 		this.efforts = p.efforts ?? [];
 		this.contextWindow = p.contextWindow ?? 0;
@@ -2126,16 +2130,19 @@ export class ChatState {
 				if (this.busy) this.#uncut();
 				this.contextWindow = num(ev.context_window);
 				this.contextLimit = num(ev.context_limit);
-				this.#remember({
-					provider: this.provider,
-					model: this.model,
-					modelMode: this.#profileMode(),
-					modelLabel: this.modelLabel,
-					effort: this.effort,
-					efforts: this.efforts,
-					contextWindow: this.contextWindow,
-					...(this.backendId === 'acp' ? { effortDefault: this.effortDefault } : {})
-				});
+				// A conversation on the 赛博鸡蛋 tokens runs on the campaign's provider, not the backend's: a new draft
+				// seeded from it showed 赛博鸡蛋 and froze the model menu (ticket #86).
+				if (this.provider !== EGG_PROVIDER)
+					this.#remember({
+						provider: this.provider,
+						model: this.model,
+						modelMode: this.#profileMode(),
+						modelLabel: this.modelLabel,
+						effort: this.effort,
+						efforts: this.efforts,
+						contextWindow: this.contextWindow,
+						...(this.backendId === 'acp' ? { effortDefault: this.effortDefault } : {})
+					});
 				break;
 			case 'user_message': {
 				const text = str(ev.content);
@@ -2421,7 +2428,9 @@ export class ChatState {
 				this.modelCatalog = arr<ModelOption>(ev.models);
 				this.modelCatalogEffort = str(ev.active_effort);
 				this.#catalogReported = true;
-				this.#remember({ catalog: this.modelCatalog, catalogEffort: this.modelCatalogEffort, catalogMode: this.#profileMode() });
+				// The campaign's few models are not the backend's list.
+				if (this.provider !== EGG_PROVIDER)
+					this.#remember({ catalog: this.modelCatalog, catalogEffort: this.modelCatalogEffort, catalogMode: this.#profileMode() });
 				// A background refresh (the model list changed) updates the list
 				// without opening the menu.
 				if (this.silentModelView > 0) {
