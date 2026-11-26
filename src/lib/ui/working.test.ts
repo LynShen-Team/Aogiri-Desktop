@@ -46,6 +46,12 @@ describe('WorkingIndicator', () => {
 		expect(html).toMatch(/<i class="veil[^"]*" aria-hidden="true">/);
 	});
 
+	it('hands the glyph the mode of the work, thinking by default', async () => {
+		const { default: WorkingIndicator } = await import('./WorkingIndicator.svelte');
+		expect(render(WorkingIndicator, { props: { mode: 'read' } }).body).toContain('data-mode="read"');
+		expect(render(WorkingIndicator, { props: {} }).body).toContain('data-mode="think"');
+	});
+
 	it('shows no time when it does not know when the work began', async () => {
 		setLocale('en');
 		const { default: WorkingIndicator } = await import('./WorkingIndicator.svelte');

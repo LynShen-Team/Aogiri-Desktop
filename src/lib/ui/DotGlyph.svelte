@@ -1,14 +1,14 @@
 <script lang="ts">
-	// The working glyph (dotGlyph.ts): a turning sphere of dots that gathers
-	// into the 04 林光 mark now and then. Its dots take the text colour of
-	// where it sits. Decorative: the words beside it, or its parent's title,
-	// say what it means.
-	import { dotGlyph } from './dotGlyph';
+	// The working glyph (dotGlyph.ts): dots whose motion says what the work
+	// is doing (`mode`). They take the text colour of where the glyph sits.
+	// Decorative: the words beside it, or its parent's title, say what it
+	// means.
+	import { dotGlyph, type GlyphMode } from './dotGlyph';
 
-	let { size = 14 }: { size?: number } = $props();
+	let { size = 14, mode = 'think' }: { size?: number; mode?: GlyphMode } = $props();
 </script>
 
-<canvas class="glyph" aria-hidden="true" style:width="{size}px" style:height="{size}px" use:dotGlyph={size}></canvas>
+<canvas class="glyph" aria-hidden="true" data-mode={mode} style:width="{size}px" style:height="{size}px" use:dotGlyph={{ size, mode }}></canvas>
 
 <style>
 	.glyph {

@@ -68,6 +68,7 @@
 		phase,
 		call = null,
 		turnSince = 0,
+		waiting = false,
 		compactionTokens = 0,
 		retry = null,
 		autoRetry = null,
@@ -121,6 +122,9 @@
 		call?: CallTiming | null;
 		/** When the running turn began (the status line's turn clock). */
 		turnSince?: number;
+		/** The turn waits for the reader (an approval, a question): the
+		 *  status line's glyph waits too. */
+		waiting?: boolean;
 		compactionTokens?: number;
 		/** A failed model request being re-sent: shown instead of the phase. */
 		retry?: RetryState | null;
@@ -1069,7 +1073,7 @@
 	{:else if autoRetry}
 		<RetryNotice retry={autoRetry} {backend} onNow={onAutoRetryNow} onCancel={onAutoRetryCancel} />
 	{:else}
-		<Indicator phase={shownPhase} tokens={compactionTokens} {call} {messages} {turnSince} onDetails={revealCall} />
+		<Indicator phase={shownPhase} tokens={compactionTokens} {call} {messages} {turnSince} {waiting} onDetails={revealCall} />
 	{/if}
 </div>
 {#if cite}

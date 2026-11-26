@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Msg } from '$lib/chat.svelte';
 import { ChatState } from '$lib/chat.svelte';
-import { workStep } from './workStatus';
+import { workMode, workStep } from './workStatus';
 
 const tool = (name: string, extra: Partial<Extract<Msg, { kind: 'tool' }>> = {}): Msg => ({
 	kind: 'tool',
@@ -162,5 +162,60 @@ describe('the work line once the request is answered (connecting/thinking flip)'
 		c.handle({ type: 'status', message: 'ready' } as never);
 		expect(line(c)).toBeNull();
 		expect(c.requestAnswered).toBe(false);
+	});
+});
+
+describe('workMode', () => {
+	it('moves the glyph as the step goes: think, write, run, read, edit, wait, compact, connect', () => {
+		const cases: [string, string][] = [
+			['thinking', 'think'],
+			['writing', 'write'],
+			['running', 'run'],
+			['tool', 'run'],
+			['browser', 'run'],
+			['agents', 'run'],
+			['image', 'run'],
+			['planning', 'run'],
+			['sessions', 'run'],
+			['reading', 'read'],
+			['searching', 'read'],
+			['listing', 'read'],
+			['outlining', 'read'],
+			['searchingWeb', 'read'],
+			['fetching', 'read'],
+			['editing', 'edit'],
+			['writingFile', 'edit'],
+			['waitingAgents', 'wait'],
+			['compacting', 'compact'],
+			['connecting', 'connect']
+		];
+		for (const [verb, mode] of cases) expect(workMode(verb), verb).toBe(mode);
+	});
+
+	it('follows the steps the chat reports', () => {
+		const step = (name: string) => workStep('tool', null, [tool(name)])!.verb;
+		expect(workMode(step('bash'))).toBe('run');
+		expect(workMode(step('read'))).toBe('read');
+		expect(workMode(step('ripgrep'))).toBe('read');
+		expect(workMode(step('web_fetch'))).toBe('read');
+		expect(workMode(step('str_replace'))).toBe('edit');
+		expect(workMode(step('apply_patch'))).toBe('edit');
+		expect(workMode(step('mcp__linear__create_issue'))).toBe('run');
+		expect(workMode(workStep('waiting', { phase: 'ttft', since: 0 }, [])!.verb)).toBe('think');
+		expect(workMode(workStep('generating', { phase: 'output', since: 0 }, [{ kind: 'assistant', text: 'x' }])!.verb)).toBe('write');
+		expect(workMode(workStep('connecting', { phase: 'connect', since: 0 }, [])!.verb)).toBe('connect');
+		expect(workMode(workStep('compacting', null, [])!.verb)).toBe('compact');
+	});
+
+	it('waits while the turn waits for the reader, whatever the step', () => {
+		expect(workMode('running', true)).toBe('wait');
+		expect(workMode('thinking', true)).toBe('wait');
+	});
+
+	it('thinks for a step it does not know', () => {
+		expect(workMode('somethingNew')).toBe('think');
+		expect(workMode('')).toBe('think');
+		expect(workMode(null)).toBe('think');
+		expect(workMode(undefined)).toBe('think');
 	});
 });

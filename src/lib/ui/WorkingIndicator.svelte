@@ -1,19 +1,21 @@
 <script lang="ts">
-	// While something works: the dot glyph (DotGlyph.svelte), 工作中 with a
-	// light that sweeps it on the running titles' clock (shimmer.ts), and the
-	// time since `startedAt` (working.ts), ticking each second while the page
-	// shows. Reduced motion: the still glyph and still words; the time still
-	// ticks. It sits on --bg unless the parent sets --row-bg (the veil's
-	// colour, as RunLight's).
+	// While something works: the dot glyph (DotGlyph.svelte) moving as the
+	// work does (`mode`), 工作中 with a light that sweeps it on the running
+	// titles' clock (shimmer.ts), and the time since `startedAt` (working.ts),
+	// ticking each second while the page shows. Reduced motion: the mode's
+	// still glyph and still words; the time still ticks. It sits on --bg
+	// unless the parent sets --row-bg (the veil's colour, as RunLight's).
 	import { t } from '$lib/i18n';
 	import { visibleInterval } from '$lib/visibleInterval';
 	import DotGlyph from './DotGlyph.svelte';
+	import type { GlyphMode } from './dotGlyph';
 	import { shimmer } from './shimmer';
 	import { workingElapsed } from './working';
 
 	let {
 		startedAt = 0,
 		size = 16,
+		mode = 'think',
 		label,
 		elapsedTitle
 	}: {
@@ -21,6 +23,8 @@
 		startedAt?: number;
 		/** The glyph's size in px. */
 		size?: number;
+		/** What the work is doing, for the glyph's motion (dotGlyph.ts). */
+		mode?: GlyphMode;
 		/** The words (default 工作中 / Working). */
 		label?: string;
 		/** A tooltip for the time. */
@@ -36,7 +40,7 @@
 </script>
 
 <span class="working">
-	<DotGlyph {size} />
+	<DotGlyph {size} {mode} />
 	<span class="label">{label ?? t('chat.working.label')}<i class="veil" aria-hidden="true" use:shimmer={'canvas'}></i></span>
 	{#if startedAt > 0}<span class="elapsed" title={elapsedTitle}>{workingElapsed(now - startedAt)}</span>{/if}
 </span>

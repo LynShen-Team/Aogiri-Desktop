@@ -2368,12 +2368,13 @@ try {
     const glyph = el.querySelector('.working canvas.glyph');
     // The glyph has drawn: some of its pixels are not clear.
     const drawn = glyph ? glyph.getContext('2d').getImageData(0, 0, glyph.width, glyph.height).data.some((v, i) => i % 4 === 3 && v > 0) : false;
-    return {label: words('.working .label'), elapsed: words('.working .elapsed'), text: [...el.querySelectorAll('.step .verb, .step .obj')].map((n) => n.textContent.trim()).join(' '), sep: words('.step .sep'), glyphs: el.querySelectorAll('canvas.glyph').length, drawn, sweeps: el.querySelectorAll('.working .veil').length, more: !!el.querySelector('.more')};
+    return {mode: glyph?.dataset.mode ?? null, label: words('.working .label'), elapsed: words('.working .elapsed'), text: [...el.querySelectorAll('.step .verb, .step .obj')].map((n) => n.textContent.trim()).join(' '), sep: words('.step .sep'), glyphs: el.querySelectorAll('canvas.glyph').length, drawn, sweeps: el.querySelectorAll('.working .veil').length, more: !!el.querySelector('.more')};
   });
   await work.goto(base + '?shell&work=group');
   await expect(work.locator('.ind')).toBeVisible({timeout:30000});
   const workLine = await statusLine();
-  assert.deepEqual([workLine.label, workLine.glyphs, workLine.drawn, workLine.sweeps, workLine.more], ['工作中', 1, true, 1, true]);
+  // The glyph moves as the step does: a command runs round (dotGlyph.ts).
+  assert.deepEqual([workLine.mode, workLine.label, workLine.glyphs, workLine.drawn, workLine.sweeps, workLine.more], ['run', '工作中', 1, true, 1, true]);
   assert.match(workLine.elapsed, /^\d+ 秒$/);
   assert.deepEqual([workLine.sep, workLine.text], ['·', '正在运行 pnpm vitest run src/lib/cache.test.ts']);
   // A turn of a minute and more counts minutes, then hours.
@@ -2394,11 +2395,13 @@ try {
   await expect(runningCard.locator('.collapse')).toHaveCount(0);
   await work.locator('.ind .more').click();
   await expect(runningCard.locator('.collapse.open')).toHaveCount(1);
-  for (const [step, text] of [['read', '正在读取 cache.ts'], ['think', '正在思考'], ['write', '正在写回复'], ['mcp', '正在调用 create_issue']]) {
+  for (const [step, text, mode] of [['read', '正在读取 cache.ts', 'read'], ['think', '正在思考', 'think'], ['write', '正在写回复', 'write'], ['mcp', '正在调用 create_issue', 'run'], ['edit', null, 'edit']]) {
     await work.goto(base + '?shell&work=' + step);
     await expect(work.locator('.ind')).toBeVisible({timeout:30000});
-    assert.equal((await statusLine()).text, text, step);
-    assert.equal((await statusLine()).more, step === 'read' || step === 'mcp', step);
+    const line = await statusLine();
+    if (text) assert.equal(line.text, text, step);
+    assert.equal(line.mode, mode, step);
+    if (text) assert.equal(line.more, step === 'read' || step === 'mcp', step);
   }
   await work.close();
   // A message sent with a file shows what was typed and the file as a chip,

@@ -1,15 +1,16 @@
 <script lang="ts">
 	// The work status line under the transcript: the working indicator (the
-	// dot glyph, 工作中 under a light, the whole turn's time so far;
-	// ui/WorkingIndicator.svelte), then what the turn is doing in words
-	// ("正在运行 pnpm vitest run") and "›" to the running tool call's details
-	// (workStatus.ts). The words change at once when the step does.
+	// dot glyph moving as the step does, 工作中 under a light, the whole
+	// turn's time so far; ui/WorkingIndicator.svelte), then what the turn is
+	// doing in words ("正在运行 pnpm vitest run") and "›" to the running tool
+	// call's details (workStatus.ts). The words change at once when the step
+	// does; the glyph morphs, and holds a step of a moment back.
 	import CaretRightIcon from 'phosphor-svelte/lib/CaretRightIcon';
 	import { untrack } from 'svelte';
 	import { t } from '$lib/i18n';
 	import type { CallTiming, Msg } from '$lib/chat.svelte';
 	import WorkingIndicator from '$lib/ui/WorkingIndicator.svelte';
-	import { workStep, type WorkPhase } from '$lib/workStatus';
+	import { workMode, workStep, type WorkPhase } from '$lib/workStatus';
 
 	let {
 		phase,
@@ -17,6 +18,7 @@
 		call = null,
 		messages = [],
 		turnSince = 0,
+		waiting = false,
 		onDetails
 	}: {
 		/** ChatState.phase. */
@@ -28,6 +30,8 @@
 		messages?: readonly Msg[];
 		/** When the running turn began (0: not known): the clock counts from it. */
 		turnSince?: number;
+		/** The turn waits for the reader (an approval, a question). */
+		waiting?: boolean;
 		/** Show a tool call's details (its card in the transcript). */
 		onDetails?: (call: Extract<Msg, { kind: 'tool' }>) => void;
 	} = $props();
@@ -47,11 +51,12 @@
 		});
 	});
 	const since = $derived(turnSince > 0 ? turnSince : seen);
+	const mode = $derived(workMode(step?.verb, waiting));
 </script>
 
 {#if step}
 	<div class="ind">
-		<WorkingIndicator startedAt={since} elapsedTitle={t('chat.turnClock')} />
+		<WorkingIndicator startedAt={since} {mode} elapsedTitle={t('chat.turnClock')} />
 		<span class="step">
 			<span class="sep" aria-hidden="true">·</span>
 			<span class="verb">{t(`chat.work.${step.verb}`)}</span>

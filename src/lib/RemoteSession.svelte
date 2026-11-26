@@ -984,6 +984,7 @@
 					phase={chat.phase}
 					call={chat.call}
 					turnSince={chat.turnRunningSince}
+					waiting={!!chat.pendingApproval || !!chat.trustPrompt}
 					compactionTokens={chat.compactionTokens}
 					traceOf={bcaps.agentTrace ? traceOf : undefined}
 					agents={allAgents}

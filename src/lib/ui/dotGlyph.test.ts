@@ -1,99 +1,226 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import mark from '../lynshen-mark.svg?raw';
 import {
-	GATHER_AT,
-	GATHER_MS,
-	GLYPH_CYCLE_MS,
 	GLYPH_DOTS,
-	MARK_DOTS,
-	SCATTER_AT,
-	SCATTER_MS,
-	STILL_AT,
+	GLYPH_MODES,
+	GlyphState,
+	HOLD_MS,
+	MORPH_MS,
+	ModeHold,
+	SETTLE_MS,
 	dotGlyph,
-	gathered,
-	glyphFrame
+	modeFrame,
+	stillFrame,
+	type GlyphDot,
+	type GlyphMode
 } from './dotGlyph';
 
-const HOLD = (GATHER_AT + GATHER_MS + 200 + SCATTER_AT) / 2;
+const shown = (dots: GlyphDot[]) => dots.filter((d) => d.a > 0.01);
+const bright = (dots: GlyphDot[], above = 0.6) => dots.filter((d) => d.a > above);
+/** Mean distance of the drawn dots from the middle. */
+const spread = (dots: GlyphDot[]) => {
+	const s = shown(dots);
+	return s.reduce((sum, d) => sum + Math.hypot(d.x - 8, d.y - 8), 0) / s.length;
+};
+/** The frame as the eye gets it at 16 px: how much light falls in each 2 px cell. */
+const cells = (dots: GlyphDot[]) => {
+	const grid = new Array(64).fill(0);
+	for (const d of shown(dots)) grid[Math.min(7, Math.floor(d.y / 2)) * 8 + Math.min(7, Math.floor(d.x / 2))] += d.a;
+	return grid;
+};
 
-describe('glyphFrame', () => {
-	it('draws the same dots for the same moment, inside its box, all through the cycle', () => {
-		for (let t = 0; t < 2 * GLYPH_CYCLE_MS; t += 37) {
-			const dots = glyphFrame(t);
-			expect(dots).toHaveLength(GLYPH_DOTS);
-			for (const d of dots) {
-				expect(d.x - d.r).toBeGreaterThanOrEqual(0);
-				expect(d.y - d.r).toBeGreaterThanOrEqual(0);
-				expect(d.x + d.r).toBeLessThanOrEqual(16);
-				expect(d.y + d.r).toBeLessThanOrEqual(16);
-				expect(d.a).toBeGreaterThanOrEqual(0);
-				expect(d.a).toBeLessThanOrEqual(1);
+describe('modeFrame', () => {
+	it('draws every mode inside its box, the same for the same moment', () => {
+		for (const mode of GLYPH_MODES) {
+			for (let t = 0; t < 8000; t += 53) {
+				const dots = modeFrame(mode, t);
+				expect(dots).toHaveLength(GLYPH_DOTS);
+				for (const d of dots) {
+					expect(d.x - d.r, mode).toBeGreaterThanOrEqual(0);
+					expect(d.y - d.r, mode).toBeGreaterThanOrEqual(0);
+					expect(d.x + d.r, mode).toBeLessThanOrEqual(16);
+					expect(d.y + d.r, mode).toBeLessThanOrEqual(16);
+					expect(d.a, mode).toBeGreaterThanOrEqual(0);
+					expect(d.a, mode).toBeLessThanOrEqual(1);
+				}
 			}
+			// A function of time only: every glyph in the same mode agrees.
+			expect(modeFrame(mode, 12_345)).toEqual(modeFrame(mode, 12_345));
 		}
-		// A function of time only: every glyph in the window agrees.
-		expect(glyphFrame(12_345)).toEqual(glyphFrame(12_345));
 	});
 
-	it('is a sphere with depth before the dots gather: the nearer, the brighter and larger', () => {
-		const dots = glyphFrame(STILL_AT);
+	it('thinks as a turning sphere: the nearer dots brighter and larger', () => {
+		const dots = modeFrame('think', 900);
 		const byAlpha = [...dots].sort((a, b) => a.a - b.a);
 		expect(byAlpha[0].a).toBeLessThan(0.35);
 		expect(byAlpha.at(-1)!.a).toBeGreaterThan(0.85);
 		expect(byAlpha[0].r).toBeLessThan(byAlpha.at(-1)!.r);
-		// Round: every dot is about as far from the middle as the sphere's
-		// radius or nearer.
 		for (const d of dots) expect(Math.hypot(d.x - 8, d.y - 8)).toBeLessThanOrEqual(6.6);
+		expect(modeFrame('think', 1500)).not.toEqual(dots);
 	});
 
-	it('gathers into the mark, every dot of it once, then scatters back', () => {
-		for (const k of [0, 1, 7]) {
-			const dots = glyphFrame(k * GLYPH_CYCLE_MS + HOLD);
-			const shown = dots.filter((d) => d.a > 0.01);
-			expect(shown).toHaveLength(MARK_DOTS.length);
-			const at = (p: { x: number; y: number }) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`;
-			expect(new Set(shown.map(at))).toEqual(new Set(MARK_DOTS.map(at)));
-			expect(shown.every((d) => Math.abs(d.a - 1) < 1e-9)).toBe(true);
-		}
-		for (let i = 0; i < GLYPH_DOTS; i++) {
-			expect(gathered(i, GATHER_AT - 1)).toBe(0);
-			expect(gathered(i, HOLD)).toBe(1);
-			expect(gathered(i, SCATTER_AT + 200 + SCATTER_MS)).toBe(0);
-		}
-		// About a second in the mark, once in about nine.
-		expect(SCATTER_AT - (GATHER_AT + GATHER_MS)).toBeGreaterThanOrEqual(1000);
-		expect(GLYPH_CYCLE_MS).toBeGreaterThanOrEqual(8000);
-		expect(GLYPH_CYCLE_MS).toBeLessThanOrEqual(10_000);
+	it('writes as rows flowing to the right', () => {
+		const a = modeFrame('write', 1000);
+		const b = modeFrame('write', 1080);
+		// Four rows of seven, one under the other; most dots moved right (the
+		// rest came round to the left).
+		const rows = [0, 1, 2, 3].map((r) => a.slice(r * 7, r * 7 + 7).reduce((sum, d) => sum + d.y, 0) / 7);
+		for (let r = 1; r < 4; r++) expect(rows[r] - rows[r - 1]).toBeGreaterThan(2);
+		const right = a.filter((d, i) => b[i].x > d.x).length;
+		expect(right).toBeGreaterThanOrEqual(GLYPH_DOTS - 5);
 	});
 
-	it("draws the app's own mark: the dots lie on lynshen-mark.svg's trunks and light", () => {
-		// The trunks: x from..to and y from..to of each capsule path.
-		const trunks = [...mark.matchAll(/d="M([\d.]+) ([\d.]+)L[\d.]+ ([\d.]+)A1 1 0 0 0 ([\d.]+)/g)].map(([, x0, y0, y1, x1]) => ({ x: (+x0 + +x1) / 2, top: +y0, bottom: +y1 }));
-		expect(trunks).toHaveLength(2);
-		for (const trunk of trunks) {
-			const on = MARK_DOTS.filter((d) => d.x === trunk.x);
-			expect(on.length).toBeGreaterThanOrEqual(5);
-			expect(Math.min(...on.map((d) => d.y))).toBe(trunk.top);
-			expect(Math.max(...on.map((d) => d.y))).toBe(trunk.bottom);
+	it('runs as a dim ring with two or three bright dots going round', () => {
+		let last = -1;
+		for (let t = 0; t < 1500; t += 50) {
+			const dots = shown(modeFrame('run', t));
+			for (const d of dots) expect(Math.hypot(d.x - 8, d.y - 8)).toBeCloseTo(6, 5);
+			const lit = bright(dots, 0.55);
+			expect(lit.length, `t ${t}`).toBeGreaterThanOrEqual(2);
+			expect(lit.length, `t ${t}`).toBeLessThanOrEqual(3);
+			expect(dots.length - lit.length).toBeGreaterThanOrEqual(12);
+			// The brightest dot goes round clockwise.
+			const head = [...dots].sort((x, y) => y.a - x.a)[0];
+			const angle = (Math.atan2(head.x - 8, 8 - head.y) + Math.PI * 2) % (Math.PI * 2);
+			if (last >= 0 && angle < last) expect(last - angle).toBeGreaterThan(Math.PI);
+			last = angle;
 		}
-		// The light runs down to the right, between the trunks.
-		const light = MARK_DOTS.filter((d) => d.x !== trunks[0].x && d.x !== trunks[1].x);
-		expect(light.length).toBeGreaterThanOrEqual(4);
-		for (let i = 1; i < light.length; i++) {
-			expect(light[i].x).toBeGreaterThan(light[i - 1].x);
-			expect(light[i].y).toBeGreaterThan(light[i - 1].y);
+	});
+
+	it('reads with a line scanning the field top to bottom, one row bright at a time', () => {
+		let row = -Infinity;
+		// The moments the line crosses each row.
+		for (const t of [134, 392, 650, 908, 1166]) {
+			const lit = bright(modeFrame('read', t), 0.6);
+			expect(lit.length).toBeGreaterThan(0);
+			const ys = new Set(lit.map((d) => d.y.toFixed(2)));
+			expect(ys.size, `t ${t}`).toBe(1);
+			const y = lit[0].y;
+			expect(y).toBeGreaterThan(row);
+			row = y;
 		}
+	});
+
+	it('edits by filling the field in, dot by dot, row by row, then fading', () => {
+		const typed = (t: number) => bright(modeFrame('edit', t), 0.5);
+		expect(typed(0)).toHaveLength(0);
+		expect(typed(500).length).toBeLessThan(typed(1000).length);
+		expect(typed(1000).length).toBeLessThan(typed(1900).length);
+		// Row by row: the typed dots are the first ones, in reading order.
+		const half = typed(1000);
+		expect(Math.max(...half.map((d) => d.y))).toBeLessThan(10);
+		// Later the field fades and starts again.
+		expect(typed(2900)).toHaveLength(0);
+	});
+
+	it('waits as three still dots that breathe', () => {
+		const a = shown(modeFrame('wait', 0));
+		const b = shown(modeFrame('wait', 1200));
+		expect(a).toHaveLength(3);
+		expect(b.map((d) => [d.x, d.y])).toEqual(a.map((d) => [d.x, d.y]));
+		expect(Math.abs(b[0].a - a[0].a)).toBeGreaterThan(0.3);
+	});
+
+	it('compacts by drawing the dots in to the middle and spreading them again', () => {
+		const open = spread(modeFrame('compact', 0));
+		const tight = spread(modeFrame('compact', 1200));
+		expect(tight).toBeLessThan(open * 0.55);
+		expect(spread(modeFrame('compact', 2500))).toBeGreaterThan(open * 0.9);
+	});
+
+	it('connects by lighting eight dots round a circle one by one', () => {
+		const lit = (t: number) => bright(modeFrame('connect', t), 0.5).length;
+		expect(shown(modeFrame('connect', 0))).toHaveLength(8);
+		expect(lit(0)).toBe(0);
+		expect(lit(400)).toBeLessThan(lit(800));
+		expect(lit(800)).toBeLessThan(lit(1600));
+		expect(lit(1600)).toBe(8);
+	});
+
+	it('has a still pose for each mode, each plainly unlike the others at 16 px', () => {
+		for (const a of GLYPH_MODES)
+			for (const b of GLYPH_MODES) {
+				if (a >= b) continue;
+				const ga = cells(stillFrame(a));
+				const gb = cells(stillFrame(b));
+				const apart = ga.reduce((sum, v, i) => sum + Math.abs(v - gb[i]), 0);
+				expect(apart, `${a} / ${b}`).toBeGreaterThan(4);
+			}
+	});
+});
+
+describe('ModeHold', () => {
+	it('shows a new mode once it has been asked for a moment', () => {
+		const h = new ModeHold('think', 0);
+		expect(h.set('run', 5000)).toBe('think');
+		expect(h.due(5000)).toBe(SETTLE_MS);
+		expect(h.at(5000 + SETTLE_MS - 1)).toBe('think');
+		expect(h.at(5000 + SETTLE_MS)).toBe('run');
+		expect(h.due(5000 + SETTLE_MS)).toBe(0);
+	});
+
+	it('never shows a step shorter than the settle time (no flicker)', () => {
+		const h = new ModeHold('think', 0);
+		h.set('read', 5000);
+		h.set('think', 5000 + SETTLE_MS - 20);
+		for (let t = 5000; t < 7000; t += 10) expect(h.at(t)).toBe('think');
+	});
+
+	it('keeps a mode for HOLD_MS before the next one replaces it', () => {
+		const h = new ModeHold('think', 0);
+		h.set('run', 1000);
+		expect(h.at(1000 + SETTLE_MS)).toBe('run');
+		const shownAt = 1000 + SETTLE_MS;
+		h.set('write', shownAt + 10);
+		expect(h.at(shownAt + 10 + SETTLE_MS)).toBe('run');
+		expect(h.due(shownAt + 10 + SETTLE_MS)).toBe(HOLD_MS - 10 - SETTLE_MS);
+		expect(h.at(shownAt + HOLD_MS)).toBe('write');
+	});
+
+	it('asking for the mode showing again cancels a change on its way', () => {
+		const h = new ModeHold('think', 0);
+		h.set('edit', 1000);
+		h.set('think', 1100);
+		expect(h.at(2000)).toBe('think');
+		expect(h.due(2000)).toBe(0);
+	});
+});
+
+describe('GlyphState', () => {
+	it('morphs from what it drew to the new mode in MORPH_MS, without a jump', () => {
+		const g = new GlyphState('think', 0);
+		const before = g.frame(1000);
+		g.hold.set('run', 1000);
+		const at = 1000 + SETTLE_MS;
+		const start = g.frame(at);
+		// The change starts where the glyph was.
+		start.forEach((d, i) => {
+			expect(d.x).toBeCloseTo(before[i].x, 0);
+			expect(d.y).toBeCloseTo(before[i].y, 0);
+		});
+		const mid = g.frame(at + MORPH_MS / 2);
+		const target = modeFrame('run', at + MORPH_MS / 2);
+		const gap = (a: GlyphDot[], b: GlyphDot[]) => a.reduce((s, d, i) => s + Math.hypot(d.x - b[i].x, d.y - b[i].y), 0);
+		expect(gap(mid, target)).toBeGreaterThan(0.5);
+		expect(gap(mid, target)).toBeLessThan(gap(start, modeFrame('run', at)));
+		expect(g.frame(at + MORPH_MS)).toEqual(modeFrame('run', at + MORPH_MS));
+		expect(g.fast()).toBe(true);
 	});
 });
 
 // Just enough of a browser for the loop: the reduced-motion query, the page's
-// visibility, animation frames, the on-screen observer, a 2D context.
+// visibility, animation frames, timers, the clock, the on-screen observer, a
+// 2D context.
 describe('dotGlyph', () => {
 	let reduced: boolean;
 	let hidden: boolean;
+	// The clock only goes forward, from one test to the next too (the loop
+	// keeps when it last drew).
+	let now = 10_000;
 	let motionListeners: (() => void)[];
 	let visibilityListeners: (() => void)[];
 	let frames: Map<number, FrameRequestCallback>;
 	let nextFrame: number;
+	let timers: Map<number, { at: number; fn: () => void }>;
 	let seen: { cb: (e: { target: unknown; isIntersecting: boolean }[]) => void; nodes: Set<unknown>; disconnected: boolean }[];
 
 	// What the last frame drew: each dot's opacity, in order.
@@ -120,21 +247,45 @@ describe('dotGlyph', () => {
 		const node = { style: {} as Record<string, string>, width: 0, height: 0, getContext: () => ctx };
 		return { node: node as unknown as HTMLCanvasElement, ctx };
 	};
+	const still = (mode: GlyphMode) => shown(stillFrame(mode)).map((d) => d.a);
 	/** Runs the frame the loop asked for, if any. */
-	const step = (now = performance.now()) => {
+	const step = (at = now) => {
 		const [[id, cb]] = frames;
 		frames.delete(id);
-		cb(now);
+		cb(at);
+	};
+	/** Moves the clock on, running the timers that come due. */
+	const advance = (ms: number) => {
+		now += ms;
+		for (const [id, t] of [...timers]) if (t.at <= now) (timers.delete(id), t.fn());
+	};
+
+	// Every glyph a test made goes, even when the test fails (the loop and
+	// its listeners are shared by the module).
+	let made: { destroy(): void }[] = [];
+	const glyph = (node: HTMLCanvasElement, size: number, mode?: GlyphMode) => {
+		const g = dotGlyph(node, { size, mode });
+		made.push(g);
+		return g;
 	};
 
 	beforeEach(() => {
 		reduced = false;
 		hidden = false;
+		now += 100_000;
 		motionListeners = [];
 		visibilityListeners = [];
 		frames = new Map();
 		nextFrame = 1;
+		timers = new Map();
 		seen = [];
+		vi.stubGlobal('performance', { now: () => now });
+		vi.stubGlobal('setTimeout', (fn: () => void, ms: number) => {
+			const id = nextFrame++;
+			timers.set(id, { at: now + ms, fn });
+			return id;
+		});
+		vi.stubGlobal('clearTimeout', (id: number) => timers.delete(id));
 		vi.stubGlobal('matchMedia', () => ({
 			get matches() {
 				return reduced;
@@ -184,31 +335,24 @@ describe('dotGlyph', () => {
 			}
 		);
 	});
-	// Every glyph a test made goes, even when the test fails (the loop and
-	// its listeners are shared by the module).
-	let made: { destroy(): void }[] = [];
-	const glyph = (node: HTMLCanvasElement, size: number) => {
-		const g = dotGlyph(node, size);
-		made.push(g);
-		return g;
-	};
 	afterEach(() => {
 		made.forEach((g) => g.destroy());
 		made = [];
 		vi.unstubAllGlobals();
 	});
 
-	it('turns while it shows: one loop for all glyphs, sized for the screen', () => {
+	it('moves while it shows: one loop for all glyphs, sized for the screen', () => {
 		const a = canvas();
 		const b = canvas();
-		const ga = glyph(a.node, 14);
-		const gb = glyph(b.node, 12);
-		expect([a.node.width, b.node.width]).toEqual([28, 24]);
-		expect(a.node.style.width).toBe('14px');
+		const ga = glyph(a.node, 16, 'think');
+		const gb = glyph(b.node, 12, 'run');
+		expect([a.node.width, b.node.width]).toEqual([32, 24]);
+		expect(a.node.style.width).toBe('16px');
 		// One frame asked for, not one per glyph.
 		expect(frames.size).toBe(1);
 		const before = a.ctx.clears;
-		step(performance.now() + 1000);
+		now += 1000;
+		step();
 		expect(a.ctx.clears).toBe(before + 1);
 		expect(b.ctx.clears).toBeGreaterThan(0);
 		expect(frames.size).toBe(1);
@@ -221,29 +365,52 @@ describe('dotGlyph', () => {
 		expect(seen.every((o) => o.disconnected)).toBe(true);
 	});
 
-	it('under reduced motion shows the still sphere and asks for no frame', () => {
+	it('follows a change of mode, held back a moment, then morphing', () => {
+		const c = canvas();
+		const g = glyph(c.node, 16, 'think');
+		now += 1000;
+		step();
+		g.update({ size: 16, mode: 'read' });
+		now += SETTLE_MS - 50;
+		step();
+		expect(c.ctx.alphas).toEqual(shown(modeFrame('think', now)).map((d) => d.a));
+		// Due: the morph starts from what was drawn…
+		now += 50;
+		step();
+		expect(c.ctx.alphas).toEqual(shown(modeFrame('think', now - 50)).map((d) => d.a));
+		// …and ends on the new mode.
+		now += MORPH_MS;
+		step();
+		expect(c.ctx.alphas).toEqual(shown(modeFrame('read', now)).map((d) => d.a));
+	});
+
+	it('under reduced motion shows the still pose of its mode and asks for no frame', () => {
 		reduced = true;
 		const c = canvas();
-		const g = glyph(c.node, 14);
+		const g = glyph(c.node, 16, 'edit');
 		expect(frames.size).toBe(0);
-		// One frame drawn: the sphere at STILL_AT, every dot of it.
-		expect(c.ctx.clears).toBe(1);
-		expect(c.ctx.alphas).toEqual(glyphFrame(STILL_AT).filter((d) => d.a > 0.01).map((d) => d.a));
-		// The preference turned off: it turns; on again: still once more.
+		expect(c.ctx.alphas).toEqual(still('edit'));
+		// A new mode: held back as with motion, then its still pose, by a timer.
+		advance(1000);
+		g.update({ size: 16, mode: 'wait' });
+		expect(c.ctx.alphas).toEqual(still('edit'));
+		advance(SETTLE_MS + 10);
+		expect(c.ctx.alphas).toEqual(still('wait'));
+		expect(frames.size).toBe(0);
+		// The preference turned off: it moves; on again: still once more.
 		reduced = false;
 		motionListeners.forEach((f) => f());
 		expect(frames.size).toBe(1);
 		reduced = true;
 		motionListeners.forEach((f) => f());
 		expect(frames.size).toBe(0);
-		expect(c.ctx.alphas).toEqual(glyphFrame(STILL_AT).filter((d) => d.a > 0.01).map((d) => d.a));
-		g.destroy();
+		expect(c.ctx.alphas).toEqual(still('wait'));
 	});
 
 	it('stops while the page is hidden and goes on when it shows', () => {
 		hidden = true;
 		const c = canvas();
-		const g = glyph(c.node, 14);
+		glyph(c.node, 16);
 		expect(frames.size).toBe(0);
 		hidden = false;
 		visibilityListeners.forEach((f) => f());
@@ -255,22 +422,21 @@ describe('dotGlyph', () => {
 		step();
 		expect(c.ctx.clears).toBe(clears);
 		expect(frames.size).toBe(0);
-		g.destroy();
 	});
 
 	it('draws nothing while off screen (scrolled away, a hidden tab)', () => {
 		const c = canvas();
-		const g = glyph(c.node, 14);
+		glyph(c.node, 16);
 		const [observer] = seen;
 		expect(observer.nodes.has(c.node)).toBe(true);
 		observer.cb([{ target: c.node, isIntersecting: false }]);
 		const clears = c.ctx.clears;
-		step(performance.now() + 1000);
+		now += 1000;
+		step();
 		expect(c.ctx.clears).toBe(clears);
 		expect(frames.size).toBe(0);
 		// Back on screen: the loop starts again.
 		observer.cb([{ target: c.node, isIntersecting: true }]);
 		expect(frames.size).toBe(1);
-		g.destroy();
 	});
 });
