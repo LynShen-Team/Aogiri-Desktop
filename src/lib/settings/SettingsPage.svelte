@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { paneOut } from '$lib/ui/motion';
 	// The settings page: covers the content panel (session list + canvas stay
-	// mounted underneath) with a nav column on the left — a flat list of
-	// sections and a search over every row — and the selected section's page
-	// on the right. Config fields apply as they change (debounced writeConfig);
+	// mounted underneath) with a nav column on the left — seven groups and a
+	// search over every row — and the selected group's page on the right: its
+	// title, its sections as tabs, the open section's rows, rarely changed ones
+	// folded under 更多设置 (SettingsMore). Config fields apply as they change (debounced writeConfig);
 	// keys, logins and new providers keep their explicit buttons.
 	import { onDestroy, onMount, tick } from 'svelte';
 	import { open as openDialog } from '@tauri-apps/plugin-dialog';
@@ -48,6 +49,8 @@
 	import ArrowsClockwiseIcon from 'phosphor-svelte/lib/ArrowsClockwiseIcon';
 	import CircleNotchIcon from 'phosphor-svelte/lib/CircleNotchIcon';
 	import CaretRightIcon from 'phosphor-svelte/lib/CaretRightIcon';
+	import PaletteIcon from 'phosphor-svelte/lib/PaletteIcon';
+	import ChatTextIcon from 'phosphor-svelte/lib/ChatTextIcon';
 	import {
 		readConfig,
 		writeConfig,
@@ -113,6 +116,7 @@
 	import { toast } from '$lib/ui/toast.svelte';
 	import SettingsSection from './SettingsSection.svelte';
 	import SettingsRow from './SettingsRow.svelte';
+	import SettingsMore from './SettingsMore.svelte';
 	import BackendSection from './BackendSection.svelte';
 	import ShellSection from './ShellSection.svelte';
 	import StylesSection from './StylesSection.svelte';
@@ -139,7 +143,7 @@
 	import { applyOverride, isCustomized, overrideFromEdit, readOverrides, setOverride, writeOverrides, type ProviderOverrides } from '$lib/providers/overrides';
 	import { modelLookup } from '$lib/providers/discovery';
 	import Modal from '$lib/ui/Modal.svelte';
-	import { GROUPS, resolveSection, searchRows, type SearchRow, type SectionKey } from './nav';
+	import { GROUPS, groupOf, resolveSection, searchRows, type GroupKey, type SearchRow, type SectionKey } from './nav';
 
 	let {
 		sessionId,
@@ -180,6 +184,8 @@
 
 	const ICONS: Record<SectionKey, typeof GearSixIcon> = {
 		general: GearSixIcon,
+		appearance: PaletteIcon,
+		conversation: ChatTextIcon,
 		shortcuts: KeyboardIcon,
 		account: UserCircleIcon,
 		purchase: WalletIcon,
@@ -205,7 +211,29 @@
 		chat: ChatsCircleIcon,
 		updates: InfoIcon
 	};
+	const GROUP_ICONS: Record<GroupKey, typeof GearSixIcon> = {
+		general: GearSixIcon,
+		account: UserCircleIcon,
+		models: BrainIcon,
+		agents: RobotIcon,
+		extensions: PuzzlePieceIcon,
+		connect: DeviceMobileIcon,
+		about: InfoIcon
+	};
 	const current = $derived(resolveSection(section));
+	const group = $derived(groupOf(current));
+	/** A section's name as its tab: where the group's name says it already, a shorter one. */
+	const tabLabel = (key: SectionKey) => (key === 'general' || key === 'account' || key === 'acp' ? t(`settings.tab.${key}`) : t(`settings.section.${key}`));
+	/** A group opens on its first section (also from inside it: back to its start). */
+	function openGroup(g: (typeof GROUPS)[number]) {
+		section = g.sections[0];
+	}
+	// Another tab starts at the top of the page.
+	let mainEl = $state<HTMLDivElement>();
+	$effect(() => {
+		void current;
+		if (mainEl) mainEl.scrollTop = 0;
+	});
 
 	// Made-up turn for the reply-stats preview, so every figure has a value.
 	const SAMPLE_TURN: TurnStats = {
@@ -246,6 +274,12 @@
 		await tick();
 		const el = document.getElementById(`set-${r.id}`);
 		if (!el) return;
+		// A row folded under 更多设置 opens its fold first.
+		const fold = el.closest('[data-settings-more]');
+		if (fold) {
+			fold.dispatchEvent(new Event('settings-more-open'));
+			await tick();
+		}
 		el.scrollIntoView({ block: 'center', behavior: 'smooth' });
 		el.classList.remove('flash');
 		void el.offsetWidth; // restart the animation on a repeat hit
@@ -981,26 +1015,25 @@
 			{#if query.trim()}
 				{#each hits as r (r.id)}
 					{@const Icon = ICONS[r.section]}
+					{@const g = groupOf(r.section)}
 					<button class="item hit" class:on={current === r.section} onclick={() => goTo(r)}>
 						<Icon size={16} />
 						<span class="hit-txt">
 							<span class="label">{t(r.titleKey)}</span>
-							<span class="where">{t(`settings.section.${r.section}`)}</span>
+							<span class="where">{g.sections.length > 1 ? `${t(`settings.group.${g.key}`)} · ${tabLabel(r.section === 'market' ? 'skills' : r.section)}` : t(`settings.group.${g.key}`)}</span>
 						</span>
 					</button>
 				{:else}
 					<p class="none">{t('settings.page.noResults')}</p>
 				{/each}
 			{:else}
-				{#each GROUPS as g, gi (g.key)}
-					{#if gi > 0}<div class="sep" role="separator"></div>{/if}
-					{#each g.sections as key (key)}
-						{@const Icon = ICONS[key]}
-						<button class="item" class:on={current === key} aria-current={current === key ? 'page' : undefined} onclick={() => (section = key)}>
-							<Icon size={16} weight={current === key ? 'fill' : 'regular'} />
-							<span class="label">{t(`settings.section.${key}`)}</span>
-						</button>
-					{/each}
+				{#each GROUPS as g (g.key)}
+					{@const Icon = GROUP_ICONS[g.key]}
+					{@const on = group.key === g.key}
+					<button class="item" class:on aria-current={on ? 'page' : undefined} onclick={() => openGroup(g)}>
+						<Icon size={16} weight={on ? 'fill' : 'regular'} />
+						<span class="label">{t(`settings.group.${g.key}`)}</span>
+					</button>
 				{/each}
 			{/if}
 		</div>
@@ -1009,16 +1042,84 @@
 	<!-- Sections cross-fade: the leaving one fades out in the same grid cell
 	     while the next rises in. -->
 	<div class="stage">
-	{#key current}
-		<div class="main" out:paneOut>
+	{#key group.key}
+		<div class="main" out:paneOut bind:this={mainEl}>
 			<div class="col">
-				<h1>{t(`settings.section.${current}`)}</h1>
+				<h1>{t(`settings.group.${group.key}`)}</h1>
+				{#if group.sections.length > 1}
+					<!-- The group's sections: plain buttons (not a second nav), the
+					     open one in the text colour over a 2px rule. -->
+					<div class="tabs" role="group" aria-label={t(`settings.group.${group.key}`)}>
+						{#each group.sections as key (key)}
+							{@const on = current === key || (key === 'skills' && current === 'market')}
+							<button class="tab" class:on aria-current={on ? 'page' : undefined} onclick={() => (section = key)}>{tabLabel(key)}</button>
+						{/each}
+					</div>
+				{/if}
 
+				{#key current}
+				<div class="tabpane">
 				{#if current === 'general'}
-					<SettingsSection title={t('settings.page.appearance')}>
+					<SettingsSection>
 						<SettingsRow id="language" title={t('settings.language')}>
 							<Segmented value={getLocale()} options={LOCALES.map((l) => ({ value: l, label: LOCALE_LABELS[l] }))} onChange={(v) => setLocale(v as (typeof LOCALES)[number])} />
 						</SettingsRow>
+						<SettingsRow id="default-surface" title={t('settings.behavior.defaultSurface')} description={t('settings.behavior.defaultSurfaceHint')}>
+							<Segmented
+								value={prefs.defaultSurface}
+								options={[
+									{ value: 'gui', label: 'GUI' },
+									{ value: 'tui', label: 'TUI' }
+								]}
+								onChange={(v) => prefs.setDefaultSurface(v === 'tui' ? 'tui' : 'gui')}
+							/>
+						</SettingsRow>
+						<SettingsRow id="open-elsewhere" title={t('settings.behavior.openElsewhere')} description={t('settings.behavior.openElsewhereHint')}>
+							<Segmented
+								value={prefs.openElsewhere}
+								options={[
+									{ value: 'side', label: t('settings.behavior.placeSide') },
+									{ value: 'tab', label: t('settings.behavior.placeTab') }
+								]}
+								onChange={(v) => prefs.setOpenElsewhere(v === 'tab' ? 'tab' : 'side')}
+							/>
+						</SettingsRow>
+						<SettingsRow id="sounds" title={t('settings.behavior.sounds')} description={t('settings.behavior.soundsHint')}>
+							<div class="sound-acts">
+								<Button size="sm" variant="ghost" onclick={() => playChime('done')}>{t('settings.behavior.soundsDone')}</Button>
+								<Button size="sm" variant="ghost" onclick={() => playChime('attention')}>{t('settings.behavior.soundsAttention')}</Button>
+								<Switch checked={prefs.sounds} label={t('settings.behavior.sounds')} onChange={(on) => prefs.setFlag('sounds', on)} />
+							</div>
+						</SettingsRow>
+						{#if inApp}<AutostartRows />{/if}
+					</SettingsSection>
+					<SettingsSection title={t('settings.page.help')}>
+						<SettingsRow id="feedback" title={t('settings.help.feedback')}>
+							<Button size="sm" disabled={!onFeedback} onclick={() => onFeedback?.()}>{t('settings.help.feedbackOpen')}</Button>
+						</SettingsRow>
+						<SettingsRow id="telemetry" title={t('settings.help.telemetry')} description={t('settings.help.telemetryHint')}>
+							<Switch checked={prefs.telemetry} label={t('settings.help.telemetry')} onChange={(on) => prefs.setTelemetry(on)} />
+						</SettingsRow>
+					</SettingsSection>
+					<SettingsMore>
+						<SettingsSection title={t('settings.page.opening')}>
+							<SettingsRow id="html-open" title={t('settings.behavior.htmlOpen')}>
+								<Segmented
+									value={prefs.htmlOpenInBrowser ? 'browser' : 'editor'}
+									options={[
+										{ value: 'browser', label: t('settings.behavior.htmlOpenBrowser') },
+										{ value: 'editor', label: t('settings.behavior.htmlOpenEditor') }
+									]}
+									onChange={(v) => prefs.setHtmlOpenInBrowser(v === 'browser')}
+								/>
+							</SettingsRow>
+							<SettingsRow id="dev-server-open" title={t('settings.behavior.devServerAutoOpen')} description={t('settings.behavior.devServerAutoOpenHint')}>
+								<Switch checked={prefs.devServerAutoOpen} label={t('settings.behavior.devServerAutoOpen')} onChange={(on) => prefs.setFlag('devServerAutoOpen', on)} />
+							</SettingsRow>
+						</SettingsSection>
+					</SettingsMore>
+				{:else if current === 'appearance'}
+					<SettingsSection>
 						<SettingsRow id="theme" title={t('settings.theme')}>
 							<Segmented
 								value={themeState.pref}
@@ -1060,31 +1161,8 @@
 								<span class="glass-val">{prefs.glass}</span>
 							</div>
 						</SettingsRow>
-						{#if vibrancySupported()}
-							<SettingsRow id="vibrancy" title={t('settings.behavior.vibrancy')} description={t(frostLive ? 'settings.behavior.vibrancyHint' : 'settings.behavior.vibrancyHintRestart')}>
-								<Switch checked={prefs.sidebarVibrancy} label={t('settings.behavior.vibrancy')} onChange={(on) => prefs.setSidebarVibrancy(on)} />
-							</SettingsRow>
-						{/if}
-						<SettingsRow id="default-surface" title={t('settings.behavior.defaultSurface')} description={t('settings.behavior.defaultSurfaceHint')}>
-							<Segmented
-								value={prefs.defaultSurface}
-								options={[
-									{ value: 'gui', label: 'GUI' },
-									{ value: 'tui', label: 'TUI' }
-								]}
-								onChange={(v) => prefs.setDefaultSurface(v === 'tui' ? 'tui' : 'gui')}
-							/>
-						</SettingsRow>
-						<SettingsRow id="open-elsewhere" title={t('settings.behavior.openElsewhere')} description={t('settings.behavior.openElsewhereHint')}>
-							<Segmented
-								value={prefs.openElsewhere}
-								options={[
-									{ value: 'side', label: t('settings.behavior.placeSide') },
-									{ value: 'tab', label: t('settings.behavior.placeTab') }
-								]}
-								onChange={(v) => prefs.setOpenElsewhere(v === 'tab' ? 'tab' : 'side')}
-							/>
-						</SettingsRow>
+					</SettingsSection>
+					<SettingsSection title={t('settings.page.fonts')}>
 						{#each FONT_ROWS as [slot, id, key] (slot)}
 							<SettingsRow {id} title={t(`settings.behavior.${key}`)} description={t(`settings.behavior.${key}Hint`)}>
 								<Select
@@ -1094,24 +1172,40 @@
 								/>
 							</SettingsRow>
 						{/each}
-						<SettingsRow id="terminal-font" title={t('settings.behavior.terminalFont')}>
-							<div class="w-md"><TextField mono placeholder="MesloLGS NF" bind:value={() => prefs.terminalFont, (v) => prefs.setTerminalFont(String(v ?? ''))} /></div>
-						</SettingsRow>
-						<SettingsRow id="terminal-font-size" title={t('settings.behavior.terminalFontSize')}>
-							<Select
-								value={String(prefs.terminalFontSize)}
-								options={[10, 11, 12, 12.5, 13, 14, 15, 16, 18, 20].map((n) => ({ value: String(n) }))}
-								onChange={(v) => prefs.setTerminalFontSize(Number(v))}
-							/>
-						</SettingsRow>
 					</SettingsSection>
-					<SettingsSection title={t('settings.page.conversation')}>
+					<SettingsMore>
+						<SettingsSection>
+							{#if vibrancySupported()}
+								<SettingsRow id="vibrancy" title={t('settings.behavior.vibrancy')} description={t(frostLive ? 'settings.behavior.vibrancyHint' : 'settings.behavior.vibrancyHintRestart')}>
+									<Switch checked={prefs.sidebarVibrancy} label={t('settings.behavior.vibrancy')} onChange={(on) => prefs.setSidebarVibrancy(on)} />
+								</SettingsRow>
+							{/if}
+							<SettingsRow id="terminal-font" title={t('settings.behavior.terminalFont')}>
+								<div class="w-md"><TextField mono placeholder="MesloLGS NF" bind:value={() => prefs.terminalFont, (v) => prefs.setTerminalFont(String(v ?? ''))} /></div>
+							</SettingsRow>
+							<SettingsRow id="terminal-font-size" title={t('settings.behavior.terminalFontSize')}>
+								<Select
+									value={String(prefs.terminalFontSize)}
+									options={[10, 11, 12, 12.5, 13, 14, 15, 16, 18, 20].map((n) => ({ value: String(n) }))}
+									onChange={(v) => prefs.setTerminalFontSize(Number(v))}
+								/>
+							</SettingsRow>
+						</SettingsSection>
+					</SettingsMore>
+				{:else if current === 'conversation'}
+					<SettingsSection>
 						<SettingsRow id="chat-width" title={t('settings.behavior.chatWidth')} description={t('settings.behavior.chatWidthHint')}>
 							<Segmented
 								value={prefs.chatWidth}
 								options={CHAT_WIDTH_MODES.map((mode) => ({ value: mode, label: t(`settings.behavior.chatWidthMode.${mode}`) }))}
 								onChange={(v) => isChatWidthMode(v) && prefs.setChatWidth(v)}
 							/>
+						</SettingsRow>
+						<SettingsRow id="fold-turns" title={t('settings.behavior.foldTurns')} description={t('settings.behavior.foldTurnsHint')}>
+							<Switch checked={prefs.foldTurns} label={t('settings.behavior.foldTurns')} onChange={(on) => prefs.setFlag('foldTurns', on)} />
+						</SettingsRow>
+						<SettingsRow id="scroll-on-send" title={t('settings.behavior.scrollOnSend')} description={t('settings.behavior.scrollOnSendHint')}>
+							<Switch checked={prefs.scrollOnSend} label={t('settings.behavior.scrollOnSend')} onChange={(on) => prefs.setScrollOnSend(on)} />
 						</SettingsRow>
 						<SettingsRow id="turn-stats" title={t('settings.behavior.turnStats')} stacked>
 							<div class="stat-preview" aria-label={t('settings.behavior.turnStatsPreview')}>
@@ -1135,58 +1229,25 @@
 								{/each}
 							</div>
 						</SettingsRow>
-						<SettingsRow id="scroll-on-send" title={t('settings.behavior.scrollOnSend')} description={t('settings.behavior.scrollOnSendHint')}>
-							<Switch checked={prefs.scrollOnSend} label={t('settings.behavior.scrollOnSend')} onChange={(on) => prefs.setScrollOnSend(on)} />
-						</SettingsRow>
-						<SettingsRow id="fold-turns" title={t('settings.behavior.foldTurns')} description={t('settings.behavior.foldTurnsHint')}>
-							<Switch checked={prefs.foldTurns} label={t('settings.behavior.foldTurns')} onChange={(on) => prefs.setFlag('foldTurns', on)} />
-						</SettingsRow>
-						<SettingsRow id="foot-context" title={t('settings.behavior.footContext')} description={t('settings.behavior.footContextHint')}>
-							<Switch checked={prefs.footContext} label={t('settings.behavior.footContext')} onChange={(on) => prefs.setFlag('footContext', on)} />
-						</SettingsRow>
-						<SettingsRow id="foot-cost" title={t('settings.behavior.footCost')} description={t('settings.behavior.footCostHint')}>
-							<Switch checked={prefs.footCost} label={t('settings.behavior.footCost')} onChange={(on) => prefs.setFlag('footCost', on)} />
-						</SettingsRow>
-						<SettingsRow id="thinking-summaries" title={t('settings.behavior.thinkingSummaries')} description={t('settings.behavior.thinkingSummariesHint')}>
-							<Switch checked={prefs.thinkingSummaries} label={t('settings.behavior.thinkingSummaries')} onChange={(on) => prefs.setFlag('thinkingSummaries', on)} />
-						</SettingsRow>
-						<SettingsRow id="cache-miss" title={t('settings.behavior.cacheMissAlert')} description={t('settings.behavior.cacheMissAlertHint')}>
-							<Switch checked={prefs.cacheMissAlert} label={t('settings.behavior.cacheMissAlert')} onChange={(on) => prefs.setCacheMissAlert(on)} />
-						</SettingsRow>
-						<SettingsRow id="sounds" title={t('settings.behavior.sounds')} description={t('settings.behavior.soundsHint')}>
-							<div class="sound-acts">
-								<Button size="sm" variant="ghost" onclick={() => playChime('done')}>{t('settings.behavior.soundsDone')}</Button>
-								<Button size="sm" variant="ghost" onclick={() => playChime('attention')}>{t('settings.behavior.soundsAttention')}</Button>
-								<Switch checked={prefs.sounds} label={t('settings.behavior.sounds')} onChange={(on) => prefs.setFlag('sounds', on)} />
-							</div>
-						</SettingsRow>
-						<SettingsRow id="html-open" title={t('settings.behavior.htmlOpen')}>
-							<Segmented
-								value={prefs.htmlOpenInBrowser ? 'browser' : 'editor'}
-								options={[
-									{ value: 'browser', label: t('settings.behavior.htmlOpenBrowser') },
-									{ value: 'editor', label: t('settings.behavior.htmlOpenEditor') }
-								]}
-								onChange={(v) => prefs.setHtmlOpenInBrowser(v === 'browser')}
-							/>
-						</SettingsRow>
-						<SettingsRow id="dev-server-open" title={t('settings.behavior.devServerAutoOpen')} description={t('settings.behavior.devServerAutoOpenHint')}>
-							<Switch checked={prefs.devServerAutoOpen} label={t('settings.behavior.devServerAutoOpen')} onChange={(on) => prefs.setFlag('devServerAutoOpen', on)} />
-						</SettingsRow>
 					</SettingsSection>
-					{#if inApp}
-						<SettingsSection title={t('settings.page.startup')}>
-							<AutostartRows />
+					<SettingsMore>
+						<SettingsSection title={t('settings.page.composerFoot')}>
+							<SettingsRow id="foot-context" title={t('settings.behavior.footContext')} description={t('settings.behavior.footContextHint')}>
+								<Switch checked={prefs.footContext} label={t('settings.behavior.footContext')} onChange={(on) => prefs.setFlag('footContext', on)} />
+							</SettingsRow>
+							<SettingsRow id="foot-cost" title={t('settings.behavior.footCost')} description={t('settings.behavior.footCostHint')}>
+								<Switch checked={prefs.footCost} label={t('settings.behavior.footCost')} onChange={(on) => prefs.setFlag('footCost', on)} />
+							</SettingsRow>
 						</SettingsSection>
-					{/if}
-					<SettingsSection title={t('settings.page.help')}>
-						<SettingsRow id="feedback" title={t('settings.help.feedback')}>
-							<Button size="sm" disabled={!onFeedback} onclick={() => onFeedback?.()}>{t('settings.help.feedbackOpen')}</Button>
-						</SettingsRow>
-						<SettingsRow id="telemetry" title={t('settings.help.telemetry')} description={t('settings.help.telemetryHint')}>
-							<Switch checked={prefs.telemetry} label={t('settings.help.telemetry')} onChange={(on) => prefs.setTelemetry(on)} />
-						</SettingsRow>
-					</SettingsSection>
+						<SettingsSection title={t('settings.page.replies')}>
+							<SettingsRow id="thinking-summaries" title={t('settings.behavior.thinkingSummaries')} description={t('settings.behavior.thinkingSummariesHint')}>
+								<Switch checked={prefs.thinkingSummaries} label={t('settings.behavior.thinkingSummaries')} onChange={(on) => prefs.setFlag('thinkingSummaries', on)} />
+							</SettingsRow>
+							<SettingsRow id="cache-miss" title={t('settings.behavior.cacheMissAlert')} description={t('settings.behavior.cacheMissAlertHint')}>
+								<Switch checked={prefs.cacheMissAlert} label={t('settings.behavior.cacheMissAlert')} onChange={(on) => prefs.setCacheMissAlert(on)} />
+							</SettingsRow>
+						</SettingsSection>
+					</SettingsMore>
 				{:else if current === 'shortcuts'}
 					<ShortcutsSection />
 				{:else if current === 'account'}
@@ -1203,8 +1264,6 @@
 							onSquare={openMonoizeSquare}
 							onApiKey={() => openProviderCard('monoize')}
 							onUsage={() => (section = 'usage')}
-							onInvite={() => (section = 'invite')}
-							onDevices={() => (section = 'devices')}
 							onPurchase={() => (section = 'purchase')}
 						/>
 					{:else if account.state === 'loading'}
@@ -1239,12 +1298,6 @@
 						<SettingsRow id="voice-provider" title={t('settings.voice.provider')}>
 							<div class="w-md"><Select value={asr.provider} options={asrOptions} onChange={selectAsr} /></div>
 						</SettingsRow>
-						<SettingsRow id="voice-base-url" title={t('settings.voice.baseUrl')}>
-							<div class="w-lg"><TextField bind:value={asr.base_url} mono placeholder={selectedAsr.baseUrl} /></div>
-						</SettingsRow>
-						<SettingsRow id="voice-model" title={t('settings.voice.model')}>
-							<div class="w-lg"><TextField bind:value={asr.model} mono placeholder={selectedAsr.model} /></div>
-						</SettingsRow>
 						<SettingsRow id="voice-key" title={t('settings.page.voiceKey')}>
 							{#snippet detail()}
 								{#if keyed.includes(selectedAsr.authKey)}<span class="keyok"><CheckCircleIcon size={13} /> {t('settings.account.keyed')}</span>{/if}
@@ -1256,6 +1309,16 @@
 							{/if}
 						</SettingsRow>
 					</SettingsSection>
+					<SettingsMore>
+						<SettingsSection>
+							<SettingsRow id="voice-base-url" title={t('settings.voice.baseUrl')}>
+								<div class="w-lg"><TextField bind:value={asr.base_url} mono placeholder={selectedAsr.baseUrl} /></div>
+							</SettingsRow>
+							<SettingsRow id="voice-model" title={t('settings.voice.model')}>
+								<div class="w-lg"><TextField bind:value={asr.model} mono placeholder={selectedAsr.model} /></div>
+							</SettingsRow>
+						</SettingsSection>
+					</SettingsMore>
 				{:else if current === 'providers'}
 					{@render loginNotice()}
 					<SettingsSection>
@@ -1439,53 +1502,55 @@
 							<Switch bind:checked={cfg.include_project_instructions} label={t('settings.behavior.includeProjectInstructions')} />
 						</SettingsRow>
 					</SettingsSection>
-					<SettingsSection title={t('settings.behavior.compaction')}>
-						<SettingsRow id="compact-model" title={t('settings.behavior.compactModel')} description={t('settings.behavior.compactModelHint')}>
-							<div class="w-model">
-								<!-- Empty: the conversation's current model (ticket #47; LynShen CLI 0.7.8). -->
-								<ModelPicker
-									items={chatItems(cfg.compact_model ?? '')}
-									value={cfg.compact_model ?? ''}
-									extras={[{ value: '', label: t('settings.behavior.followCurrentModel'), active: false }]}
-									label={t('settings.behavior.compactModel')}
-									remember={false}
-									onChange={(v) => (cfg.compact_model = v)}
-								/>
-							</div>
-						</SettingsRow>
-						<SettingsRow id="compaction-threshold" title={t('settings.behavior.compactionThreshold')} description={t('settings.behavior.compactionThresholdSub')}>
-							<div class="w-num"><TextField bind:value={cfg.compaction_threshold_percent} type="number" align="right" /></div>
-							<span class="unit">%</span>
-						</SettingsRow>
-					</SettingsSection>
-					<SettingsSection title={t('settings.behavior.titles')}>
-						<SettingsRow id="title-model" title={t('settings.behavior.titleModel')} description={t('settings.behavior.titleModelHint')}>
-							<div class="w-model">
-								<ModelPicker
-									items={chatItems(cfg.title_model ?? '')}
-									value={cfg.title_model ?? ''}
-									extras={[{ value: '', label: t('settings.behavior.followMainModel'), active: false }]}
-									label={t('settings.behavior.titleModel')}
-									remember={false}
-									onChange={(v) => (cfg.title_model = v)}
-								/>
-							</div>
-						</SettingsRow>
-					</SettingsSection>
-					<SettingsSection title={t('settings.behavior.images')}>
-						<SettingsRow id="image-model" title={t('settings.behavior.imageModel')} description={t('settings.behavior.imageModelHint')}>
-							<div class="w-model">
-								<ModelPicker
-									items={imageItems}
-									value={cfg.image_model ?? ''}
-									extras={[{ value: '', label: t('settings.behavior.imageModelAuto'), active: false }]}
-									label={t('settings.behavior.imageModel')}
-									remember={false}
-									onChange={(v) => (cfg.image_model = v)}
-								/>
-							</div>
-						</SettingsRow>
-					</SettingsSection>
+					<SettingsMore>
+						<SettingsSection title={t('settings.behavior.compaction')}>
+							<SettingsRow id="compact-model" title={t('settings.behavior.compactModel')} description={t('settings.behavior.compactModelHint')}>
+								<div class="w-model">
+									<!-- Empty: the conversation's current model (ticket #47; LynShen CLI 0.7.8). -->
+									<ModelPicker
+										items={chatItems(cfg.compact_model ?? '')}
+										value={cfg.compact_model ?? ''}
+										extras={[{ value: '', label: t('settings.behavior.followCurrentModel'), active: false }]}
+										label={t('settings.behavior.compactModel')}
+										remember={false}
+										onChange={(v) => (cfg.compact_model = v)}
+									/>
+								</div>
+							</SettingsRow>
+							<SettingsRow id="compaction-threshold" title={t('settings.behavior.compactionThreshold')} description={t('settings.behavior.compactionThresholdSub')}>
+								<div class="w-num"><TextField bind:value={cfg.compaction_threshold_percent} type="number" align="right" /></div>
+								<span class="unit">%</span>
+							</SettingsRow>
+						</SettingsSection>
+						<SettingsSection title={t('settings.behavior.titles')}>
+							<SettingsRow id="title-model" title={t('settings.behavior.titleModel')} description={t('settings.behavior.titleModelHint')}>
+								<div class="w-model">
+									<ModelPicker
+										items={chatItems(cfg.title_model ?? '')}
+										value={cfg.title_model ?? ''}
+										extras={[{ value: '', label: t('settings.behavior.followMainModel'), active: false }]}
+										label={t('settings.behavior.titleModel')}
+										remember={false}
+										onChange={(v) => (cfg.title_model = v)}
+									/>
+								</div>
+							</SettingsRow>
+						</SettingsSection>
+						<SettingsSection title={t('settings.behavior.images')}>
+							<SettingsRow id="image-model" title={t('settings.behavior.imageModel')} description={t('settings.behavior.imageModelHint')}>
+								<div class="w-model">
+									<ModelPicker
+										items={imageItems}
+										value={cfg.image_model ?? ''}
+										extras={[{ value: '', label: t('settings.behavior.imageModelAuto'), active: false }]}
+										label={t('settings.behavior.imageModel')}
+										remember={false}
+										onChange={(v) => (cfg.image_model = v)}
+									/>
+								</div>
+							</SettingsRow>
+						</SettingsSection>
+					</SettingsMore>
 				{:else if current === 'styles'}
 					<StylesSection project={chat && !chat.isChatMode ? chat.cwd : ''} />
 				{:else if current === 'network'}
@@ -1497,19 +1562,21 @@
 							<p class="field-err">{t('settings.network.proxyInvalid')}</p>
 						{/if}
 					</SettingsSection>
-					<SettingsSection title={t('settings.page.requests')}>
-						<SettingsRow id="retry-attempts" title={t('settings.behavior.retryAttempts')} description={t('settings.behavior.retryAttemptsHint', { max: RETRY_ATTEMPTS_MAX })}>
-							<div class="w-num"><TextField bind:value={cfg.retry_attempts} type="number" align="right" /></div>
-						</SettingsRow>
-						<SettingsRow id="connect-timeout" title={t('settings.behavior.connectTimeout')} description={t('settings.page.zeroDefault')}>
-							<div class="w-num"><TextField bind:value={cfg.connect_timeout_seconds} type="number" align="right" /></div>
-							<span class="unit">{t('settings.behavior.seconds')}</span>
-						</SettingsRow>
-						<SettingsRow id="read-timeout" title={t('settings.behavior.readTimeout')} description={t('settings.page.zeroDefault')}>
-							<div class="w-num"><TextField bind:value={cfg.read_timeout_seconds} type="number" align="right" /></div>
-							<span class="unit">{t('settings.behavior.seconds')}</span>
-						</SettingsRow>
-					</SettingsSection>
+					<SettingsMore>
+						<SettingsSection title={t('settings.page.requests')}>
+							<SettingsRow id="retry-attempts" title={t('settings.behavior.retryAttempts')} description={t('settings.behavior.retryAttemptsHint', { max: RETRY_ATTEMPTS_MAX })}>
+								<div class="w-num"><TextField bind:value={cfg.retry_attempts} type="number" align="right" /></div>
+							</SettingsRow>
+							<SettingsRow id="connect-timeout" title={t('settings.behavior.connectTimeout')} description={t('settings.page.zeroDefault')}>
+								<div class="w-num"><TextField bind:value={cfg.connect_timeout_seconds} type="number" align="right" /></div>
+								<span class="unit">{t('settings.behavior.seconds')}</span>
+							</SettingsRow>
+							<SettingsRow id="read-timeout" title={t('settings.behavior.readTimeout')} description={t('settings.page.zeroDefault')}>
+								<div class="w-num"><TextField bind:value={cfg.read_timeout_seconds} type="number" align="right" /></div>
+								<span class="unit">{t('settings.behavior.seconds')}</span>
+							</SettingsRow>
+						</SettingsSection>
+					</SettingsMore>
 				{:else if current === 'mcp'}
 					<!-- The LynShen CLI's servers; only a LynShen session can apply edits live. -->
 					<McpSection {sessionId} chat={caps(chat).mcpManage ? chat : undefined} />
@@ -1530,14 +1597,16 @@
 					<BackendSection />
 					<ShellSection {onClose} />
 					{#if chat && caps(chat).ruleScopes}<PermissionRulesSection {sessionId} {chat} />{/if}
-					<SettingsSection id="dependencies" title={t('setup.deps.title')}>
-						{#snippet action()}
-							<button class="iconbtn" title={t('setup.deps.recheck')} aria-label={t('setup.deps.recheck')} disabled={deps.loading} onclick={recheckDeps}>
-								{#if deps.loading}<CircleNotchIcon size={14} class="spin" />{:else}<ArrowsClockwiseIcon size={14} />{/if}
-							</button>
-						{/snippet}
-						<Dependencies ids={depIds} heading={false} flat />
-					</SettingsSection>
+					<SettingsMore>
+						<SettingsSection id="dependencies" title={t('setup.deps.title')}>
+							{#snippet action()}
+								<button class="iconbtn" title={t('setup.deps.recheck')} aria-label={t('setup.deps.recheck')} disabled={deps.loading} onclick={recheckDeps}>
+									{#if deps.loading}<CircleNotchIcon size={14} class="spin" />{:else}<ArrowsClockwiseIcon size={14} />{/if}
+								</button>
+							{/snippet}
+							<Dependencies ids={depIds} heading={false} flat />
+						</SettingsSection>
+					</SettingsMore>
 				{:else if current === 'sandbox'}
 					<SandboxSection {project} {sessions} />
 				{:else if current === 'team'}
@@ -1556,6 +1625,8 @@
 					<UpdateCard />
 					<ThirdPartyNotices />
 				{/if}
+				</div>
+				{/key}
 
 				{#if squareOpen}
 					<Modal title={t('settings.monoize.squareTitle')} width={620} padded={false} onClose={() => (squareOpen = false)}>
@@ -1777,12 +1848,6 @@
 		gap: 1px;
 		padding: 0 8px 16px;
 	}
-	/* Between groups of sections: space and a faint rule, no heading. */
-	.sep {
-		height: 1px;
-		margin: 6px 8px;
-		background: var(--hairline);
-	}
 	.item {
 		display: flex;
 		align-items: center;
@@ -1911,8 +1976,53 @@
 		line-height: 32px;
 		color: var(--text);
 	}
-	/* The first section sits closer under the title. */
-	.col > h1 + :global(.sec) {
+	/* The group's sections: text buttons on one line over a hairline; the open
+	   one in the text colour with a 2px rule in the text colour (no accent
+	   fill, no pill). */
+	.tabs {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0 20px;
+		margin-top: 12px;
+		box-shadow: inset 0 -1px 0 var(--hairline);
+	}
+	.tab {
+		position: relative;
+		height: 34px;
+		padding: 0;
+		border: none;
+		background: none;
+		color: var(--dim);
+		font: inherit;
+		font-size: var(--fs-sm);
+		white-space: nowrap;
+		cursor: pointer;
+		transition: color var(--t-fast) var(--ease-out);
+	}
+	.tab:hover {
+		color: var(--text);
+	}
+	.tab.on {
+		color: var(--text);
+	}
+	.tab.on::after {
+		content: '';
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		height: 2px;
+		border-radius: var(--r-full);
+		background: var(--text);
+	}
+	.tab:focus-visible {
+		outline-offset: 2px;
+	}
+	.tabpane {
+		animation: rise var(--t-med) var(--ease-out);
+	}
+	/* The first section sits closer under the title or the tabs. */
+	.tabpane > :global(.sec:first-child) {
 		margin-top: 16px;
 	}
 	.notice {
