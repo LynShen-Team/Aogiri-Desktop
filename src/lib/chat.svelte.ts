@@ -873,6 +873,8 @@ export class ChatState {
 	static onFilesEdited: ((paths: string[]) => void) | null = null;
 	/** A turn failed (see autoRetry.ts). `started`: the engine had begun it. */
 	static onTurnFailed: ((chat: ChatState, message: string, started: boolean) => void) | null = null;
+	/** A background task (shell, agent, workflow, monitor) finished (`task_done`): the page plays a sound. */
+	static onTaskDone: ((chat: ChatState, status: string) => void) | null = null;
 
 	/** The automatic retry waiting to pick a failed turn back up (autoRetry.ts). */
 	autoRetry = $state<RetryState | null>(null);
@@ -2858,6 +2860,7 @@ export class ChatState {
 				break;
 			}
 			case 'task_done':
+				ChatState.onTaskDone?.(this, str(ev.status));
 				this.messages.push({
 					kind: 'system',
 					flow: { type: 'task' },
