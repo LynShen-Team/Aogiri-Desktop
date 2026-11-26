@@ -8,8 +8,7 @@
 	import WarningIcon from 'phosphor-svelte/lib/WarningIcon';
 	import XIcon from 'phosphor-svelte/lib/XIcon';
 	import { fly } from 'svelte/transition';
-	import { cubicOut } from 'svelte/easing';
-	import { T_FAST, T_MED, motionMs } from './motion';
+	import { EASE_ENTER, EASE_EXIT, T_BASE, T_FAST, motionMs } from './motion';
 	import { toast, type ToastTone } from './toast.svelte';
 	import { t } from '$lib/i18n';
 
@@ -46,8 +45,8 @@
 				style:z-index={toast.items.length - i}
 				style:transform="translate(-50%, {offset(i)}px) scale({expanded ? 1 : 1 - i * 0.04})"
 				style:opacity={!expanded && i > 2 ? 0 : 1}
-				in:fly={{ y: -8, duration: motionMs(T_MED), easing: cubicOut }}
-				out:fly={{ y: -6, duration: motionMs(T_FAST), easing: cubicOut }}
+				in:fly={{ y: -8, duration: motionMs(T_BASE), easing: EASE_ENTER }}
+				out:fly={{ y: -4, duration: motionMs(T_FAST), easing: EASE_EXIT }}
 			>
 				<span class="ico"><Icon size={18} /></span>
 				<span class="msg selectable">{it.message}</span>
