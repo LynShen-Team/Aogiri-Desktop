@@ -1,11 +1,15 @@
 // cyber-egg.spec.md CE-R6: the sounds of opening a pack, made in the browser (Web Audio), no audio files:
 // the rustle of the wrapper, the crackle of foil tearing, the flick of a card turning, a soft chime for
-// the higher tiers. Quiet by design; one switch turns them off and is remembered on this device.
+// the higher tiers. Quiet by design; one switch turns them off and is remembered on this device (Settings →
+// 提示音 → 赛博鸡蛋开包, which also holds the master switch and the volume these play at).
 import type { Tier as CardTier } from "../art";
+import { soundAllowed, soundOutput } from "../../sounds/play";
 
 const KEY = "cyberEgg.sound";
 let context: AudioContext | null = null;
 let noise: AudioBuffer | null = null;
+/** While the settings' 试听 plays: the switches do not apply. */
+let previewing = false;
 
 export function soundOn(): boolean {
   try {
@@ -24,7 +28,7 @@ export function setSoundOn(on: boolean) {
 }
 
 function audio(): AudioContext | null {
-  if (!soundOn()) return null;
+  if (!previewing && (!soundOn() || !soundAllowed("egg"))) return null;
   if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches && !context) return null;
   try {
     const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -56,7 +60,7 @@ function burst(ctx: AudioContext, at: number, duration: number, gain: number, fi
   amp.gain.setValueAtTime(0, at);
   amp.gain.linearRampToValueAtTime(gain, at + Math.min(0.012, duration / 4));
   amp.gain.exponentialRampToValueAtTime(0.0001, at + duration);
-  source.connect(band).connect(amp).connect(ctx.destination);
+  source.connect(band).connect(amp).connect(soundOutput(ctx, true));
   source.start(at, Math.random() * 0.5, duration + 0.05);
 }
 
@@ -125,10 +129,21 @@ export function playReveal(tier: CardTier) {
       amp.gain.setValueAtTime(0, at);
       amp.gain.linearRampToValueAtTime(peak, at + 0.01);
       amp.gain.exponentialRampToValueAtTime(0.0001, at + (tier === "ur" ? 3.2 : 2.2));
-      osc.connect(amp).connect(ctx.destination);
+      osc.connect(amp).connect(soundOutput(ctx, true));
       osc.start(at);
       osc.stop(at + 3.4);
     }
   });
   if (tier === "ur" || tier === "ssr") burst(ctx, now, 1.6, 0.02, "highpass", 7000, 0.6);
+}
+
+/** The settings' 试听: a card turning and a reveal, whatever the switches say. */
+export function previewEggSound() {
+  previewing = true;
+  try {
+    playFlip();
+    playReveal("sr");
+  } finally {
+    previewing = false;
+  }
 }

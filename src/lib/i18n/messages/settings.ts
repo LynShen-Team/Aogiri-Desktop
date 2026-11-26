@@ -1234,10 +1234,6 @@ const settings = {
 			thinkingSummariesHint: 'Claude Code、Codex 在回复前展示思考摘要',
 			cacheMissAlert: '缓存未命中提醒',
 			cacheMissAlertHint: '请求没命中提示缓存、输入按全价计费时提示几秒',
-			sounds: '提示音',
-			soundsHint: '任务完成或等你处理时；正在看的会话不播放',
-			soundsDone: '试听完成',
-			soundsAttention: '试听提醒',
 			turnStatsPreview: '预览',
 			turnStatsNone: '不显示统计',
 			turnStat: {
@@ -2699,10 +2695,6 @@ const settings = {
 			thinkingSummariesHint: 'Claude Code and Codex show a summary of their thinking',
 			cacheMissAlert: 'Cache miss alert',
 			cacheMissAlertHint: 'A short note when a request missed the prompt cache (billed in full)',
-			sounds: 'Sounds',
-			soundsHint: 'When a task finishes or waits for you; not for the one in view',
-			soundsDone: 'Play done',
-			soundsAttention: 'Play alert',
 			turnStatsPreview: 'Preview',
 			turnStatsNone: 'No stats shown',
 			turnStat: {
