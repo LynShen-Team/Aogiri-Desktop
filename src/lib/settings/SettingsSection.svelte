@@ -27,7 +27,7 @@
 		<div class="head">
 			<div class="txt">
 				{#if title}<h3>{title}</h3>{/if}
-				{#if description}<p>{description}</p>{/if}
+				{#if description}<p title={description}>{description}</p>{/if}
 			</div>
 			{#if action}<div class="act">{@render action()}</div>{/if}
 		</div>
@@ -63,6 +63,9 @@
 	p {
 		margin: 2px 0 0;
 		max-width: 64ch;
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
 		font-size: var(--fs-xs);
 		line-height: 16px;
 		color: var(--dim);

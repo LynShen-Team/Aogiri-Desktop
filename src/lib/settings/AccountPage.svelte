@@ -7,7 +7,8 @@
 	//              with 充值, the currency; 购买套餐 and 充值 open Settings →
 	//              套餐与充值 (PurchaseSection), where both are bought in the app;
 	//   用量       用量明细, with the last minute's usage as its second line;
-	//   more       模型广场, API 密钥, 邀请好友, 授权设备, the console;
+	//   more       模型广场, API 密钥, the console (邀请好友 and 授权设备 are
+	//              tabs of the 账户 group, beside this page);
 	//   sign-in    重新登录 and 退出登录, quiet, at the bottom.
 	// The account card in the sidebar shows a short summary and opens this
 	// page for the rest.
@@ -17,8 +18,6 @@
 	import ChartLineIcon from 'phosphor-svelte/lib/ChartLineIcon';
 	import ArrowSquareOutIcon from 'phosphor-svelte/lib/ArrowSquareOutIcon';
 	import CaretRightIcon from 'phosphor-svelte/lib/CaretRightIcon';
-	import GiftIcon from 'phosphor-svelte/lib/GiftIcon';
-	import DesktopTowerIcon from 'phosphor-svelte/lib/DesktopTowerIcon';
 	import CameraIcon from 'phosphor-svelte/lib/CameraIcon';
 	import SignInIcon from 'phosphor-svelte/lib/SignInIcon';
 	import SignOutIcon from 'phosphor-svelte/lib/SignOutIcon';
@@ -50,8 +49,6 @@
 		onSquare,
 		onApiKey,
 		onUsage,
-		onInvite,
-		onDevices,
 		onPurchase
 	}: {
 		user: MonoizeUser;
@@ -63,10 +60,9 @@
 		onSquare: () => void;
 		onApiKey: () => void;
 		onUsage: () => void;
-		/** Settings → 邀请好友. */
-		onInvite: () => void;
-		/** Settings → 授权设备. */
-		onDevices: () => void;
+		/** Unused: 邀请好友 and 授权设备 are tabs beside this page now. */
+		onInvite?: () => void;
+		onDevices?: () => void;
 		/** Settings → 套餐与充值. */
 		onPurchase: () => void;
 	} = $props();
@@ -128,8 +124,6 @@
 	const LINKS = $derived([
 		{ icon: SquaresFourIcon, title: t('settings.monoize.square'), sub: t('settings.accountPage.squareSub'), run: onSquare, external: false },
 		{ icon: KeyIcon, title: t('settings.page.apiKey'), sub: t('settings.monoize.managedKey'), run: onApiKey, external: false },
-		{ icon: GiftIcon, title: t('settings.accountPage.invite'), sub: t('settings.accountPage.inviteSub'), run: onInvite, external: false },
-		{ icon: DesktopTowerIcon, title: t('settings.accountPage.devices'), sub: t('settings.accountPage.devicesSub'), run: onDevices, external: false },
 		{ icon: ArrowSquareOutIcon, title: t('settings.accountPage.console'), sub: web.replace(/^https?:\/\//, ''), run: () => openExternal(`${web}/dashboard`), external: true }
 	]);
 </script>

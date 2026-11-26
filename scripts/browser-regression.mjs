@@ -8,6 +8,14 @@ import { chromium, webkit, expect } from '@playwright/test';
 const server = await createServer({ configFile: false, plugins: [svelte({compilerOptions:{runes:true}})], resolve: {alias:{$lib:resolve('src/lib')}}, server:{host:'127.0.0.1',port:1438,strictPort:true} });
 await server.listen();
 const browser = await chromium.launch({executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH});
+// Settings → <group> (the nav lists seven groups) → <tab> (a group's sections
+// are tabs at the head of its page; settings/nav.ts GROUPS).
+const settingsTab = async (p, group, tab) => {
+  await p.locator('.settings nav').getByRole('button', {name: group, exact: true}).click();
+  if (tab) await p.locator('.settings .tabs').getByRole('button', {name: tab, exact: true}).click();
+};
+// The open tab of a settings page (what its h1 said before the groups).
+const openTab = (p) => p.locator('.settings .tabs [aria-current=page]');
 try {
   const page = await browser.newPage();
   const errors = [];
@@ -260,7 +268,7 @@ try {
   await page.getByRole('button',{name:'退出登录',exact:true}).click();
   await expect(page.getByRole('heading',{name:'欢迎页'})).toBeVisible();
   await page.goto(base);
-  await page.getByRole('button',{name:'提供商',exact:true}).click();
+  await settingsTab(page, '模型', '提供商');
   await page.locator('#set-provider-add').click();
   await page.getByRole('button').filter({hasText:'Openai'}).first().click();
   await expect(page.getByPlaceholder('请输入 API Key')).toBeVisible();
@@ -271,7 +279,7 @@ try {
   // base URL, token counts and input kinds; each model keeps its window,
   // output cap, thinking, effort tiers and input kinds; 编辑 reopens them.
   await page.goto(base);
-  await page.getByRole('button',{name:'提供商',exact:true}).click();
+  await settingsTab(page, '模型', '提供商');
   await page.locator('#set-provider-add').click();
   await page.getByRole('button',{name:'手动配置'}).click();
   const providerForm = page.getByRole('dialog');
@@ -347,7 +355,7 @@ try {
   // built-in values is kept (by provider id); the default provider's copy in
   // config.json (what the engine runs) gets the merged values.
   await page.goto(base + '?anthropic=keyed');
-  await page.getByRole('button',{name:'提供商',exact:true}).click();
+  await settingsTab(page, '模型', '提供商');
   const anthropicCard = page.locator('#pcard-anthropic');
   await expect(anthropicCard.getByText('已自定义')).toHaveCount(0);
   await anthropicCard.locator('.pcard-main').click();
@@ -424,7 +432,7 @@ try {
   // Adding a built-in provider: the key step has the same settings behind
   // 自定义设置; 添加 Provider saves the key and them.
   await page.goto(base + '?anthropic');
-  await page.getByRole('button',{name:'提供商',exact:true}).click();
+  await settingsTab(page, '模型', '提供商');
   await page.locator('#set-provider-add').click();
   await page.getByRole('dialog').getByRole('button').filter({hasText:/^Anthropic/}).first().click();
   const keyStep = page.getByRole('dialog');
@@ -447,7 +455,7 @@ try {
   // window, output cap, tiers and input kinds (here the gateway's catalog,
   // signed in). 自动配置 puts the catalog values over listed models.
   await page.goto(base + '?models');
-  await page.getByRole('button',{name:'提供商',exact:true}).click();
+  await settingsTab(page, '模型', '提供商');
   await page.locator('#set-provider-add').click();
   await page.getByRole('button',{name:'手动配置'}).click();
   await field('Provider ID').fill('relay');
@@ -495,7 +503,7 @@ try {
   // default; 自动配置 never turns thinking off. The models reach config.json
   // with `reasoning` and their tiers.
   await page.goto(base + '?engine070');
-  await page.getByRole('button',{name:'提供商',exact:true}).click();
+  await settingsTab(page, '模型', '提供商');
   await page.locator('#set-provider-add').click();
   await page.getByRole('button',{name:'手动配置'}).click();
   await field('Provider ID').fill('thinker');
@@ -1223,7 +1231,7 @@ try {
   // Settings → 通用 offers the conversation width, 自适应 by default; a
   // choice is stored; the search finds the row.
   await page.goto(base);
-  await page.getByRole('button',{name:'通用',exact:true}).click();
+  await settingsTab(page, '通用', '对话');
   const widthRow = page.locator('#set-chat-width');
   await expect(widthRow.getByRole('button')).toHaveText(['自适应', '标准', '铺满']);
   await expect(widthRow.locator('.opt.on')).toHaveText('自适应');
@@ -2849,7 +2857,7 @@ try {
   await expect(page.locator('.approval .place')).toHaveText('第 2/2 个');
   await expect(page.locator('.approval .approval-actions button')).toHaveText([/允许一次/, /本会话可写「Desktop」/, /加入可写目录「Desktop」/, /拒绝并告诉它怎么做/]);
   await page.goto(base);
-  await page.getByRole('button',{name:'权限与沙箱'}).first().click();
+  await settingsTab(page, '智能体', '权限与沙箱');
   await page.getByRole('switch',{name:'允许联网'}).click();
   const configPatches = () => page.evaluate(() => window.__calls.filter((c) => c.command === 'write_config').map((c) => JSON.stringify(c.args.patch)));
   await expect.poll(configPatches).toContain('{"sandbox_network":false}');
@@ -2870,7 +2878,7 @@ try {
   // The app sets data-os from the user agent (applyPlatformClass); the
   // fixture does not. The section reads it when it opens.
   await winPage.evaluate(() => { document.documentElement.dataset.os = 'windows'; });
-  await winPage.getByRole('button',{name:'权限与沙箱'}).first().click();
+  await settingsTab(winPage, '智能体', '权限与沙箱');
   const winSwitch = winPage.getByRole('switch',{name:'Windows 沙箱（预览）'});
   await expect(winSwitch).toHaveAttribute('aria-checked','false');
   await expect(winPage.getByText('要限制命令，打开下面的「Windows 沙箱（预览）」')).toBeVisible();
@@ -3166,7 +3174,7 @@ try {
     sp.on('pageerror', e => errors.push(e.message));
     const storeCalls = (cmd) => sp.evaluate((c) => window.__calls.filter((x) => x.command === c).map((x) => x.args), cmd);
     await sp.goto(base + '?purchase&balance&section=purchase');
-    await expect(sp.getByRole('heading',{name:'套餐与充值',level:1})).toBeVisible({timeout:30000});
+    await expect(openTab(sp)).toHaveText('套餐与充值', {timeout:30000});
     await expect(sp.locator('.sec h3')).toHaveText(['当前', '套餐', '充值余额']);
     await expect(sp.locator('#set-purchase-plan')).toContainText('没有套餐');
     const plansSec = sp.locator('#set-purchase-plans');
@@ -3383,7 +3391,7 @@ try {
   await expect(acctPage.locator('#set-account-currency')).toContainText('显示货币');
   // 购买套餐 and 充值 open Settings → 套餐与充值 in the app, not the website.
   await acctPage.locator('#set-account-balance').getByRole('button',{name:'充值'}).click();
-  await expect(acctPage.getByRole('heading',{name:'套餐与充值',level:1})).toBeVisible();
+  await expect(openTab(acctPage)).toHaveText('套餐与充值');
   await acctPage.getByRole('button',{name:'账户',exact:true}).click();
   await expect(acctPage.locator('#set-account-noplan').getByRole('button',{name:'购买套餐'})).toBeVisible();
   await expect(acctPage.locator('.acct-profile').getByRole('button',{name:'退出登录'})).toHaveCount(0);
@@ -3737,7 +3745,7 @@ try {
     const mp = await browser.newPage({viewport:{width:1040,height:680}});
     mp.on('pageerror', e => errors.push(e.message));
     await mp.goto(base + '?models&loggedIn');
-    await mp.getByRole('button', {name:'模型与推理', exact:true}).click({timeout:30000});
+    await mp.locator('.settings nav').getByRole('button', {name:'模型', exact:true}).click({timeout:30000});
     const trigger = mp.locator('#set-default-model .trigger');
     await expect(trigger).toContainText('DeepSeek V4.1 Flash');
     await expect(mp.locator('#set-compact-model .trigger')).toContainText('GLM-5.3 Flash');
@@ -3750,6 +3758,8 @@ try {
     await row(quick, 'Kimi K3').click();
     await expect(trigger).toContainText('Kimi K3');
     await expect.poll(() => mp.evaluate(() => window.__calls.filter((c) => c.command === 'write_config').map((c) => c.args.patch.model).filter(Boolean))).toContain('kimi-k3');
+    // The compaction, title and image models are under 更多设置.
+    await mp.getByRole('button', {name:'更多设置'}).click();
     await mp.locator('#set-image-model .trigger').click();
     await expect(mp.locator('.pop.mp .qs [role=option]')).toHaveText([/自动选择|自动/, /GPT Image 2/, /全部模型/]);
     await mp.keyboard.press('Escape');
@@ -3771,7 +3781,7 @@ try {
     cp.on('pageerror', e => errors.push(e.message));
     const ops = (name) => cp.evaluate((n) => window.__ops.filter((o) => o.op === n), name);
     await cp.goto(base + '?shell&settings=chat');
-    await expect(cp.getByRole('heading', {name:'聊天连接', level:1})).toBeVisible({timeout:30000});
+    await expect(openTab(cp)).toHaveText('聊天连接', {timeout:30000});
     const bot = cp.locator('#set-chat-tg-3f9a1c2b');
     await expect(bot.getByRole('heading', {name:'Telegram · @aogiri_home_bot'})).toBeVisible();
     await expect(bot.getByText('已连接', {exact:true})).toBeVisible();
@@ -3838,7 +3848,7 @@ try {
     await addForm.getByRole('button', {name:'连接', exact:true}).click();
     await expect.poll(async () => (await ops('connector_add')).map((o) => [o.platform, o.app_id, o.secret, o.token ?? null, o.proxy ?? null])).toEqual([['qq', '102030405', 'qqSecretABCDEF', null, null]]);
     await cp.goto(base + '?shell&settings=chat&lang=en&theme=light');
-    await expect(cp.getByRole('heading', {name:'Chat connectors', level:1})).toBeVisible({timeout:30000});
+    await expect(openTab(cp)).toHaveText('Chat connectors', {timeout:30000});
     await expect(cp.getByText('Connected', {exact:true})).toBeVisible();
     await cp.close();
   }
@@ -4031,7 +4041,7 @@ try {
     await expect(foot.locator('.stat').first()).toHaveText('6.5s');
     assert.equal(await sp.evaluate(() => window.__shellChat.messages.filter((m) => m.kind === 'assistant').at(-1).turn.genMs), 2000);
     // Settings: the figure's checkbox, and the preview.
-    await sp.goto(base + '?shell&settings=general');
+    await sp.goto(base + '?shell&settings=conversation');
     const row = sp.locator('#set-turn-stats');
     await expect(row.getByRole('checkbox', {name: '输出速度'})).toBeChecked({timeout:60000});
     await expect(sp.locator('.sp-stat', {hasText: 'tok/s'})).toHaveText('51.2 tok/s');
@@ -4041,7 +4051,7 @@ try {
     // Off by default.
     const dp = await browser.newPage({viewport:{width:1280,height:860}});
     dp.on('pageerror', e => errors.push(e.message));
-    await dp.goto(base + '?shell&settings=general');
+    await dp.goto(base + '?shell&settings=conversation');
     await expect(dp.locator('#set-turn-stats').getByRole('checkbox', {name: '输出速度'})).not.toBeChecked({timeout:60000});
     await dp.close();
   }
@@ -4051,7 +4061,7 @@ try {
   {
     const fp = await browser.newPage({viewport:{width:1280,height:860}});
     fp.on('pageerror', e => errors.push(e.message));
-    await fp.goto(base + '?shell&settings=general');
+    await fp.goto(base + '?shell&settings=appearance');
     const ui = fp.locator('#set-ui-font');
     await expect(ui).toBeVisible({timeout:60000});
     await expect(fp.locator('#set-chat-font .trigger')).toHaveText('跟随界面字体');
@@ -4318,7 +4328,7 @@ try {
 
     const sp = await browser.newPage({viewport: {width: 1280, height: 900}});
     sp.on('pageerror', (e) => errors.push(e.message));
-    await sp.goto(base + '?shell&settings=general');
+    await sp.goto(base + '?shell&settings=appearance');
     await expect(sp.locator('#set-scheme-dark')).toBeVisible({timeout: 60000});
     await sp.locator('#set-scheme-dark').getByRole('button', {name: '新建配色'}).click();
     const editor = sp.locator('.editor');
@@ -5129,11 +5139,10 @@ try {
     sp.on('pageerror', (e) => errors.push(e.message));
     const sops = () => sp.evaluate(() => window.__ops.map((o) => ({...o, id: undefined})));
     await sp.goto(base + '?shell&settings=remote&relay=v2&relayOn&loggedIn');
-    await expect(sp.locator('h1', {hasText: '远程访问'})).toBeVisible();
-    // Its own page in the nav, next to 授权设备.
-    const nav = sp.locator('nav button');
-    const labels = await nav.allTextContents();
-    assert.ok(labels.findIndex((l) => l.includes('远程访问')) === labels.findIndex((l) => l.includes('授权设备')) + 1, `远程访问 follows 授权设备 (${labels.join(' | ')})`);
+    await expect(openTab(sp)).toHaveText('远程访问');
+    // Its own page: the first tab of 连接, before 聊天连接.
+    await expect(sp.locator('.settings nav [aria-current=page]')).toHaveText('连接');
+    await expect(sp.locator('.settings .tabs button')).toHaveText(['远程访问', '聊天连接']);
     const remote = sp.locator('#set-remote');
     await expect(remote.getByText('账号绑定')).toBeVisible();
     await expect(remote.getByText('已连接中继 · 通过账号')).toBeVisible();
@@ -5165,7 +5174,7 @@ try {
     await expect(remote.getByRole('button', {name: '局域网 / Tailscale 地址（高级）'})).toBeVisible();
     // The old section key still opens it (links from older builds).
     await sp.goto(base + '?shell&settings=daemon');
-    await expect(sp.locator('h1', {hasText: '远程访问'})).toBeVisible();
+    await expect(openTab(sp)).toHaveText('远程访问');
     await sp.close();
   }
   // Settings → 邀请好友 (gateway DA-9, RF-B3): a typed code names its inviter
