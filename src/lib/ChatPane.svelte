@@ -149,7 +149,8 @@
 	import { telemetry } from '$lib/telemetry.svelte';
 	import { teamSwitch } from '$lib/agents/teamSwitch.svelte';
 	import { mentionRoot } from '$lib/mention';
-	import { EGG_PROVIDER, parseEggCommand } from '$lib/cyberEgg/route';
+	import { parseEggCommand } from '$lib/cyberEgg/route';
+	import { eggModelOf, modelPickRoute } from '$lib/cyberEgg/provider';
 
 	// One full conversation (transcript + composer + approvals + pickers) for a
 	// single session, extracted from the page so several chats can tile side by
@@ -946,7 +947,7 @@
 	// The model button's name: the catalog's, or one read from the id, as the
 	// model pickers show it (src/lib/models). Claude Code / Codex keep theirs.
 	/** On the 赛博鸡蛋 tokens: the round's model it runs on (as picked, or as the engine reports it). */
-	const eggModel = $derived(session.egg?.model ?? (chat.provider === EGG_PROVIDER ? chat.model || null : null));
+	const eggModel = $derived(eggModelOf(session));
 	const shownModelName = $derived.by(() => {
 		const stored = stripGroupSuffix(providersList.find((p) => p.id === chat.provider)?.models.find((m) => m.name === chat.model)?.display_name || '');
 		if (chat.backendId !== 'lynshen' || !chat.model) return stored || undefined;
@@ -1329,18 +1330,25 @@
 		}
 	});
 
-	function selectRow(picked: string) {
+	/** `left`: the conversation was just taken off 赛博鸡蛋 for this pick; the pick goes on as it is. */
+	function selectRow(picked: string, left = false) {
 		// A 赛博鸡蛋 row: this conversation runs on the day's drawn tokens
-		// (cyberEgg/route.ts); any other model takes it back to the account.
-		const onEgg = parseEggCommand(picked);
-		if (onEgg) {
+		// (cyberEgg/route.ts); any other model takes it back to the account
+		// first, then is picked once (never again through this check: a reopened
+		// session reports its provider later, and a retry here looped forever and
+		// froze the window, ticket #86).
+		const way = modelPickRoute(picked, eggModel !== null, left);
+		if (way === 'egg') {
 			chat.closePicker();
-			store.setEgg(session.id, onEgg).catch((e) => toast.error(e instanceof Error ? e.message : String(e)));
+			store.setEgg(session.id, parseEggCommand(picked)).catch((e) => toast.error(e instanceof Error ? e.message : String(e)));
 			return;
 		}
-		if (eggModel && (picked.startsWith('/model ') || picked.startsWith('@switch '))) {
+		if (way === 'leave') {
 			chat.closePicker();
-			void store.setEgg(session.id, null).then(() => selectRow(picked));
+			store.setEgg(session.id, null).then(
+				() => selectRow(picked, true),
+				(e) => toast.error(e instanceof Error ? e.message : String(e))
+			);
 			return;
 		}
 		// A Provider row: pin the model to it (`monoize_providers`, sent as

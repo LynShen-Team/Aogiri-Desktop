@@ -18,7 +18,7 @@ const params = (() => {
 		return new URLSearchParams();
 	}
 })();
-const mode = params.has('eggChat') ? 'drawn' : (params.get('egg') ?? '');
+const mode = params.has('eggChat') || params.has('eggSeed') ? 'drawn' : (params.get('egg') ?? '');
 const CAMPAIGN = 'r1';
 
 const TIERS: EggTierRule[] = [

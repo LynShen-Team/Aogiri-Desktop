@@ -110,6 +110,9 @@
 	//                           pack sealed (=drawn: today's card drawn; =none:
 	//                           no round running); &eggSection=album|market|usage
 	//                           opens that section
+	//   &eggSeed                with &draft: the backend's profile kept a report from a
+	//                           conversation on 赛博鸡蛋 (as 0.11.14–0.11.15 did) and the
+	//                           new conversation is seeded from it (ticket #86)
 	//   &eggChat                the conversation runs on the 赛博鸡蛋 tokens (its
 	//                           group in the model menu, 今天剩 in the footer);
 	//                           with &features=session_provider the daemon can run it
@@ -161,6 +164,7 @@
 	import HomePage from '../../src/lib/HomePage.svelte';
 	import CyberEggPage, { type EggSection } from '../../src/lib/cyberEgg/CyberEggPage.svelte';
 	import { egg } from '../../src/lib/cyberEgg/store.svelte';
+	import { rememberProfile } from '../../src/lib/backendProfile';
 	import ProjectPickDialog from '../../src/lib/ProjectPickDialog.svelte';
 	import { matches } from '../../src/lib/shortcuts';
 	import SettingsPage from '../../src/lib/settings/SettingsPage.svelte';
@@ -179,7 +183,7 @@
 	// 赛博鸡蛋: its page (&egg), a conversation on its tokens (&eggChat).
 	let eggPage = $state(mode.has('egg'));
 	let eggSection = $state<EggSection>((mode.get('eggSection') as EggSection) || 'draw');
-	if (mode.has('egg') || mode.has('eggChat')) void egg.refresh();
+	if (mode.has('egg') || mode.has('eggChat') || mode.has('eggSeed')) void egg.refresh();
 	let section = $state(mode.get('settings') || 'general');
 	setLocale(mode.get('lang') === 'en' ? 'en' : 'zh');
 	provideRequirements(new Requirements(daemon));
@@ -619,6 +623,10 @@
 	if (mode.has('draft')) {
 		session.draft = true;
 		session.chat.messages = [];
+		if (mode.has('eggSeed')) {
+			rememberProfile('lynshen', { provider: 'cyber-egg', model: 'gpt-6.2-astra', modelLabel: 'gpt-6.2-astra' });
+			session.chat.seedFromProfile();
+		}
 	}
 	const acpMode = mode.get('acp');
 	if (acpMode) {

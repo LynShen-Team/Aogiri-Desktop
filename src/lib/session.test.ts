@@ -36,6 +36,7 @@ import { engine } from './engineVersion.svelte';
 import { rememberProfile, type BackendProfile } from './backendProfile';
 import type { ModelOption } from './chat.svelte';
 import type { Project, Session, WorktreeMeta } from './types';
+import { eggModelOf } from './cyberEgg/provider';
 
 const proj = (id = 'p1'): Project => ({ id, name: id, path: `/tmp/${id}`, sessions: [] });
 /** A new session is a draft; its first message starts the engine. */
@@ -2044,5 +2045,82 @@ describe('赛博鸡蛋: leaving it takes the conversation off the campaign key',
 		await flush();
 		expect(hostSession).toHaveBeenCalledTimes(1);
 		expect(lastSpec()).toBeUndefined();
+	});
+});
+
+describe('赛博鸡蛋: a new conversation is on it only when picked, and can always pick another model (ticket #86)', () => {
+	beforeEach(() => {
+		const items = new Map<string, string>();
+		vi.stubGlobal('localStorage', {
+			getItem: (k: string) => items.get(k) ?? null,
+			setItem: (k: string, v: string) => void items.set(k, v),
+			removeItem: (k: string) => void items.delete(k)
+		});
+		engine.features = ['session_provider'];
+	});
+	afterEach(() => {
+		vi.unstubAllGlobals();
+		engine.features = [];
+	});
+	/** A new LynShen conversation (a draft), in `store`. */
+	function lynshenDraft(store = new SessionStore()) {
+		const p = proj(`p${store.projects.length + 1}`);
+		store.projects.push(p);
+		const id = store.addSession(p);
+		return { store, id, s: p.sessions.find((x) => x.id === id)! };
+	}
+
+	it('a conversation on the campaign does not seed the next new one with it', async () => {
+		const { store, id, s } = lynshenDraft();
+		begin(id);
+		await flush();
+		s.chat.handle({ type: 'model_status', provider: 'cyber-egg', model: 'gpt-6.2-astra', model_label: 'gpt-6.2-astra', state: 'ready' } as never);
+		s.chat.handle({ type: 'model_view', models: [{ model: 'gpt-6.2-astra' }] } as never);
+		const next = lynshenDraft(store);
+		expect(next.s.chat.provider).toBe('');
+		expect(next.s.chat.model).toBe('');
+		expect(eggModelOf(next.s)).toBeNull();
+		// A conversation on the account still seeds the next one as before.
+		s.chat.handle({ type: 'model_status', provider: 'monoize', model: 'gpt-6.2-sol', model_label: 'GPT-6.2 Sol', state: 'ready' } as never);
+		expect(lynshenDraft(store).s.chat.model).toBe('gpt-6.2-sol');
+	});
+
+	it('a profile kept on the campaign before 0.11.16 seeds no model', () => {
+		rememberProfile('lynshen', { provider: 'cyber-egg', model: 'gpt-6.2-astra', modelLabel: 'gpt-6.2-astra' });
+		const { s } = lynshenDraft();
+		expect(s.chat.provider).toBe('');
+		expect(s.chat.model).toBe('');
+		expect(eggModelOf(s)).toBeNull();
+	});
+
+	it('a new conversation: onto the campaign, off again (even when it was shown as on it), then any model', async () => {
+		const { store, id, s } = lynshenDraft();
+		await store.setEgg(id, 'gpt-6.2-astra');
+		expect(eggModelOf(s)).toBe('gpt-6.2-astra');
+		expect(s.draftPick).toEqual({ model: 'gpt-6.2-astra' });
+		// As a seed from an older profile left it.
+		s.chat.provider = 'cyber-egg';
+		await store.setEgg(id, null);
+		expect(eggModelOf(s)).toBeNull();
+		expect(s.chat.provider).toBe('');
+		expect(s.draftPick).toBeUndefined();
+		// A draft is never reopened: nothing has started yet.
+		expect(hostSession).not.toHaveBeenCalled();
+	});
+
+	it('an open conversation reported on the campaign leaves it once per pick', async () => {
+		const { store, id, s } = lynshenDraft();
+		begin(id);
+		await flush();
+		vi.mocked(closeSession).mockClear();
+		s.chat.provider = 'cyber-egg';
+		s.chat.model = 'gpt-6.2-astra';
+		await store.setEgg(id, null);
+		await flush();
+		expect(closeSession).toHaveBeenCalledTimes(1);
+		expect(lastSpec()).toEqual({ engine: 'lynshen', options: { provider: null } });
+		// Until its engine reports the account again it still reads as on the campaign: the model menu's pick
+		// goes through once (`left`, provider.test.ts), not round again.
+		expect(eggModelOf(s)).toBe('gpt-6.2-astra');
 	});
 });
