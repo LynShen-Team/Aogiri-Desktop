@@ -3,17 +3,17 @@
 	// from the account card): per window used / quota with a slim bar and
 	// when it recovers. The plan's end is on the row above.
 	import { t } from '$lib/i18n';
-	import { credits, planDate, sortedWindows, usedShare, windowLabel, type TrialPlan } from '$lib/trial';
+	import { credits, planDate, sortedWindows, usedShare, windowKey, windowTitle, type TrialPlan } from '$lib/trial';
 
 	let { plan }: { plan: TrialPlan } = $props();
 </script>
 
 <div class="usage" aria-label={t('shell.trial.label')}>
-	{#each sortedWindows(plan) as w (w.kind)}
+	{#each sortedWindows(plan) as w (windowKey(w))}
 		{@const share = usedShare(w)}
 		<div class="win">
 			<div class="kv">
-				<span>{windowLabel(w.kind)}</span>
+				<span>{windowTitle(w)}</span>
 				<span class="num">{t('shell.trial.used', { used: credits(w.used_cny, true), quota: credits(w.quota_cny, true) })}</span>
 			</div>
 			<div class="meter" aria-hidden="true"><span class:full={share >= 1} style:width="{share * 100}%"></span></div>

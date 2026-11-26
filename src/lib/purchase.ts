@@ -5,6 +5,7 @@
 // failure). Without Tauri or Svelte; settings/PurchaseSection.svelte and
 // settings/CheckoutDialog.svelte run it.
 import { t } from '$lib/i18n';
+import { modelScope } from '$lib/trial';
 
 /** One CNY quota rule of a plan, as the store keeps it (SB-P-7). */
 export interface QuotaWindow {
@@ -12,6 +13,8 @@ export interface QuotaWindow {
 	window_seconds: number;
 	/** CNY fen; 1 积分 = ¥1. */
 	quota_fen_cny: string;
+	/** The models the rule counts ("claude-*"); absent for every model. */
+	model_patterns?: string[];
 }
 
 export interface StoreBalance {
@@ -35,7 +38,9 @@ export interface StoreProduct {
 	 *  gateway quotes to move up to it now (fen), and until when the quote
 	 *  holds (the server prices the order again anyway). The plan's end stays.
 	 *  Absent: an ordinary purchase (also from an older gateway). */
-	upgrade?: { price_minor: string; expires_at: string | null };
+	/** `ends_at`: the new period's end if paid now (gateway 2026-11-25: an upgrade runs a full
+	 *  period from the payment); absent from an older gateway, whose upgrade kept the end. */
+	upgrade?: { price_minor: string; expires_at: string | null; ends_at?: string };
 	/** A lower plan than the one in force: not offered (no downgrade). */
 	downgrade?: boolean;
 	/** The plan in force: buying it again renews it from its end. */
@@ -111,7 +116,8 @@ function parseWindow(v: unknown): QuotaWindow | null {
 	const seconds = w?.window_seconds;
 	const quota = minor(w?.quota_fen_cny);
 	if (!kind || typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds <= 0 || !quota) return null;
-	return { window_kind: kind, window_seconds: seconds, quota_fen_cny: quota };
+	const models = Array.isArray(w?.model_patterns) ? (w.model_patterns as unknown[]).filter((m): m is string => typeof m === 'string' && m.trim() !== '') : [];
+	return { window_kind: kind, window_seconds: seconds, quota_fen_cny: quota, ...(models.length ? { model_patterns: models } : {}) };
 }
 
 function parseProduct(v: unknown): StoreProduct | null {
@@ -147,7 +153,12 @@ function upgradeOf(v: unknown): StoreProduct['upgrade'] | null {
 	const price = minor(u?.price_minor);
 	if (!u || !price || price === '0') return null;
 	const ends = str(u.expires_at);
-	return { price_minor: price, expires_at: ends && !Number.isNaN(Date.parse(ends)) ? ends : null };
+	const newEnd = str(u.ends_at);
+	return {
+		price_minor: price,
+		expires_at: ends && !Number.isNaN(Date.parse(ends)) ? ends : null,
+		...(newEnd && !Number.isNaN(Date.parse(newEnd)) ? { ends_at: newEnd } : {})
+	};
 }
 
 /** What a product costs now: the upgrade quote when there is one. */
@@ -273,7 +284,9 @@ export function windowText(kind: string, seconds: number): string {
 
 /** "每 5 小时 8 积分" / "Every 5 hours: 8 credits". */
 export function windowRule(w: QuotaWindow): string {
-	return t('settings.purchase.window.rule', { window: windowText(w.window_kind, w.window_seconds), n: creditAmount(w.quota_fen_cny) });
+	const scope = modelScope(w.model_patterns);
+	const window = windowText(w.window_kind, w.window_seconds);
+	return t('settings.purchase.window.rule', { window: scope ? `${scope} · ${window}` : window, n: creditAmount(w.quota_fen_cny) });
 }
 
 /** A plan's length: "30 天", or hours when it is not whole days. */

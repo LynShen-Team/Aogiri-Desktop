@@ -1338,7 +1338,7 @@
 			store.setEgg(session.id, onEgg).catch((e) => toast.error(e instanceof Error ? e.message : String(e)));
 			return;
 		}
-		if (session.egg && (picked.startsWith('/model ') || picked.startsWith('@switch '))) {
+		if (eggModel && (picked.startsWith('/model ') || picked.startsWith('@switch '))) {
 			chat.closePicker();
 			void store.setEgg(session.id, null).then(() => selectRow(picked));
 			return;

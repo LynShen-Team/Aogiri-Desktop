@@ -93,3 +93,21 @@ describe('planStopText', () => {
 		setLocale('zh');
 	});
 });
+
+describe('model-scoped and switched plan stops (gateway SB-Q-1M, DT-F10)', () => {
+	it('reads the models of a Claude-only window and says other models still work', () => {
+		const raw = JSON.stringify({
+			error: { code: 'plan_quota_exhausted', message: 'x', plan_name: 'Sprout', window: '7d', models: ['claude-*'], retry_at: '2026-10-17T12:30:00Z' }
+		});
+		const stop = planStopOf(raw)!;
+		expect(stop.models).toEqual(['claude-*']);
+		const text = planStopText(stop, stop.resetsAt, NOW);
+		expect(text.title).toContain('Claude');
+	});
+	it('reads an automatic switch to the balance', () => {
+		const raw = JSON.stringify({ error: { code: 'plan_quota_exhausted', message: 'x', window: '7d', switched_to_balance: true, retry_at: '2026-10-17T12:30:00Z' } });
+		const stop = planStopOf(raw)!;
+		expect(stop.switched).toBe(true);
+		expect(stop.models).toBeUndefined();
+	});
+});
