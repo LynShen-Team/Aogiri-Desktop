@@ -3,6 +3,9 @@
 // own key). The cyber egg's switch is the egg's own key, which its pack
 // sounds read (cyberEgg/card/sound.ts; not imported: that module plays
 // through play.ts, which reads these settings).
+// Settings shows none of them (owner, 2026-11-27: 「提示音就不应该显示」):
+// the sounds play with the defaults in events.ts, and what an earlier
+// version stored here is still read.
 
 import { prefs } from '$lib/prefs.svelte';
 import { DEFAULT_VOLUME, SOUND_EVENTS, soundEvent, type SoundEventId } from './events';

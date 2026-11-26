@@ -16,7 +16,6 @@ import models from './models';
 import egg from './egg';
 import eggMarket from './eggMarket';
 import eggInfo from './eggInfo';
-import sounds from './sounds';
 
 export type Locale = 'zh' | 'en';
 
@@ -34,8 +33,7 @@ export const catalog = {
 		models: models.zh,
 		egg: egg.zh,
 		eggMarket: eggMarket.zh,
-		eggInfo: eggInfo.zh,
-		sounds: sounds.zh
+		eggInfo: eggInfo.zh
 	},
 	en: {
 		common: common.en,
@@ -50,7 +48,6 @@ export const catalog = {
 		models: models.en,
 		egg: egg.en,
 		eggMarket: eggMarket.en,
-		eggInfo: eggInfo.en,
-		sounds: sounds.en
+		eggInfo: eggInfo.en
 	}
 } as const;

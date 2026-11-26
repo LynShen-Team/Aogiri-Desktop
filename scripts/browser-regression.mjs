@@ -4101,44 +4101,23 @@ try {
     assert.match((await vars()).ui, /^-apple-system/);
     await fp.close();
   }
-  // Sounds (Settings → 通用 → 基本 → 提示音): on by default; the two buttons play
-  // the done and the alert sound; the switch turns them off and is kept.
+  // Sounds: no row in Settings (owner 2026-11-27: 「提示音就不应该显示」),
+  // not under 更多设置 either, and the search finds none; they stay on.
   {
     const sp = await browser.newPage({viewport:{width:1280,height:860}});
     sp.on('pageerror', e => errors.push(e.message));
-    await sp.addInitScript(() => {
-      window.__played = [];
-      const Real = window.AudioContext;
-      window.AudioContext = class extends Real {
-        createBufferSource() {
-          const src = super.createBufferSource();
-          const start = src.start.bind(src);
-          src.start = (...a) => { window.__played.push(src.buffer.duration); return start(...a); };
-          return src;
-        }
-      };
-    });
     await sp.goto(base + '?shell&settings=general');
-    // Settings → 提示音 (SoundSettings): the master switch, the volume, and
-    // each event's switch with its 试听.
-    const row = sp.locator('#set-sounds');
-    const master = row.getByRole('switch', {name: '播放提示音'});
-    await expect(master).toBeChecked({timeout:60000});
-    await row.getByRole('button', {name: '试听 · 任务完成'}).click();
-    await row.getByRole('button', {name: '试听 · 需要你确认'}).click();
-    await expect.poll(() => sp.evaluate(() => window.__played.length)).toBe(2);
-    const [a, b] = await sp.evaluate(() => window.__played);
-    assert.ok(a > 0.25 && a < 0.6 && b > 0.25 && b < 0.6, `${a} ${b}`);
-    // The message click starts off, the rest on; a switched event and the volume are kept.
-    await expect(row.getByRole('switch', {name: '发送消息'})).not.toBeChecked();
-    await expect(row.getByRole('switch', {name: '复制'})).toBeChecked();
-    await row.getByRole('switch', {name: '复制'}).click();
-    await row.getByRole('slider', {name: '音量'}).fill('40');
-    assert.deepEqual(await sp.evaluate(() => JSON.parse(localStorage.getItem('aogiri.sounds'))), {volume: 0.4, events: {copied: false}});
-    await master.click();
-    await expect(master).not.toBeChecked();
-    await expect(row.getByRole('switch', {name: '任务完成', exact: true})).toBeDisabled();
-    assert.equal(await sp.evaluate(() => JSON.parse(localStorage.getItem('lynshen-prefs')).sounds), false);
+    await expect(sp.locator('#set-telemetry')).toBeAttached({timeout:60000});
+    await sp.getByRole('button', {name: '更多设置'}).click();
+    await expect(sp.locator('#set-html-open')).toBeVisible();
+    await expect(sp.locator('[id^="set-sounds"]')).toHaveCount(0);
+    await expect(sp.locator('.settings .col')).not.toContainText('提示音');
+    await expect(sp.getByRole('switch', {name: '播放提示音'})).toHaveCount(0);
+    for (const q of ['提示音', '声音', 'sound']) {
+      await sp.getByPlaceholder('搜索设置').fill(q);
+      await expect(sp.locator('.settings .nav-list .none')).toBeVisible();
+    }
+    assert.equal(await sp.evaluate(() => window.__prefs.sounds), true);
     await sp.close();
   }
   // Interface zoom (?shell): a step sets --ui-zoom and is kept (the fixture

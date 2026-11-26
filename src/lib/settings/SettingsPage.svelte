@@ -99,7 +99,6 @@
 	import { RETRY_ATTEMPTS_MAX, retryAttemptsSetting } from '$lib/retryView';
 	import Select from '$lib/ui/Select.svelte';
 	import { offeredFonts, type FontChoice, type FontSlot } from '$lib/fonts';
-	import SoundSettings from '$lib/settings/SoundSettings.svelte';
 	import ModelPicker from '$lib/models/ModelPicker.svelte';
 	import { itemsFromOptions } from '$lib/models/items';
 	import { gatewayCatalog } from '$lib/models/catalogStore.svelte';
@@ -1086,7 +1085,6 @@
 						</SettingsRow>
 						{#if inApp}<AutostartRows />{/if}
 					</SettingsSection>
-					<SoundSettings />
 					<SettingsSection title={t('settings.page.help')}>
 						<SettingsRow id="feedback" title={t('settings.help.feedback')}>
 							<Button size="sm" disabled={!onFeedback} onclick={() => onFeedback?.()}>{t('settings.help.feedbackOpen')}</Button>
