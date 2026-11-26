@@ -21,7 +21,7 @@ export interface SoundEvent {
 	quiet: QuietWhen;
 }
 
-/** In the order the settings list them: the ones that matter first. */
+/** The ones that matter first. */
 export const SOUND_EVENTS: readonly SoundEvent[] = [
 	{ id: 'done', on: true, quiet: 'watching' },
 	{ id: 'attention', on: true, quiet: 'watching' },

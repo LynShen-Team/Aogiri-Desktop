@@ -14,7 +14,6 @@ import web from './web';
 import preview from './preview';
 import models from './models';
 import egg from './egg';
-import sounds from './sounds';
 
 export type Locale = 'zh' | 'en';
 
@@ -30,8 +29,7 @@ export const catalog = {
 		web: web.zh,
 		preview: preview.zh,
 		models: models.zh,
-		egg: egg.zh,
-		sounds: sounds.zh
+		egg: egg.zh
 	},
 	en: {
 		common: common.en,
@@ -44,7 +42,6 @@ export const catalog = {
 		web: web.en,
 		preview: preview.en,
 		models: models.en,
-		egg: egg.en,
-		sounds: sounds.en
+		egg: egg.en
 	}
 } as const;
