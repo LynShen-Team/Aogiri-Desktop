@@ -682,8 +682,16 @@ const chat = {
 			cancelRevise: '取消修改',
 			status: { approved: '已批准', revising: '修改中', drafting: '撰写中' }
 		},
+		// While a turn works (ui/WorkingIndicator.svelte): the dot glyph,
+		// 工作中 under a light, and the turn's time so far (ui/working.ts).
+		working: {
+			label: '工作中',
+			sec: '{s} 秒',
+			min: '{m} 分 {s} 秒',
+			hour: '{h} 时 {m} 分'
+		},
 		// The work status line: what the turn is doing now, then what on
-		// (a file, a command), how long, and › for the call's details.
+		// (a file, a command), and › for the call's details.
 		work: {
 			connecting: '正在连接模型',
 			thinking: '正在思考',
@@ -1388,6 +1396,12 @@ const chat = {
 			revisingHint: 'Say what to change; the plan is rewritten when you send',
 			cancelRevise: 'Cancel revising',
 			status: { approved: 'Approved', revising: 'Revising', drafting: 'Writing' }
+		},
+		working: {
+			label: 'Working',
+			sec: '{s}s',
+			min: '{m}m {s}s',
+			hour: '{h}h {m}m'
 		},
 		// The work status line.
 		work: {
