@@ -1,361 +1,601 @@
 <script lang="ts">
-	// 赛博鸡蛋 · 交易市场: the hall (cards put up, what each wants), the swaps sent to this user and by it,
-	// and a card of one's own to put up. Only cards move; tokens never go with a card.
+	// 赛博鸡蛋 · 交易市场, as the website's market page lays it out on a wide screen (gateway trade.tsx, cyber-egg.spec.md
+	// CE-X3..X6): the figures, the two tabs and the three actions; then every card of a pack as a tile with how many
+	// put it up and how many want it, paged sideways so the page itself never scrolls, beside the latest swaps (behind
+	// a button below 1400px). A tile opens the card's market in a side panel; taking a listing, putting a card up and a
+	// direct swap are dialogs; a swap done shows the card coming in. 我的交易 holds my listings and the direct swaps.
+	// Only cards move (and, where the round allows, money on top from the paid balance); tokens never go with a card.
+	import ClockCounterClockwiseIcon from 'phosphor-svelte/lib/ClockCounterClockwiseIcon';
+	import PaperPlaneTiltIcon from 'phosphor-svelte/lib/PaperPlaneTiltIcon';
 	import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
-	import ArrowsLeftRightIcon from 'phosphor-svelte/lib/ArrowsLeftRightIcon';
 	import { untrack } from 'svelte';
 	import { t } from '$lib/i18n';
 	import Button from '$lib/ui/Button.svelte';
-	import Modal from '$lib/ui/Modal.svelte';
+	import Select from '$lib/ui/Select.svelte';
 	import { toast } from '$lib/ui/toast.svelte';
-	import Card3D from './Card3D.svelte';
-	import { TIERS, cardById, packOf, type Tier as CardTier } from './art';
+	import { PACKS, TIERS, TIER_LOOK, packCards, type ArtCard, type Tier } from './art';
+	import { eggApi, eggErrorText, type EggListing, type EggOwnedCard, type EggTradeEvent } from './api';
 	import { egg } from './store.svelte';
-	import { account } from '$lib/accountSession.svelte';
-	import { eggApi, eggErrorText, type EggListing, type EggTrade } from './api';
+	import './market/market.css';
+	import CardPanel from './market/CardPanel.svelte';
+	import ListDialog from './market/ListDialog.svelte';
+	import MarketTile from './market/MarketTile.svelte';
+	import MyTrades from './market/MyTrades.svelte';
+	import OfferDialog from './market/OfferDialog.svelte';
+	import PageStrip from './market/PageStrip.svelte';
+	import Recent from './market/Recent.svelte';
+	import SidePanel from './market/SidePanel.svelte';
+	import TakeDialog from './market/TakeDialog.svelte';
+	import TradeReveal from './market/TradeReveal.svelte';
+	import { NO_TOPUP, matches, tradable, type Deal } from './market/shared';
 
-	let tab = $state<'hall' | 'requests'>(untrack(() => (egg.waiting ? 'requests' : 'hall')));
-	let listings = $state<EggListing[] | null>(null);
-	let busy = $state<string | null>(null);
-	/** Taking a listing: which of this user's cards to give. */
-	let taking = $state<EggListing | null>(null);
-	/** Putting a card up. */
-	let listing = $state(false);
-	let listCard = $state<string | null>(null);
-	let listTier = $state<CardTier | null>(null);
+	let {
+		intent = null,
+		onAlbum,
+		onIntentDone
+	}: {
+		/** From the album: put this copy up (`list`), or show this pack's cards I am missing (`missing`). */
+		intent?: { list?: string; missing?: number } | null;
+		/** The reveal's 「查看卡册」. */
+		onAlbum?: () => void;
+		/** The intent was taken up. */
+		onIntentDone?: () => void;
+	} = $props();
 
-	const loadHall = () =>
+	type Only = 'all' | 'missing' | 'can';
+	type Sort = 'hot' | 'rare' | 'new';
+	type Tile = { def: ArtCard; offers: number; wants: number; mine: number; newest: number };
+
+	const me = $derived(egg.me);
+	const rules = $derived(me?.market_rules ?? NO_TOPUP);
+	const balance = $derived(me?.balance_fen ?? 0);
+	const banned = $derived(!!me?.banned);
+
+	let market = $state<{ listings: EggListing[]; recent: EggTradeEvent[]; stats: { listings: number; today_trades: number } | null } | null>(null);
+	const loadMarket = () =>
 		eggApi.market().then(
-			(answer) => (listings = answer.listings),
+			(answer) => (market = { listings: answer.listings, recent: answer.recent ?? [], stats: answer.stats ?? null }),
 			(error) => toast.error(eggErrorText(error))
 		);
 	$effect(() =>
 		untrack(() => {
-			void loadHall();
+			void loadMarket();
 			void egg.loadTrades();
 		})
 	);
 
-	/** The swaps: sent to this user, sent by it, then those done (sent by it when it is their `from`). */
-	const swaps = $derived<Array<EggTrade & { mine: boolean }>>(
-		egg.trades
-			? [
-					...egg.trades.incoming.map((x) => ({ ...x, mine: false })),
-					...egg.trades.outgoing.map((x) => ({ ...x, mine: true })),
-					...egg.trades.done.map((x) => ({ ...x, mine: x.from === account.user?.username }))
-				]
-			: []
-	);
-	const waiting = $derived(egg.waiting);
-	const name = (id: string) => cardById(id)?.name ?? id;
-	const tierName = (tier: CardTier) => t(`egg.tier.${tier}`);
-	const wants = (l: EggListing) =>
-		l.want_card_id ? name(l.want_card_id) : l.want_tier ? t('egg.market.anyTier', { tier: tierName(l.want_tier) }) : t('egg.market.anyCard');
-	/** Cards this user may give: not in a 典藏, not held back after a swap. */
-	const tradable = $derived(egg.cards.filter((c) => !c.locked && !(c.relist_after && c.relist_after > Date.now())));
-	const fits = (l: EggListing) => tradable.filter((c) => (l.want_card_id ? c.card_id === l.want_card_id : l.want_tier ? c.tier === l.want_tier : true));
-	const ago = (at: number) => {
-		const minutes = Math.max(1, Math.round((Date.now() - at) / 60_000));
-		return minutes < 60 ? t('egg.market.minutesAgo', { n: minutes }) : minutes < 1440 ? t('egg.market.hoursAgo', { n: Math.round(minutes / 60) }) : t('egg.market.daysAgo', { n: Math.round(minutes / 1440) });
-	};
+	let view = $state<'market' | 'mine'>('market');
+	let period = $state(untrack(() => me?.pack.period ?? PACKS[0]?.period ?? 1));
+	let tier = $state<Tier | 'all'>('all');
+	let only = $state<Only>('all');
+	let sort = $state<Sort>('hot');
+	/** The card whose market the side panel shows. */
+	let opened = $state<ArtCard | null>(null);
+	let taking = $state<EggListing | null>(null);
+	let listing = $state<{ initial: EggOwnedCard | null; want: string | null } | null>(null);
+	let offering = $state(false);
+	let recentOpen = $state(false);
+	let deal = $state<Deal | null>(null);
 
-	async function act(id: string, run: () => Promise<unknown>, done: string) {
-		busy = id;
+	// The latest swaps sit beside the cards where the window is wide enough (the website's 1400px), else behind a button.
+	let roomy = $state(false);
+	$effect(() => {
+		const media = window.matchMedia('(min-width: 1400px)');
+		const update = () => (roomy = media.matches);
+		update();
+		media.addEventListener('change', update);
+		return () => media.removeEventListener('change', update);
+	});
+	$effect(() => {
+		if (roomy) recentOpen = false;
+	});
+
+	// From the album: 「发布至交易大厅」 opens 挂出 with that copy; 「去市场寻找」 shows that pack's missing cards.
+	$effect(() => {
+		const next = intent;
+		if (!next) return;
+		untrack(() => {
+			if (next.missing) {
+				view = 'market';
+				period = next.missing;
+				tier = 'all';
+				only = 'missing';
+			}
+			if (next.list) listing = { initial: egg.cards.find((card) => card.id === next.list) ?? null, want: null };
+			onIntentDone?.();
+		});
+	});
+
+	const listings = $derived(market?.listings ?? []);
+	const mine = $derived(tradable(egg.cards, egg.now));
+	const owned = $derived.by(() => {
+		const count = new Map<string, number>();
+		for (const card of egg.cards) count.set(card.card_id, (count.get(card.card_id) ?? 0) + 1);
+		return count;
+	});
+	/** The packs that can be traded: open ones (and reruns), not those announced. */
+	const packs = $derived.by(() => {
+		const open = PACKS.filter((pack) => me?.packs.some((entry) => entry.period === pack.period && entry.state !== 'upcoming'));
+		return open.length ? open : PACKS.filter((pack) => pack.period === period);
+	});
+	const packOptions = $derived(packs.map((pack) => ({ value: String(pack.period), label: t('eggMarket.pack', { n: pack.period, name: pack.name }) })));
+	const sortOptions = $derived((['hot', 'rare', 'new'] as const).map((key) => ({ value: key, label: t(`eggMarket.market.sort${key === 'hot' ? 'Hot' : key === 'rare' ? 'Rare' : 'New'}`) })));
+	const rank = (of: Tier) => TIERS.indexOf(of);
+	const tiles = $derived.by((): Tile[] => {
+		const shown = PACKS.some((pack) => pack.period === period) ? period : (PACKS[0]?.period ?? 1);
+		return packCards(shown)
+			.map((def) => {
+				const offers = listings.filter((item) => item.give.card_id === def.id && !item.mine).length;
+				const wants = listings.filter((item) => !item.mine && (item.want_card_id === def.id || (item.want_card_id === null && item.want_tier === def.tier))).length;
+				const newest = Math.max(0, ...listings.filter((item) => item.give.card_id === def.id || item.want_card_id === def.id).map((item) => item.at));
+				return { def, offers, wants, mine: owned.get(def.id) ?? 0, newest };
+			})
+			.filter((tile) => tier === 'all' || tile.def.tier === tier)
+			.filter((tile) =>
+				only === 'missing'
+					? tile.mine === 0
+					: only === 'can'
+						? listings.some((item) => !item.mine && item.give.card_id === tile.def.id && matches(item, mine).length > 0)
+						: true
+			)
+			.sort((a, b) => (sort === 'hot' ? b.offers + b.wants - (a.offers + a.wants) : sort === 'rare' ? rank(b.def.tier) - rank(a.def.tier) : b.newest - a.newest));
+	});
+	const canTake = $derived(listings.filter((item) => !item.mine && matches(item, mine).length > 0).length);
+	const incoming = $derived(egg.trades?.incoming.length ?? 0);
+	const figures = $derived<Array<[string, number]>>([
+		[t('eggMarket.market.statListings'), market?.stats?.listings ?? listings.length],
+		[t('eggMarket.market.statToday'), market?.stats?.today_trades ?? 0],
+		[t('eggMarket.market.statCan'), canTake],
+		[t('eggMarket.market.statRequests'), incoming]
+	]);
+
+	/** A swap done: show it, and read the album again. */
+	function received(next: Deal) {
+		deal = next;
+		void egg.refresh();
+	}
+
+	async function unlist(item: EggListing) {
 		try {
-			await run();
-			toast.success(done);
-			void loadHall();
-			void egg.loadTrades();
+			await eggApi.unlist(item.id);
+			toast.success(t('eggMarket.hall.unlisted'));
+			void loadMarket();
 			void egg.refresh();
 		} catch (error) {
 			toast.error(eggErrorText(error));
-		} finally {
-			busy = null;
 		}
 	}
 </script>
 
 <div class="market">
-	<header class="head">
-		<h1>{t('egg.nav.market')}</h1>
-		<span class="ctx">{t('egg.market.summary')}</span>
-		<Button size="sm" onclick={() => ((listing = true), (listCard = null), (listTier = null))}><PlusIcon size={14} />{t('egg.market.list')}</Button>
-	</header>
-	<div class="tabs" role="tablist">
-		<button class="tab" class:on={tab === 'hall'} role="tab" aria-selected={tab === 'hall'} onclick={() => (tab = 'hall')}>{t('egg.market.hall')}</button>
-		<button class="tab" class:on={tab === 'requests'} role="tab" aria-selected={tab === 'requests'} onclick={() => (tab = 'requests')}>
-			{t('egg.market.requests')}{#if waiting}<span class="n">{waiting}</span>{/if}
-		</button>
-	</div>
+	{#if banned}
+		<p class="banned" role="status">{t('eggMarket.ban')}</p>
+	{/if}
 
-	{#if tab === 'hall' && !listings}
-		<p class="none">{t('egg.loading')}</p>
-	{:else if tab === 'hall' && listings}
-		{#if listings.length}
-			<div class="list">
-				{#each listings as l (l.id)}
-					{@const def = cardById(l.give.card_id)}
-					<div class="row">
-						<div class="thumb">{#if def}<Card3D card={def} period={def.period} packName={packOf(def.period)?.name ?? ''} live={false} interactive={false} />{/if}</div>
-						<div class="txt">
-							<p class="title">{def?.name}<span class="tier">{tierName(l.give.tier)}</span></p>
-							<p class="desc">{t('egg.market.wants', { what: wants(l) })} · {l.mine ? t('egg.market.yours') : l.owner} · {ago(l.at)}</p>
-						</div>
-						{#if l.mine}
-							<Button size="sm" variant="ghost" disabled={busy === l.id} onclick={() => act(l.id, () => eggApi.unlist(l.id), t('egg.market.withdrawn'))}>{t('egg.market.withdraw')}</Button>
-						{:else}
-							<Button size="sm" disabled={!fits(l).length || busy === l.id} title={fits(l).length ? undefined : t('egg.market.noFit')} onclick={() => (taking = l)}>{t('egg.market.take')}</Button>
-						{/if}
-					</div>
-				{/each}
+	<dl class="figures">
+		{#each figures as [label, value] (label)}
+			<div class="figure">
+				<dt>{label}</dt>
+				<dd>{value}</dd>
 			</div>
-		{:else}
-			<p class="none">{t('egg.market.emptyHall')}</p>
-		{/if}
-	{:else if !egg.trades}
-		<p class="none">{t('egg.loading')}</p>
-	{:else if swaps.length}
-		<div class="list">
-			{#each swaps as x (x.id)}
-				{@const theirs = x.mine ? x.want : x.give}
-				{@const ours = x.mine ? x.give : x.want}
-				<div class="row">
-					<div class="swap" aria-hidden="true">
-						{@render thumb(theirs[0]?.card_id)}
-						<ArrowsLeftRightIcon size={14} />
-						{@render thumb(ours[0]?.card_id)}
-					</div>
-					<div class="txt">
-						<p class="title">
-							{x.mine
-								? t('egg.market.sent', { who: x.to, give: ours.map((c) => name(c.card_id)).join('、'), get: theirs.map((c) => name(c.card_id)).join('、') })
-								: t('egg.market.received', { who: x.from, give: theirs.map((c) => name(c.card_id)).join('、'), get: ours.map((c) => name(c.card_id)).join('、') })}
-						</p>
-						<p class="desc">{x.state === 'open' ? ago(x.at) : t(`egg.market.state.${x.state}`)}</p>
-					</div>
-					{#if x.state === 'open' && !x.mine}
-						<div class="btns">
-							<Button size="sm" variant="primary" disabled={busy === x.id} onclick={() => act(x.id, () => eggApi.answer(x.id, 'accept'), t('egg.market.accepted'))}>{t('egg.market.accept')}</Button>
-							<Button size="sm" variant="ghost" disabled={busy === x.id} onclick={() => act(x.id, () => eggApi.answer(x.id, 'decline'), t('egg.market.declined'))}>{t('egg.market.decline')}</Button>
-						</div>
-					{:else if x.state === 'open'}
-						<Button size="sm" variant="ghost" disabled={busy === x.id} onclick={() => act(x.id, () => eggApi.answer(x.id, 'cancel'), t('egg.market.withdrawn'))}>{t('egg.market.withdraw')}</Button>
-					{/if}
-				</div>
+		{/each}
+	</dl>
+
+	<div class="bar">
+		<div class="tabs" role="tablist" aria-label={t('eggMarket.market.tabs')}>
+			{#each ['market', 'mine'] as const as key (key)}
+				<button type="button" role="tab" class="tab" aria-selected={view === key} onclick={() => (view = key)}>
+					{key === 'market' ? t('eggMarket.market.tabMarket') : t('eggMarket.market.tabMine')}
+					{#if key === 'mine' && incoming > 0}<span class="badge">{incoming}</span>{/if}
+				</button>
 			{/each}
 		</div>
+		<div class="actions">
+			{#if !roomy && view === 'market'}
+				<Button onclick={() => (recentOpen = true)}><ClockCounterClockwiseIcon size={16} />{t('eggMarket.market.recent')}</Button>
+			{/if}
+			<Button onclick={() => (offering = true)} disabled={banned}><PaperPlaneTiltIcon size={16} />{t('eggMarket.trade.new')}</Button>
+			<Button variant="primary" onclick={() => (listing = { initial: null, want: null })} disabled={egg.cards.length === 0 || banned}>
+				<PlusIcon size={16} />{t('eggMarket.hall.list')}
+			</Button>
+		</div>
+	</div>
+
+	{#if view === 'market'}
+		<div class="hall" class:roomy>
+			<div class="col">
+				<div class="filters">
+					<span class="pill-select">
+						<Select value={String(period)} options={packOptions} onChange={(value) => (period = Number(value))} />
+					</span>
+					<div class="tiers">
+						{#each ['all', ...TIERS] as const as key (key)}
+							<button type="button" class="tier" aria-pressed={tier === key} onclick={() => (tier = key)}>
+								{#if key === 'all'}
+									{t('eggMarket.market.allTiers')}
+								{:else}
+									<span class="ce-tier-dot" data-tier={key} aria-hidden="true"></span>{TIER_LOOK[key].code}
+								{/if}
+							</button>
+						{/each}
+					</div>
+					<div class="end">
+						{#each ['missing', 'can'] as const as key (key)}
+							<button type="button" class="toggle" aria-pressed={only === key} onclick={() => (only = only === key ? 'all' : key)}>
+								{key === 'missing' ? t('eggMarket.hall.filterMissing') : t('eggMarket.hall.filterCan')}
+							</button>
+						{/each}
+						<span class="pill-select at-end">
+							<Select value={sort} options={sortOptions} onChange={(value) => (sort = value as Sort)} />
+						</span>
+					</div>
+				</div>
+				<PageStrip items={tiles} key={(tile) => tile.def.id} cols={5} rows="auto" kind="tile" arrows>
+					{#snippet item(tile)}
+						<MarketTile def={tile.def} offers={tile.offers} wants={tile.wants} mine={tile.mine} onOpen={() => (opened = tile.def)} />
+					{/snippet}
+					{#snippet empty()}
+						<p class="none">{t('eggMarket.hall.empty')}</p>
+					{/snippet}
+				</PageStrip>
+				<p class="rules" title={t('eggMarket.hall.rules')}>{t('eggMarket.hall.rules')}</p>
+			</div>
+			{#if roomy}
+				<div class="side">
+					<Recent items={market?.recent ?? []} now={egg.now} />
+				</div>
+			{/if}
+		</div>
 	{:else}
-		<p class="none">{t('egg.market.emptyRequests')}</p>
+		<div class="pane">
+			<MyTrades
+				{listings}
+				trades={egg.trades}
+				{rules}
+				now={egg.now}
+				onUnlist={(item) => void unlist(item)}
+				onAnswered={() => {
+					void egg.loadTrades();
+					void loadMarket();
+				}}
+				onReceived={received}
+			/>
+		</div>
 	{/if}
 </div>
 
-{#snippet thumb(id: string | undefined)}
-	{@const def = id ? cardById(id) : undefined}
-	<div class="thumb">{#if def}<Card3D card={def} period={def.period} packName={packOf(def.period)?.name ?? ''} live={false} interactive={false} />{/if}</div>
-{/snippet}
+{#if recentOpen}
+	<SidePanel width={340} label={t('eggMarket.market.recent')} onClose={() => (recentOpen = false)}>
+		{#snippet head()}
+			<h2 class="panel-title">{t('eggMarket.market.recent')}</h2>
+		{/snippet}
+		<div class="panel-scroll">
+			<Recent items={market?.recent ?? []} now={egg.now} bare />
+		</div>
+	</SidePanel>
+{/if}
+
+{#if opened}
+	<CardPanel
+		def={opened}
+		{listings}
+		{mine}
+		owned={egg.cards.length}
+		{banned}
+		now={egg.now}
+		onClose={() => (opened = null)}
+		onTake={(item) => (taking = item)}
+		onList={(give, want) => (listing = { initial: give, want })}
+	/>
+{/if}
 
 {#if taking}
-	{@const l = taking}
-	<Modal title={t('egg.market.takeTitle', { name: name(l.give.card_id) })} width={560} onClose={() => (taking = null)}>
-		<p class="lead">{t('egg.market.takeLead', { what: wants(l) })}</p>
-		<div class="pick">
-			{#each fits(l) as c (c.id)}
-				{@const def = cardById(c.card_id)}
-				<button class="choice" disabled={busy === l.id} onclick={() => act(l.id, () => eggApi.take(l.id, c.id), t('egg.market.swapped')).then(() => (taking = null))}>
-					{#if def}<Card3D card={def} period={def.period} packName={packOf(def.period)?.name ?? ''} serial={c.serial} live={false} interactive={false} />{/if}
-					<span>{def?.name}</span>
-				</button>
-			{/each}
-		</div>
-	</Modal>
+	<TakeDialog
+		listing={taking}
+		{mine}
+		cards={egg.cards}
+		{rules}
+		{balance}
+		onClose={() => (taking = null)}
+		onDone={(next) => {
+			taking = null;
+			opened = null;
+			void loadMarket();
+			received(next);
+		}}
+	/>
 {/if}
 
 {#if listing}
-	<Modal title={t('egg.market.list')} width={600} onClose={() => (listing = false)}>
-		<p class="lead">{t('egg.market.listLead')}</p>
-		<div class="pick">
-			{#each tradable as c (c.id)}
-				{@const def = cardById(c.card_id)}
-				<button class="choice" class:on={listCard === c.id} onclick={() => (listCard = c.id)}>
-					{#if def}<Card3D card={def} period={def.period} packName={packOf(def.period)?.name ?? ''} serial={c.serial} live={false} interactive={false} />{/if}
-					<span>{def?.name}</span>
-				</button>
-			{/each}
-		</div>
-		<p class="lead">{t('egg.market.listWant')}</p>
-		<div class="tiers">
-			<button class="tab" class:on={listTier === null} onclick={() => (listTier = null)}>{t('egg.market.anyCard')}</button>
-			{#each TIERS as tier (tier)}
-				<button class="tab" class:on={listTier === tier} onclick={() => (listTier = tier)}>{tierName(tier)}</button>
-			{/each}
-		</div>
-		{#snippet footer()}
-			<Button variant="ghost" onclick={() => (listing = false)}>{t('egg.cancel')}</Button>
-			<Button
-				variant="primary"
-				disabled={!listCard || busy === 'list'}
-				onclick={() => listCard && act('list', () => eggApi.list(listCard as string, { tier: listTier }), t('egg.market.listed')).then(() => (listing = false))}
-			>
-				{t('egg.market.listConfirm')}
-			</Button>
-		{/snippet}
-	</Modal>
+	<ListDialog
+		{mine}
+		cards={egg.cards}
+		period={me?.pack.period ?? period}
+		{rules}
+		{balance}
+		initial={listing.initial}
+		initialWant={listing.want}
+		onClose={() => (listing = null)}
+		onDone={() => {
+			listing = null;
+			void loadMarket();
+			void egg.refresh();
+		}}
+	/>
+{/if}
+
+{#if offering}
+	<OfferDialog
+		{mine}
+		{rules}
+		{balance}
+		onClose={() => (offering = false)}
+		onSent={() => {
+			offering = false;
+			void egg.loadTrades();
+		}}
+	/>
+{/if}
+
+{#if deal}
+	<TradeReveal
+		{deal}
+		onClose={() => (deal = null)}
+		onAlbum={() => {
+			deal = null;
+			onAlbum?.();
+		}}
+	/>
 {/if}
 
 <style>
 	.market {
-		flex: 1;
+		display: flex;
+		flex: 1 1 auto;
+		flex-direction: column;
+		gap: 16px;
+		min-width: 0;
 		min-height: 0;
-		overflow-y: auto;
-		padding: 24px 48px 48px;
 	}
-	.head {
+	.banned {
+		flex: none;
+		margin: 0;
+		padding: 8px 14px;
+		border: 1px solid color-mix(in oklab, var(--warn) 40%, transparent);
+		border-radius: var(--r-lg);
+		background: color-mix(in oklab, var(--warn) 10%, transparent);
+		font-size: var(--fs-sm);
+		color: var(--warn);
+	}
+
+	/* 当前挂单 · 今日成交 · 可直接换 · 待处理请求 */
+	.figures {
+		display: grid;
+		flex: none;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		gap: 1px;
+		margin: 0;
+		overflow: hidden;
+		border: 1px solid var(--border);
+		border-radius: var(--r-xl);
+		background: var(--border);
+	}
+	.figure {
 		display: flex;
 		align-items: baseline;
-		gap: 12px;
-		max-width: 760px;
+		justify-content: space-between;
+		gap: 8px;
+		min-width: 0;
+		padding: 10px 20px;
+		background: var(--panel);
 	}
-	h1 {
+	.figure dt {
+		min-width: 0;
+		font-size: var(--fs-sm);
+		color: var(--dim);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.figure dd {
 		margin: 0;
 		font-size: var(--fs-xl);
 		font-weight: 600;
+		line-height: 28px;
+		font-variant-numeric: tabular-nums;
 		color: var(--text);
 	}
-	.ctx {
-		flex: 1;
-		font-size: var(--fs-xs);
-		color: var(--dim);
-	}
-	.tabs,
-	.tiers {
+
+	/* 交易市场 | 我的交易 · 最近成交 · 定向交换 · 挂出卡牌 */
+	.bar {
 		display: flex;
+		flex: none;
 		flex-wrap: wrap;
-		gap: 4px;
-		margin: 18px 0 14px;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+	}
+	.tabs {
+		display: inline-flex;
+		padding: 4px;
+		border-radius: var(--r-full);
+		background: var(--surface2);
 	}
 	.tab {
 		display: inline-flex;
 		align-items: center;
 		gap: 6px;
-		height: 30px;
-		padding: 0 12px;
-		border: none;
-		border-radius: var(--r-md);
+		padding: 6px 16px;
+		border: 0;
+		border-radius: var(--r-full);
 		background: none;
 		color: var(--dim);
 		font: inherit;
 		font-size: var(--fs-sm);
+		font-weight: 500;
+		line-height: 18px;
 		cursor: pointer;
+		transition:
+			background var(--t-fast) var(--ease-out),
+			color var(--t-fast) var(--ease-out),
+			box-shadow var(--t-fast) var(--ease-out);
 	}
 	.tab:hover {
-		background: var(--surface2);
-	}
-	.tab.on {
-		background: var(--surface2);
 		color: var(--text);
 	}
-	.tab .n {
-		min-width: 18px;
-		padding: 0 5px;
-		border-radius: var(--r-full);
-		background: var(--accent);
-		color: var(--on-accent);
-		font-family: var(--font-mono);
-		font-size: var(--fs-2xs);
-		line-height: 18px;
-		text-align: center;
-	}
-	.list {
-		max-width: 760px;
-		border: 1px solid var(--border);
-		border-radius: var(--r-lg);
+	.tab[aria-selected='true'] {
 		background: var(--panel);
-	}
-	.row {
-		display: flex;
-		align-items: center;
-		gap: 14px;
-		padding: 12px 18px;
-	}
-	.row + .row {
-		border-top: 1px solid var(--hairline);
-	}
-	.thumb {
-		width: 44px;
-		flex: none;
-	}
-	.swap {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		flex: none;
-		color: var(--dim2);
-	}
-	.swap .thumb {
-		width: 36px;
-	}
-	.txt {
-		flex: 1;
-		min-width: 0;
-	}
-	.txt p {
-		margin: 0;
-	}
-	.title {
-		font-size: var(--fs-sm);
 		color: var(--text);
+		box-shadow: 0 0 0 1px var(--border);
 	}
-	.title .tier {
-		margin-left: 8px;
-		font-size: var(--fs-xs);
-		color: var(--dim);
+	.badge {
+		padding: 0 6px;
+		border-radius: var(--r-full);
+		background: var(--text);
+		color: var(--bg);
+		font-size: var(--fs-2xs);
+		line-height: 16px;
+		font-variant-numeric: tabular-nums;
 	}
-	.desc {
-		margin-top: 3px !important;
-		font-size: var(--fs-xs);
-		color: var(--dim);
-	}
-	.btns {
+	.actions {
 		display: flex;
-		gap: 6px;
+		flex-wrap: wrap;
+		gap: 8px;
 	}
-	.none {
-		margin: 8px 0;
-		font-size: var(--fs-sm);
-		color: var(--dim);
-	}
-	.lead {
-		margin: 0 0 12px;
-		font-size: var(--fs-sm);
-		color: var(--dim);
-	}
-	.pick {
+
+	/* The cards (and the latest swaps beside them on a wide window). */
+	.hall {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
-		gap: 12px;
-		max-height: 320px;
-		overflow-y: auto;
-		padding: 4px;
-		margin-bottom: 16px;
+		flex: 1 1 auto;
+		gap: 20px;
+		min-width: 0;
+		min-height: 0;
 	}
-	.choice {
+	.hall.roomy {
+		grid-template-columns: minmax(0, 1fr) 280px;
+	}
+	.col {
 		display: flex;
 		flex-direction: column;
+		gap: 12px;
+		min-width: 0;
+		min-height: 0;
+	}
+	.side {
+		min-height: 0;
+		overflow-y: auto;
+		overscroll-behavior: contain;
+		border-radius: var(--r-xl);
+	}
+	.filters {
+		display: flex;
+		flex: none;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 8px;
+	}
+	.tiers {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+	}
+	.tier,
+	.toggle {
+		display: inline-flex;
+		align-items: center;
 		gap: 6px;
-		padding: 6px;
-		border: 1px solid transparent;
-		border-radius: var(--r-md);
+		height: 32px;
+		padding: 0 12px;
+		border: 1px solid var(--border);
+		border-radius: var(--r-full);
 		background: none;
-		color: var(--text);
+		color: var(--dim);
 		font: inherit;
-		font-size: var(--fs-xs);
+		font-size: var(--fs-sm);
+		line-height: 18px;
 		cursor: pointer;
+		transition:
+			background var(--t-fast) var(--ease-out),
+			border-color var(--t-fast) var(--ease-out),
+			color var(--t-fast) var(--ease-out);
 	}
-	.choice:hover {
-		background: var(--surface2);
+	.tier:hover,
+	.toggle:hover {
+		color: var(--text);
 	}
-	.choice.on {
-		background: var(--surface2);
-		border-color: var(--border-strong);
+	.tier[aria-pressed='true'] {
+		border-color: var(--text);
+		background: var(--text);
+		color: var(--bg);
+	}
+	.toggle[aria-pressed='true'] {
+		border-color: var(--text);
+		background: color-mix(in oklab, var(--text) 10%, transparent);
+		color: var(--text);
+	}
+	.end {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 8px;
+		margin-left: auto;
+	}
+	/* The pack and the order: chips with a menu, as the tier chips beside them. */
+	.pill-select {
+		display: inline-block;
+		flex: none;
+	}
+	.pill-select :global(.trigger) {
+		min-height: 32px;
+		padding: 0 12px 0 14px;
+		border-radius: var(--r-full);
+		background: none;
+	}
+	.pill-select :global(.menu) {
+		right: auto;
+		width: max-content;
+		min-width: 100%;
+	}
+	.pill-select.at-end :global(.menu) {
+		left: auto;
+		right: 0;
+	}
+	.none {
+		margin: 0;
+		font-size: var(--fs-sm);
+		color: var(--dim);
+	}
+	.rules {
+		flex: none;
+		margin: 0;
+		font-size: var(--fs-xs);
+		color: var(--dim);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	/* 我的交易: the one part of the page that scrolls. */
+	.pane {
+		flex: 1 1 auto;
+		min-height: 0;
+		overflow-y: auto;
+		overscroll-behavior: contain;
+	}
+
+	.panel-title {
+		margin: 0;
+		padding: 20px 56px 12px 24px;
+		font-size: var(--fs-lg);
+		font-weight: 600;
+		line-height: 24px;
+		color: var(--text);
+	}
+	.panel-scroll {
+		flex: 1 1 auto;
+		min-height: 0;
+		padding: 4px 24px 24px;
+		overflow-y: auto;
+		overscroll-behavior: contain;
 	}
 </style>

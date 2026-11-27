@@ -34,3 +34,28 @@ export function clock(at: number): string {
 	const d = new Date(at);
 	return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
+
+/** Tokens as the website writes them beside a card (gateway `formatTokens`): 「4826 万」, 「48M」. */
+export function tokensText(tokens: number, locale: string): string {
+	const { number, unit } = tokenParts(tokens, locale);
+	if (!unit) return number;
+	return locale.startsWith('zh') ? `${number} ${unit}` : `${number}${unit}`;
+}
+
+/** A day as the website writes it in a card's history: 「11月27日」, 「November 27」. */
+export function dayText(at: number, locale: string): string {
+	return new Date(at).toLocaleDateString(locale.startsWith('zh') ? 'zh-CN' : 'en-US', { month: 'long', day: 'numeric' });
+}
+
+/** Tokens split as the website's big figures show them (gateway `tokenParts`): 48_260_000 → 「4826」「万」 in Chinese,
+ *  「48」「M」 in English; one decimal under 1 千万, two from 1 亿. */
+export function tokenParts(value: number, locale: string): { number: string; unit: string } {
+	const digits = value >= 1e8 ? 2 : value >= 1e7 ? 0 : 1;
+	const parts = new Intl.NumberFormat(locale.startsWith('zh') ? 'zh-CN' : 'en-US', { notation: 'compact', maximumFractionDigits: digits }).formatToParts(value);
+	const unit = parts.find((part) => part.type === 'compact')?.value ?? '';
+	const number = parts
+		.filter((part) => part.type !== 'compact' && part.type !== 'literal')
+		.map((part) => part.value)
+		.join('');
+	return { number, unit };
+}
