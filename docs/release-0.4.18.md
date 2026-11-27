@@ -27,8 +27,8 @@ CLI 完整 Windows 测试仍有 11 项 daemon 集成失败，涉及 Unix 假进�
 此文件记录源代码改动；构建、CI 与线上部署状态以实际完成结果更新。
 2026-10-06 已完成 GitHub workflow 权限授权；完整工作流已可推送。
 更新通过以下 PR 审查：
-- Desktop: https://github.com/Libra1337/LynShen_Agent/pull/1
-- CLI: https://github.com/Libra1337/LynShen-CLI/pull/1
+- Desktop: https://github.com/LynShen-Team/Aogiri-Desktop/pull/1
+- CLI: https://github.com/LynShen-Team/Aogiri-CLI/pull/1
 
 Windows 安装包已在本地构建并验证文件与元数据签名：
 - 文件：`src-tauri/target/release/bundle/nsis/LynShen_0.4.18_x64-setup.exe`
@@ -41,13 +41,13 @@ GitHub CI 生成的 Windows 安装包已独立下载并验证文件及元数据�
 - 与本地构建的哈希不同；线上分发使用 CI 构建产物。
 
 远程验证：
-- Desktop 四平台 CI 和浏览器回归通过：https://github.com/Libra1337/LynShen_Agent/actions/runs/37412326591
-- CLI Linux 格式、clippy、完整测试及 Windows 编译通过：https://github.com/Libra1337/LynShen-CLI/actions/runs/37411470402
+- Desktop 四平台 CI 和浏览器回归通过：https://github.com/LynShen-Team/Aogiri-Desktop/actions/runs/37412326591
+- CLI Linux 格式、clippy、完整测试及 Windows 编译通过：https://github.com/LynShen-Team/Aogiri-CLI/actions/runs/37411470402
 - macOS 无 Apple 证书时使用 ad-hoc 签名，自动更新产物另行使用 Tauri 更新密钥签名；尚未进行 Apple 公证。
 
 Windows、macOS Apple Silicon、macOS Intel 和 Linux 由发布工作流构建，全部成功后才发布完整目录及自动更新。发布前每个平台运行桌面 Rust 测试和 clippy。
 2026-10-06 12:43（UTC+8），0.4.18 已正式发布并同步至两个公网域名。
-发布任务成功：https://github.com/Libra1337/LynShen_Agent/actions/runs/37412643714
+发布任务成功：https://github.com/LynShen-Team/Aogiri-Desktop/actions/runs/37412643714
 下载页：https://www.lynshen.org/download 和 https://api.lynshen.org/download
 两个域名的目录及自动更新清单均为 0.4.18，包含 Windows x64、macOS Apple Silicon 和 macOS Intel。
 三个安装包均通过公网下载 SHA-256 校验；对应更新包均通过文件和元数据签名验证；HEAD 与 byte-range 下载检查通过。
